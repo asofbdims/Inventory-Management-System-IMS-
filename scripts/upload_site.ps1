@@ -28,9 +28,12 @@ Set-Content -LiteralPath $stubPath -Value $stub -Encoding UTF8
 
 function Upload-File([string]$Local, [string]$ObjectName, [string]$ContentType) {
     $uri = "$base/storage/v1/object/ims-site/$ObjectName"
-    $headers = @{ Authorization = "Bearer $secret"; 'Content-Type' = $ContentType }
-    $resp = Invoke-RestMethod -Method Post -Uri $uri -Headers $headers -InFile $Local
-    Write-Host "uploaded: $ObjectName"
+    $headers = @{ Authorization = "Bearer $secret" }
+    # Delete-then-put so the object's stored Content-Type is always refreshed.
+    try { Invoke-RestMethod -Method Delete -Uri $uri -Headers $headers | Out-Null } catch { }
+    $headers['Content-Type'] = $ContentType
+    $resp = Invoke-RestMethod -Method Put -Uri $uri -Headers $headers -InFile $Local
+    Write-Host "uploaded: $ObjectName ($ContentType)"
     return $resp
 }
 
