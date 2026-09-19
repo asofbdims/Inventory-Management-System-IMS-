@@ -1,20 +1,18 @@
-# Seeds the IMS auth users + profiles into a running local Supabase stack.
-# Run AFTER `supabase db reset` (which wipes auth.users) and BEFORE logging into the app.
+# Seeds the IMS auth users + profiles into a running Supabase stack (local or cloud).
+# For local: run AFTER `supabase db reset` (which wipes auth.users).
 # Usage:  powershell -ExecutionPolicy Bypass -File scripts/seed_users.ps1
 #
 # No credentials are hardcoded. Provide them as environment variables:
 #   SUPABASE_URL           (default: http://127.0.0.1:54321)
-#   SUPABASE_ANON_KEY      (required)
 #   SUPABASE_SECRET_KEY    (required - service role key for admin API)
 #   SUPERADMIN_PASS        (optional; random password is generated if omitted)
 #   ASO_VIEWER_PASS        (optional; random password is generated if omitted)
 #   CENTRE_PASS            (optional; random password is generated if omitted)
 $ErrorActionPreference = 'Stop'
 $base = if ($env:SUPABASE_URL) { $env:SUPABASE_URL } else { 'http://127.0.0.1:54321' }
-$anon = $env:SUPABASE_ANON_KEY
 $secret = $env:SUPABASE_SECRET_KEY
-if (-not $anon -or -not $secret) {
-    throw 'SUPABASE_ANON_KEY and SUPABASE_SECRET_KEY environment variables are required.'
+if (-not $secret) {
+    throw 'SUPABASE_SECRET_KEY environment variable is required.'
 }
 
 if (-not $env:SUPERADMIN_PASS)  { $env:SUPERADMIN_PASS  = -join ((48..57) + (97..122) | Get-Random -Count 12 | ForEach-Object { [char]$_ }) }
@@ -62,26 +60,25 @@ function Get-Or-Create($username, $password) {
     return $resp.id
 }
 
-$rows = @()
-
 $superId = Get-Or-Create 'superadmin' $env:SUPERADMIN_PASS
-$rows += "('$superId','superadmin','Admin','SUPERADMIN','ASO ADMIN',NULL,'')"
 
 $viewerId = Get-Or-Create 'aso_viewer' $env:ASO_VIEWER_PASS
-$rows += "('$viewerId','aso_viewer','ASO Viewer','ASO_VIEWER','ASO VIEWER',NULL,'')"
 
+$profiles = @(
+    @{ id = $superId;  username = 'superadmin'; name = 'Admin';     role = 'SUPERADMIN'; userType = 'ASO ADMIN';  centreId = $null;         centreName = '' },
+    @{ id = $viewerId; username = 'aso_viewer'; name = 'ASO Viewer'; role = 'ASO_VIEWER'; userType = 'ASO VIEWER'; centreId = $null;         centreName = '' }
+)
 foreach ($c in $centres) {
-    $username = $c.username
-    $password = $centrePass
-    $uid = Get-Or-Create $username $password
-    $rows += "('$uid','$username','$($c.name)','CENTRE','CENTRE',$($c.id),'$($c.name)')"
+    $uid = Get-Or-Create $c.username $centrePass
+    $profiles += @{ id = $uid; username = $c.username; name = $c.name; role = 'CENTRE'; userType = 'CENTRE'; centreId = $c.id; centreName = $c.name }
 }
 
-$values = $rows -join ",`n`t"
-$sql = 'insert into public.profiles (id, username, name, role, "userType", "centreId", "centreName") values' + "`n`t" + $values + ';'
-$sql | & docker exec -i supabase_db_ims-main psql -U postgres -d postgres 2>&1
-Write-Host "Inserted $($rows.Count) profiles."
+$body = $profiles | ConvertTo-Json -Depth 4
+$bioHeaders = @{ apikey = $secret; Authorization = "Bearer $secret"; 'Content-Type' = 'application/json'; Prefer = 'resolution=ignore-duplicates' }
+$null = Invoke-RestMethod -Method Post -Uri "$base/rest/v1/profiles" -Headers $bioHeaders -Body $body
+Write-Host "Upserted $($profiles.Count) profiles."
 
 Write-Host "---- profiles ----"
-'select username, role, "userType", "centreId", "centreName" from public.profiles order by role desc nulls first, "centreId";' |
-    & docker exec -i supabase_db_ims-main psql -U postgres -d postgres 2>&1
+$query = "$base/rest/v1/profiles?select=username,role,""userType"",centreId,centreName&order=role.desc.nullslast"
+$rows = Invoke-RestMethod -Uri $query -Headers $bioHeaders
+$rows | Format-Table -AutoSize
