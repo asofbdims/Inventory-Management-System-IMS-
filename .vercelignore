@@ -1,0 +1,10 @@
+# Only the static app + its build inputs are needed.
+# Never upload backend/migrations/git history to Vercel.
+.git/
+out/
+backend/
+supabase/
+public/index.html
+venv/
+*.py[cod]
+__pycache__/
