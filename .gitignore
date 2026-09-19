@@ -1,0 +1,27 @@
+# Virtual environment
+venv/
+
+# Environment variables
+.env
+# Local-only app keys (Supabase anon + service keys)
+config.local.js
+
+# Python
+__pycache__/
+*.py[cod]
+
+# Django
+*.log
+db.sqlite3
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Supabase local runtime artifacts
+supabase/.temp/
+supabase/.branches/
