@@ -27,3 +27,6 @@ Thumbs.db
 # Supabase local runtime artifacts
 supabase/.temp/
 supabase/.branches/
+
+# Vercel build output (generated; served from GitHub, no need to track)
+out/
