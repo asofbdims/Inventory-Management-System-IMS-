@@ -348,7 +348,7 @@ const SM_EMAIL_DOMAIN = '@ims.local';
 
 const { createClient } = window.supabase;
 const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-const sbAdmin = createClient(SUPABASE_URL, SUPABASE_SECRET_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
+const sbAdmin = SUPABASE_SECRET_KEY ? createClient(SUPABASE_URL, SUPABASE_SECRET_KEY, { auth: { persistSession: false, autoRefreshToken: false } }) : null;
 
 function buildUser(p) {
   if (p.role === 'SUPERADMIN') return { id: 'superadmin', username: p.username, name: p.name, role: 'admin', type: 'ASO ADMIN' };
