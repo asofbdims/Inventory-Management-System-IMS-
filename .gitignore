@@ -5,6 +5,8 @@ venv/
 .env
 # Local-only app keys (Supabase anon + service keys)
 config.local.js
+# Exception: Vercel deploy config holds ONLY the public anon key (safe to commit)
+!public/config.local.js
 
 # Python
 __pycache__/

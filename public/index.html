@@ -1,0 +1,1938 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stock Management System</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%231F5D50'/%3E%3Ctext x='16' y='22' font-family='Arial' font-size='18' font-weight='bold' fill='%23fff' text-anchor='middle'%3ES%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600;8..60,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F3F5F4;
+  --surface:#FFFFFF;
+  --primary:#1F5D50;
+  --primary-dark:#153F37;
+  --primary-tint:#E7F0EC;
+  --accent:#B4892F;
+  --accent-tint:#FBF3E1;
+  --line:#E1E6E3;
+  --muted:#66756F;
+  --text:#17211D;
+  --green:#1E8E5A; --green-bg:#E6F4EC;
+  --amber:#B7791F; --amber-bg:#FFF3DC;
+  --red:#C0392B; --red-bg:#FDEAE8;
+  --navy:#1F3A5F; --navy-bg:#E7ECF3;
+  --azure:#2E6DA4; --azure-bg:#E7F0F8;
+  --sky:#3F8FB0; --sky-bg:#E9F5F9;
+  --radius:10px;
+  --shadow:0 1px 2px rgba(23,33,29,.06), 0 6px 20px -8px rgba(23,33,29,.10);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:'Inter',system-ui,-apple-system,sans-serif;
+  font-size:14px;
+  line-height:1.5;
+  min-height:100vh;
+}
+h1,h2,h3{font-family:'Source Serif 4',Georgia,serif;font-weight:600;margin:0;color:var(--primary-dark)}
+a{color:var(--primary);text-decoration:none}
+input,select,button{font-family:inherit;font-size:13.5px}
+.mono{font-family:'JetBrains Mono',monospace}
+
+/* ---------- App shell ---------- */
+#app{min-height:100vh;display:flex;flex-direction:column}
+.topbar{
+  background:var(--primary-dark);
+  color:#fff;
+  display:flex;align-items:center;gap:26px;
+  padding:0 24px;height:60px;
+  position:sticky;top:0;z-index:40;
+  box-shadow:0 2px 10px rgba(0,0,0,.15);
+}
+.topbar .brand{display:flex;align-items:center;gap:10px;font-family:'Source Serif 4',serif;font-weight:600;font-size:17px;color:#fff}
+.topbar .brand .mark{
+  width:30px;height:30px;border-radius:7px;background:var(--accent);
+  display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--primary-dark);
+  font-family:'Source Serif 4',serif;
+}
+.topbar nav{display:flex;gap:4px;flex:1}
+.topbar nav a{
+  color:rgba(255,255,255,.72);padding:9px 14px;border-radius:7px;font-size:13.5px;font-weight:500;
+  transition:background .15s,color .15s;
+}
+.topbar nav a:hover{background:rgba(255,255,255,.08);color:#fff}
+.topbar nav a.active{background:rgba(255,255,255,.14);color:#fff}
+.topbar .who{display:flex;align-items:center;gap:12px;font-size:13px;color:rgba(255,255,255,.85)}
+.topbar .who b{color:#fff}
+.item-row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;margin-bottom:8px;background:var(--surface)}
+.item-row .meta{font-size:12px;color:var(--muted)}
+.items-add{display:grid;grid-template-columns:1.2fr 1fr 1fr auto;gap:8px}
+@media(max-width:640px){.items-add{grid-template-columns:1fr}}
+.item-edit{flex:1;display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:6px}
+@media(max-width:640px){.item-edit{grid-template-columns:1fr}}
+.item-actions{display:flex;gap:6px}
+.sr-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;min-width:auto}
+@media(max-width:720px){.sr-actions{justify-content:flex-start}}
+.sr-actions .btn{font-size:12.5px;padding:8px 14px;box-shadow:var(--shadow);white-space:nowrap}
+.sr-actions .btn:hover{transform:translateY(-1px)}
+.topbar .logout{
+  background:transparent;border:1px solid rgba(255,255,255,.3);color:#fff;
+  padding:6px 12px;border-radius:7px;cursor:pointer;font-size:12.5px;
+}
+.topbar .logout:hover{background:rgba(255,255,255,.12)}
+main#content{max-width:1280px;margin:0 auto;padding:26px 24px 60px;width:100%}
+
+/* ---------- Login ---------- */
+body.login-page{
+  display:flex;align-items:center;justify-content:center;min-height:100vh;
+  background:
+    radial-gradient(circle at 15% 15%, rgba(180,137,47,.10), transparent 45%),
+    radial-gradient(circle at 85% 85%, rgba(31,93,80,.14), transparent 45%),
+    var(--bg);
+  padding:20px;
+}
+.login-card{
+  background:var(--surface);border:1px solid var(--line);border-radius:14px;
+  box-shadow:var(--shadow);padding:34px 32px;width:100%;
+}
+.login-card .logo{
+  width:44px;height:44px;border-radius:10px;background:var(--primary);color:#fff;
+  display:flex;align-items:center;justify-content:center;font-family:'Source Serif 4',serif;
+  font-size:20px;font-weight:700;margin-bottom:14px;
+}
+.login-card h1{font-size:20px;margin-bottom:4px}
+.login-card .sub{color:var(--muted);font-size:13px;margin:0 0 22px}
+.login-card label{display:block;font-size:12.5px;font-weight:600;color:var(--text);margin:12px 0 5px}
+.login-card input,.login-card select{
+  width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:8px;outline:none;
+  transition:border-color .15s;background:#fff;
+}
+.login-card input:focus,.login-card select:focus{border-color:var(--primary)}
+.login-card button[type=submit]{
+  margin-top:18px;width:100%;padding:11px;border:none;border-radius:8px;background:var(--primary);
+  color:#fff;font-weight:600;cursor:pointer;transition:background .15s;
+}
+.login-card button[type=submit]:hover{background:var(--primary-dark)}
+.login-err{display:none;margin-top:12px;background:var(--red-bg);color:var(--red);padding:9px 12px;border-radius:7px;font-size:12.5px}
+.login-card .hint{color:var(--muted);font-size:11.5px;margin-top:16px;text-align:center;line-height:1.5}
+
+/* ---------- Cards / grid ---------- */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow)}
+.card h3{font-size:13.5px;color:var(--muted);font-weight:600;margin-bottom:6px;text-transform:uppercase;letter-spacing:.03em}
+.big-num{font-family:'Source Serif 4',serif;font-size:32px;font-weight:700;color:var(--primary-dark)}
+.grid{display:grid;gap:14px}
+.grid.cols-3{grid-template-columns:repeat(3,1fr)}
+.grid.cols-4{grid-template-columns:repeat(4,1fr)}
+@media(max-width:900px){.grid.cols-3{grid-template-columns:1fr 1fr}.grid.cols-4{grid-template-columns:1fr 1fr}}
+@media(max-width:560px){.grid.cols-3,.grid.cols-4{grid-template-columns:1fr}}
+.stat-link{display:block}
+.stat{border-radius:var(--radius);padding:16px 18px}
+.stat b{display:block;font-family:'Source Serif 4',serif;font-size:26px}
+
+.logo-banner{
+  background:linear-gradient(120deg,var(--primary) 0%,var(--primary-dark) 100%);
+  color:#fff;border-radius:14px;padding:22px 24px;margin-bottom:20px;
+  display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;
+}
+.logo-banner h2{color:#fff;font-size:20px}
+.logo-banner p{margin:4px 0 0;color:rgba(255,255,255,.82);font-size:13px}
+
+/* ---------- Badges ---------- */
+.badge{
+  display:inline-block;padding:3px 9px;border-radius:100px;font-size:10.5px;font-weight:700;
+  letter-spacing:.05em;text-transform:uppercase;
+}
+.badge.navy{background:var(--navy-bg);color:var(--navy)}
+.badge.azure{background:var(--azure-bg);color:var(--azure)}
+.badge.sky{background:var(--sky-bg);color:var(--sky)}
+.badge.green{background:var(--green-bg);color:var(--green)}
+.badge.amber{background:var(--amber-bg);color:var(--amber)}
+.badge.red{background:var(--red-bg);color:var(--red)}
+
+/* ---------- Org tree cards (dashboard signature element) ---------- */
+.card-link{cursor:pointer;transition:transform .12s,box-shadow .12s,border-color .12s}
+.card-link:hover{transform:translateY(-1px);box-shadow:0 4px 16px -6px rgba(23,33,29,.22);border-color:var(--primary)}
+.card-compact{padding:12px 14px;margin-bottom:8px}
+.center-name{font-weight:600;font-size:13.5px}
+.mini-meta{color:var(--muted);font-size:11px}
+.card.t-centre{border-left:3px solid var(--navy)}
+.card.t-sub{border-left:3px solid var(--azure)}
+.card.t-point{border-left:3px solid var(--sky)}
+.card.t-admin{border-left:3px solid var(--accent)}
+.card-found{outline:2px solid var(--accent);outline-offset:1px}
+
+/* ---------- Search ---------- */
+.center-search{margin-bottom:18px}
+.cs-wrap{position:relative;max-width:340px}
+.cs-input{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:8px;outline:none;background:#fff}
+.cs-input:focus{border-color:var(--primary)}
+.cs-drop{
+  position:absolute;top:calc(100% + 4px);left:0;right:0;background:#fff;border:1px solid var(--line);
+  border-radius:8px;box-shadow:var(--shadow);max-height:260px;overflow:auto;z-index:30;display:none;
+}
+.cs-drop.open{display:block}
+.cs-item{padding:8px 12px;cursor:pointer;font-size:13px;display:flex;justify-content:space-between;gap:8px}
+.cs-item:hover{background:var(--primary-tint)}
+.cs-empty{padding:10px 12px;color:var(--muted);font-size:12.5px}
+
+/* ---------- Tables ---------- */
+.table-wrap{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);overflow:auto;box-shadow:var(--shadow);max-height:70vh}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{
+  position:sticky;top:0;background:var(--primary-tint);color:var(--primary-dark);text-align:left;
+  padding:10px 12px;font-weight:600;font-size:11.5px;text-transform:uppercase;letter-spacing:.03em;
+  border-bottom:1px solid var(--line);white-space:nowrap;z-index:5;
+}
+td{padding:9px 12px;border-bottom:1px solid var(--line);white-space:nowrap}
+tr:last-child td{border-bottom:none}
+tr.row-highlight td{background:var(--accent-tint)}
+tr.row-flash{animation:flash 1.4s ease}
+@keyframes flash{0%{background:var(--accent-tint)}100%{background:transparent}}
+td.empty,tr td.empty{color:var(--muted);text-align:center;padding:26px;white-space:normal}
+.stock-table .stick-1{border-right:1px solid var(--line)}
+.stock-table th.stick-1{background:var(--primary-tint)}
+.stock-table .stick-2{border-right:1px solid var(--line)}
+.stock-table th.stick-2{background:var(--primary-tint)}
+.qty-cell{text-align:center}
+.qty-btn{
+  width:22px;height:22px;border-radius:6px;border:1px solid var(--line);background:#fff;cursor:pointer;
+  color:var(--primary);font-weight:700;line-height:1;
+}
+.qty-btn:hover{background:var(--primary-tint)}
+.qty-val{display:inline-block;min-width:34px;text-align:center;font-weight:600}
+.file-link{font-size:12px;font-weight:600}
+
+/* ---------- Buttons ---------- */
+.btn{
+  padding:9px 15px;border-radius:8px;border:1px solid var(--line);background:#fff;color:var(--text);
+  cursor:pointer;font-weight:600;font-size:13px;transition:background .15s,border-color .15s;
+}
+.btn:hover{background:var(--bg)}
+.btn.primary{background:var(--primary);border-color:var(--primary);color:#fff}
+.btn.primary:hover{background:var(--primary-dark)}
+.btn.green{background:var(--green-bg);border-color:var(--green-bg);color:var(--green)}
+.btn.green:hover{background:#d5eee1}
+.btn.red{background:var(--red-bg);border-color:var(--red-bg);color:var(--red)}
+.btn.red:hover{background:#fbdcd8}
+.btn.sm{padding:6px 11px;font-size:12px}
+.btn:disabled{opacity:.55;cursor:not-allowed}
+
+/* ---------- Search bar (log page) ---------- */
+.search-bar{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end}
+.field{display:flex;flex-direction:column;gap:5px}
+.field label{font-size:11.5px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.03em}
+.field input,.field select{padding:9px 11px;border:1px solid var(--line);border-radius:8px;outline:none;background:#fff}
+.field input:focus,.field select:focus{border-color:var(--primary)}
+.field.wide{min-width:170px}
+.field.full{width:100%}
+.form-row{display:flex;flex-wrap:wrap;gap:14px}
+.form-row .field{flex:1 1 220px}
+.hint{color:var(--muted);font-size:11.5px}
+
+/* ---------- Tabs ---------- */
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:18px;flex-wrap:wrap}
+.tab{padding:10px 16px;cursor:pointer;font-weight:600;font-size:13px;color:var(--muted);border-bottom:2px solid transparent;display:flex;align-items:center;gap:7px}
+.tab:hover{color:var(--primary)}
+.tab.active{color:var(--primary);border-bottom-color:var(--primary)}
+.tab .count{background:var(--accent);color:#fff;font-size:10.5px;font-weight:700;border-radius:100px;padding:1px 7px}
+.tab-panel{}
+
+/* ---------- Request cards ---------- */
+.req-card{margin-bottom:12px}
+.req-card.pending{border-left:3px solid var(--amber)}
+.req-card.in{border-left-color:var(--primary)}
+.req-top{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px}
+.req-flow{font-weight:600;font-size:13.5px}
+.req-flow .arrow{color:var(--accent);margin:0 4px}
+.req-meta{display:flex;flex-direction:column;gap:3px;color:var(--muted);font-size:12.5px}
+.req-meta div b{color:var(--text)}
+.req-actions{display:flex;gap:8px;margin-top:12px}
+.empty{color:var(--muted);font-style:italic;padding:18px;text-align:center}
+
+/* ---------- Modal ---------- */
+.modal-overlay{position:fixed;inset:0;background:rgba(23,33,29,.45);display:flex;align-items:center;justify-content:center;z-index:100;padding:16px}
+.modal{background:#fff;border-radius:12px;padding:22px 22px 18px;width:100%;max-width:360px;box-shadow:0 20px 60px -10px rgba(0,0,0,.35)}
+.modal h3{font-size:16px;margin-bottom:4px}
+.modal .m-sub{color:var(--muted);font-size:12px;margin-bottom:14px}
+.modal .m-cur{display:flex;justify-content:space-between;align-items:center;background:var(--bg);border-radius:8px;padding:8px 12px;margin-bottom:14px;font-size:12.5px}
+.modal .m-cur b{font-family:'Source Serif 4',serif;font-size:18px;color:var(--primary-dark)}
+.m-input{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:8px;outline:none;font-size:16px;text-align:center}
+.m-input:focus{border-color:var(--primary)}
+.m-step{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin:12px 0}
+.m-step button{padding:7px 0;border:1px solid var(--line);background:#fff;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600}
+.m-step button:hover{background:var(--primary-tint);border-color:var(--primary)}
+.m-actions{display:flex;gap:10px;margin-top:6px}
+.m-actions .btn{flex:1}
+
+/* ---------- SCI form detail modal ---------- */
+.fd-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.fd-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px 18px;margin:14px 0}
+.f-d{display:flex;flex-direction:column;gap:2px;font-size:12.5px}
+.f-d span{color:var(--muted);text-transform:capitalize;font-size:11.5px}
+.f-d b{font-weight:600;font-size:13px;word-break:break-word}
+.fd-box{border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:10px}
+.fd-title{font-weight:700;font-size:12px;color:var(--primary-dark);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px}
+.fd-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
+.masters-grid{display:grid;grid-template-columns:1.1fr 1fr;gap:18px;align-items:start}
+@media (max-width:980px){.masters-grid{grid-template-columns:1fr}}
+.ma-toolbar{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:14px}
+.ma-toolbar h3{margin:0!important;font-size:16px!important;color:var(--primary-dark)!important;text-transform:none!important;letter-spacing:0!important}
+.ma-badge{display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:8px;font-size:13px;font-weight:700;letter-spacing:.02em}
+.ma-badge.item{background:var(--accent-tint);color:var(--accent)}
+.ma-badge.doc{background:var(--green-bg);color:var(--green)}
+.ma-sub{color:var(--muted);font-size:12px;margin:0 0 0 2px}
+.ma-add{display:inline-flex;align-items:center;gap:5px;font-size:13px}
+.ma-add .icon{font-size:15px;font-weight:700;line-height:1}
+.ma-tbl{width:100%;border-collapse:collapse;font-size:13px}
+.ma-tbl th{text-align:left;padding:9px 10px;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);border-bottom:2px solid var(--line);white-space:nowrap}
+.ma-tbl td{padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:middle}
+.ma-tbl tr:last-child td{border-bottom:none}
+.ma-tbl tr:hover td{background:var(--primary-tint)}
+.ma-tbl .item-name{font-weight:600;color:var(--text)}
+.ma-tbl .item-code{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:var(--accent);background:var(--accent-tint);padding:2px 7px;border-radius:5px;display:inline-block}
+.ma-tbl .empty{color:var(--muted);text-align:center;padding:28px 10px;font-style:italic}
+.doc-no{width:130px;padding:7px 10px;border:1px solid var(--line);border-radius:8px;font-size:13px}
+.doc-no:focus{border-color:var(--primary);outline:none}
+.doc-row-actions{display:flex;gap:6px;align-items:center}
+.doc-desc{font-size:11px;color:var(--muted);max-width:230px;line-height:1.35;margin-top:3px}
+.mono{font-family:'JetBrains Mono',monospace;font-size:12px}
+#sciLogTable tr[data-form-id],#sciMyTable tr[data-form-id],.logs table tr[data-form-id]{cursor:pointer}
+
+/* ---------- Toast ---------- */
+#toastHost{position:fixed;bottom:20px;right:20px;z-index:200;display:flex;flex-direction:column;gap:8px}
+.toast{
+  background:var(--primary-dark);color:#fff;padding:11px 16px;border-radius:8px;font-size:13px;
+  box-shadow:0 8px 24px -6px rgba(0,0,0,.35);animation:toastIn .18s ease;max-width:320px;
+}
+.toast.err{background:var(--red)}
+@keyframes toastIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+/* ---------- SCI forms ---------- */
+.sci-form-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px}
+.sci-form-card{display:flex;flex-direction:column;gap:10px;min-height:170px;cursor:pointer;transition:transform .12s,box-shadow .12s,border-color .12s}
+.sci-form-card:hover{transform:translateY(-1px);box-shadow:0 4px 16px -6px rgba(23,33,29,.22);border-color:var(--primary)}
+.sci-form-card .sci-code{font-family:'JetBrains Mono',monospace;color:var(--accent);font-size:12px;font-weight:700}
+.sci-form-card h3{font-family:'Source Serif 4',serif;color:var(--primary-dark);font-size:16px;text-transform:none;letter-spacing:0;margin:0}
+.sci-form-card p{color:var(--muted);font-size:12.5px;margin:0;flex:1}
+.sci-editor{margin-bottom:20px}
+.sci-editor h3{font-family:'Source Serif 4',serif;color:var(--primary-dark);font-size:18px;text-transform:none;letter-spacing:0}
+.field textarea{padding:9px 11px;border:1px solid var(--line);border-radius:8px;outline:none;background:#fff;min-height:92px;resize:vertical}
+.field textarea:focus{border-color:var(--primary)}
+.sci-meta{display:flex;flex-wrap:wrap;gap:8px 18px;color:var(--muted);font-size:12px}
+.sci-detail{white-space:pre-wrap;max-width:420px;white-space:normal}
+@media(max-width:900px){.sci-form-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:560px){.sci-form-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="toastHost"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.local.js"></script>
+<script>
+/* =========================================================================
+   Supabase config (local dev)
+   Keys are NOT committed. Provide them locally via config.local.js
+   (see .gitignore); the file defines window.IMS_CONFIG.
+   ========================================================================= */
+const SUPABASE_URL = 'https://rfvevmckrjvcvlldtlaq.supabase.co';
+const IMS_CFG = (typeof window !== 'undefined' && window.IMS_CONFIG) || {};
+const SUPABASE_ANON_KEY = IMS_CFG.anonKey || '';
+const SUPABASE_SECRET_KEY = IMS_CFG.secretKey || '';
+const SM_EMAIL_DOMAIN = '@ims.local';
+
+const { createClient } = window.supabase;
+const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const sbAdmin = createClient(SUPABASE_URL, SUPABASE_SECRET_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
+
+function buildUser(p) {
+  if (p.role === 'SUPERADMIN') return { id: 'superadmin', username: p.username, name: p.name, role: 'admin', type: 'ASO ADMIN' };
+  if (p.role === 'ASO_VIEWER') return { id: 'aso_viewer', username: p.username, name: p.name, role: 'viewer', type: 'ASO VIEWER' };
+  return { id: p.centreId, username: p.username, name: p.name, role: 'centre', type: p.userType || 'CENTRE', centreId: p.centreId, centreName: p.centreName };
+}
+
+function storageFileUrl(p) {
+  return SUPABASE_URL + '/storage/v1/object/public/uploads/' + String(p || '').split('/').map(encodeURIComponent).join('/');
+}
+
+async function login(username, password) {
+  const { data, error } = await sb.auth.signInWithPassword({ email: username.trim() + SM_EMAIL_DOMAIN, password });
+  if (error) throw new Error(error.message === 'Invalid login credentials' ? 'Invalid credentials' : error.message);
+  const { data: prof, error: perr } = await sb.from('profiles').select('*').eq('id', data.user.id).single();
+  if (perr || !prof) throw new Error('Profile for this login was not found');
+  const user = buildUser(prof);
+  setSession(data.session.access_token, user);
+  return { token: data.session.access_token, user };
+}
+
+/* =========================================================================
+   Shared helpers — auth, api, ui utilities
+   ========================================================================= */
+
+function esc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[c]));
+}
+
+function toast(msg, isError) {
+  const host = document.getElementById('toastHost');
+  const el = document.createElement('div');
+  el.className = 'toast' + (isError ? ' err' : '');
+  el.textContent = msg;
+  host.appendChild(el);
+  setTimeout(() => { el.style.opacity = '0'; el.style.transition = 'opacity .25s'; setTimeout(() => el.remove(), 250); }, 3200);
+}
+
+function getToken() { return localStorage.getItem('sms_token'); }
+function getUser() { try { return JSON.parse(localStorage.getItem('sms_user') || 'null'); } catch (e) { return null; } }
+function setSession(token, user) {
+  localStorage.setItem('sms_token', token);
+  localStorage.setItem('sms_user', JSON.stringify(user));
+}
+function clearSession() {
+  localStorage.removeItem('sms_token');
+  localStorage.removeItem('sms_user');
+}
+function isAdmin() {
+  const u = getUser();
+  return !!u && (u.id === 'superadmin' || u.role === 'admin' || u.type === 'ASO ADMIN');
+}
+function isViewer() {
+  const u = getUser();
+  return !!u && (u.role === 'viewer' || u.type === 'ASO VIEWER');
+}
+
+async function fetchCenters() {
+  const { data, error } = await sb.from('centres').select('id, name, type, parentId').order('name', { ascending: true });
+  if (error) throw new Error(error.message);
+  return data || [];
+}
+
+async function fetchStock() {
+  const [itemsRes, stockRes] = await Promise.all([
+    sb.from('items').select('name').order('name', { ascending: true }),
+    sb.from('stock_items').select('centreId, item, qty')
+  ]);
+  if (itemsRes.error) throw new Error(itemsRes.error.message);
+  if (stockRes.error) throw new Error(stockRes.error.message);
+  const stock = {};
+  (stockRes.data || []).forEach((s) => { (stock[s.centreId] = stock[s.centreId] || {})[s.item] = Number(s.qty); });
+  return { items: (itemsRes.data || []).map((i) => i.name), stock };
+}
+
+async function updateStock(centerId, updates) {
+  const rows = Object.keys(updates).map((item) => ({ centreId: Number(centerId), item, qty: Number(updates[item]) }));
+  if (!rows.length) return;
+  const { error } = await sb.from('stock_items').upsert(rows, { onConflict: 'centreId,item' });
+  if (error) throw new Error(error.message);
+}
+
+async function addStockItem(name) {
+  const { error } = await sb.from('items').insert({ name: name.trim() });
+  if (error) throw new Error(error.message);
+}
+
+async function fetchItemsFull() {
+  const { data, error } = await sb.from('items').select('id, name, code, description, category').order('name', { ascending: true });
+  if (error) throw new Error(error.message);
+  return data || [];
+}
+
+async function createStockItem(fields) {
+  const { error } = await sb.from('items').insert({
+    name: (fields.name || '').trim(),
+    description: (fields.description || '').trim(),
+    category: (fields.category || '').trim()
+  });
+  if (error) throw new Error(error.message);
+}
+
+async function updateItemRecord(id, fields, previousName) {
+  const name = (fields.name || '').trim();
+  const { error } = await sb.from('items').update({
+    name,
+    description: (fields.description || '').trim(),
+    category: (fields.category || '').trim()
+  }).eq('id', Number(id));
+  if (error) throw new Error(error.message);
+  if (name && previousName && name !== previousName) {
+    const { error: se } = await sb.from('stock_items').update({ item: name }).eq('item', previousName);
+    if (se) throw new Error(se.message);
+  }
+}
+
+async function deleteStockItem(id, name) {
+  const { error: s } = await sb.from('stock_items').delete().eq('item', name);
+  if (s) throw new Error(s.message);
+  const { error: i } = await sb.from('items').delete().eq('id', Number(id));
+  if (i) throw new Error(i.message);
+}
+
+async function fetchDocuments() {
+  const { data, error } = await sb.from('documents').select('*').order('name');
+  if (error) throw new Error(error.message);
+  return data || [];
+}
+
+async function updateDocumentRecord(id, patch) {
+  const { error } = await sb.from('documents').update({ ...patch, updatedAt: new Date().toISOString() }).eq('id', Number(id));
+  if (error) throw new Error(error.message);
+}
+
+async function deleteDocumentRecord(id) {
+  const { error } = await sb.from('documents').delete().eq('id', Number(id));
+  if (error) throw new Error(error.message);
+}
+
+async function fetchSCIForms(qs) {
+  let query = sb.from('sci_forms').select('*');
+  const params = new URLSearchParams(qs || '');
+  const type = params.get('formType');
+  const status = params.get('status');
+  const centreId = params.get('centreId');
+  const q = params.get('q');
+  if (type) query = query.eq('formType', type);
+  if (status) query = query.eq('status', status);
+  if (centreId) query = query.eq('centreId', Number(centreId));
+  if (q) {
+    const fq = String(q).replace(/[%,()'"\\]/g, '');
+    query = query.or(`sewadarName.ilike.%${fq}%,sewadarBadge.ilike.%${fq}%,centreName.ilike.%${fq}%`);
+  }
+  query = query.order('submittedAt', { ascending: false });
+  const { data, error } = await query;
+  if (error) throw new Error(error.message);
+  return data || [];
+}
+
+async function updateFormStatus(id, action) {
+  const status = action === 'approve' ? 'approved' : action === 'reject' ? 'rejected' : action;
+  const { error } = await sb.from('sci_forms').update({ status }).eq('id', id);
+  if (error) throw new Error(error.message);
+}
+
+function openSCIFormDetail(form, onChanged) {
+  if (!form) return;
+  const escH = (v) => v == null ? '' : String(v).replace(/[&<>"']/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+  const nice = (v) => v == null || v === '' ? '—' : escH(v);
+  const fmtBadge = (s) => s === 'approved' ? '<span class="badge green">Approved</span>'
+    : s === 'rejected' ? '<span class="badge red">Rejected</span>'
+    : '<span class="badge amber">Pending</span>';
+  const base = [
+    ['form', escH(form.formType) + ' — ' + escH(form.formTitle || '')],
+    ['date', nice(form.submittedAt && String(form.submittedAt).slice(0, 10))],
+    ['centre', nice(form.centreName)],
+    ['sewadar', nice(form.sewadarName)],
+    ['badge no.', nice(form.sewadarBadge)],
+    ['destination', nice(form.destinationCentreName)],
+    ['quantity', nice(form.quantity)],
+    ['amount', nice(form.amount)]
+  ].map(([k, v]) => `<div class="f-d"><span>${k}</span><b>${v}</b></div>`).join('');
+  let detailsHtml = '';
+  if (form.details && typeof form.details === 'object') {
+    detailsHtml = Object.entries(form.details)
+      .filter(([, v]) => v !== null && v !== '')
+      .map(([k, v]) => `<div class="f-d"><span>${k.replace(/([A-Z])/g, (m) => ' ' + m.toLowerCase())}</span><b>${escH(String(v))}</b></div>`).join('');
+  }
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.innerHTML = `
+    <div class="modal" style="width:min(680px,94vw)">
+      <div class="fd-head">
+        <div><h3 style="margin:0">${escH(form.formType)} Detail</h3><span class="hint">${escH(form.formTitle || '')}</span></div>
+        <div style="display:flex;align-items:center;gap:10px"><span id="fdBadge">${fmtBadge(form.status)}</span><button class="btn sm" id="fdClose">Close</button></div>
+      </div>
+      <div class="fd-grid">${base}</div>
+      ${detailsHtml ? `<div class="fd-box"><div class="fd-title">Items / Material Details</div>${detailsHtml}</div>` : ''}
+      ${form.remarks ? `<div class="fd-box"><div class="fd-title">Remarks</div><div class="f-d"><b>${escH(String(form.remarks))}</b></div></div>` : ''}
+      <div class="fd-box"><div class="fd-title">Document</div><div class="f-d"><b>${form.document ? `<a class="file-link" href="${storageFileUrl(form.document)}" target="_blank">${escH(form.documentName || 'View PDF')}</a>` : '—'}</b></div></div>
+      <div class="fd-actions">${isAdmin() && form.status === 'pending' ? '<button class="btn green" id="fdApprove">Approve</button><button class="btn red" id="fdReject">Reject</button>' : ''}</div>
+    </div>`;
+  document.body.appendChild(overlay);
+  const close = () => document.body.removeChild(overlay);
+  overlay.querySelector('#fdClose').addEventListener('click', close);
+  overlay.addEventListener('mousedown', (e) => { if (e.target === overlay) close(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); }, { once: true });
+  const runAction = (action) => {
+    const btn = overlay.querySelector(action === 'approve' ? '#fdApprove' : '#fdReject');
+    if (btn) btn.disabled = true;
+    return updateFormStatus(form.id, action)
+      .then(() => {
+        toast(action === 'approve' ? 'SCI form approved' : 'SCI form rejected');
+        form.status = action === 'approve' ? 'approved' : 'rejected';
+        overlay.querySelector('#fdBadge').innerHTML = fmtBadge(form.status);
+        const acts = overlay.querySelector('.fd-actions');
+        if (acts) acts.remove();
+        if (typeof onChanged === 'function') onChanged();
+      })
+      .catch((err) => { if (btn) btn.disabled = false; toast(err.message, true); throw err; });
+  };
+  const ap = overlay.querySelector('#fdApprove');
+  const rj = overlay.querySelector('#fdReject');
+  if (ap) ap.addEventListener('click', () => runAction('approve'));
+  if (rj) rj.addEventListener('click', () => runAction('reject'));
+}
+
+async function fetchDestinations() { return fetchCenters(); }
+
+async function downloadSCIForms(qs) {
+  const forms = await fetchSCIForms(qs);
+  const cols = ['submittedAt', 'formType', 'formTitle', 'centreName', 'sewadarName', 'sewadarBadge', 'details', 'destinationCentreName', 'amount', 'status'];
+  const csv = [cols.join(',')].concat(forms.map((f) => cols.map((k) => {
+    let v = f[k];
+    if (k === 'details') v = (v && typeof v === 'object') ? Object.values(v).filter((x) => x !== null && x !== '').join(' · ') : (v || '');
+    if (k === 'submittedAt') v = String(v || '').slice(0, 10);
+    v = v == null ? '' : String(v);
+    return '"' + v.replace(/"/g, '""') + '"';
+  }).join(','))).join('\r\n');
+  const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = 'sci-forms.xlsx';
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+const SCI_FORM_META = [
+  { code: 'SCI45', title: 'Condemnation of Articles & Requirement of Items / Material Against Condemnation', hint: 'Submit articles proposed for condemnation and replacement requirements.' },
+  { code: 'SCI53', title: 'Requirement of Items / Material from Beas', hint: 'Request items or material from Beas.' },
+  { code: 'SCI76', title: 'Material Issue Voucher', hint: 'Submit a material issue voucher.' },
+  { code: 'SCI43', title: 'Transfer of Surplus Items from One Centre to Another', hint: 'Record a surplus material transfer between centres.' },
+  { code: 'SCI15', title: 'Offer of Items / Material in Donation', hint: 'Offer items or material as a donation.' },
+  { code: 'SCI34', title: 'Sale Proceeds of Condemned / Surplus Items / Scrap Etc.', hint: 'Record sale proceeds from condemned or surplus material.' }
+];
+
+/* ---------- Center search combobox ---------- */
+function createCenterSearch(opts) {
+  const wrap = document.createElement('div');
+  wrap.className = 'cs-wrap';
+  wrap.innerHTML = `
+    <input class="cs-input" type="text" placeholder="${esc(opts.placeholder || 'Search…')}" autocomplete="off">
+    <div class="cs-drop"></div>`;
+  const input = wrap.querySelector('.cs-input');
+  const drop = wrap.querySelector('.cs-drop');
+  let items = [];
+
+  function renderList(q) {
+    const query = (q || '').trim().toLowerCase();
+    const matches = query ? items.filter((c) => c.name.toLowerCase().includes(query)).slice(0, 40) : [];
+    if (!query) { drop.classList.remove('open'); drop.innerHTML = ''; return; }
+    drop.innerHTML = matches.length
+      ? matches.map((c) => `<div class="cs-item" data-id="${esc(c.id)}"><span>${esc(c.name)}</span><span class="badge ${badgeCls(c.type)}">${esc(c.type)}</span></div>`).join('')
+      : '<div class="cs-empty">No matching centers</div>';
+    drop.classList.add('open');
+  }
+  function badgeCls(t) { return t === 'CENTRE' ? 'navy' : t === 'SUB CENTRE' ? 'azure' : t === 'POINT' ? 'sky' : 'green'; }
+
+  input.addEventListener('input', () => renderList(input.value));
+  input.addEventListener('focus', () => { if (input.value.trim()) renderList(input.value); });
+  drop.addEventListener('click', (e) => {
+    const item = e.target.closest('.cs-item');
+    if (!item || !item.dataset.id) return;
+    const c = items.find((x) => x.id === item.dataset.id);
+    input.value = c ? c.name : '';
+    drop.classList.remove('open');
+    opts.onSelect(c || null);
+  });
+  document.addEventListener('click', (e) => { if (!wrap.contains(e.target)) drop.classList.remove('open'); });
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') { drop.classList.remove('open'); }
+    if (e.key === 'Backspace' && !input.value) opts.onSelect(null);
+  });
+
+  return {
+    el: wrap,
+    setItems(list) { items = list || []; },
+    setValue(v) { input.value = v || ''; }
+  };
+}
+
+/* ---------- Shell (top nav) ---------- */
+function renderShell(user, activePage) {
+  const app = document.getElementById('app');
+  const admin = isAdmin();
+  app.innerHTML = `
+    <div class="topbar">
+      <div class="brand"><span class="mark">S</span> Stock Management</div>
+      <nav>
+        <a href="#/dashboard" data-page="dashboard.html">Dashboard</a>
+        <a href="#/stock" data-page="stock.html">Stock Register</a>
+        <a href="#/masters" data-page="masters.html">Masters</a>
+        <a href="#/forms" data-page="forms.html">SCI Forms</a>
+        <a href="#/log" data-page="log.html">Forms Log</a>
+      </nav>
+      <div class="who"><b>${esc(user.name)}</b>${admin ? ' · <span style="color:var(--accent)">Admin</span>' : ''}</div>
+      <button class="logout" id="logoutBtn">Sign out</button>
+    </div>
+    <main id="content"></main>
+  `;
+  app.querySelectorAll('nav a').forEach((a) => {
+    if (a.dataset.page === activePage) a.classList.add('active');
+  });
+  app.querySelector('#logoutBtn').addEventListener('click', () => {
+    clearSession();
+    sb.auth.signOut();
+    location.hash = '/login';
+  });
+}
+
+function requireAuth() {
+  const user = getUser();
+  if (!getToken() || !user) { location.hash = '/login'; return null; }
+  return user;
+}
+
+/* ---------- Hash router ---------- */
+function parseHash() {
+  const raw = location.hash.slice(1) || '/dashboard';
+  const [path, qs] = raw.split('?');
+  return { path: path || '/dashboard', params: new URLSearchParams(qs || '') };
+}
+
+function route() {
+  const { path, params } = parseHash();
+  const user = getUser();
+
+  if (path === '/login') {
+    if (getToken() && user) { location.hash = '/dashboard'; return; }
+    renderLoginPage();
+    return;
+  }
+  if (!getToken() || !user) { location.hash = '/login'; return; }
+
+  if (path === '/dashboard') { renderShell(user, 'dashboard.html'); renderDashboardPage(user, params); }
+  else if (path === '/stock') { renderShell(user, 'stock.html'); renderStockPage(user, params); }
+  else if (path === '/masters') { renderShell(user, 'masters.html'); renderMastersPage(user); }
+  else if (path === '/forms') { renderShell(user, 'forms.html'); renderSCIFormsPage(user); }
+  else if (path === '/log') { renderShell(user, 'log.html'); renderSCIFormsLogPage(user); }
+  else { location.hash = '/dashboard'; }
+}
+
+window.addEventListener('hashchange', route);
+window.addEventListener('DOMContentLoaded', route);
+
+/* =========================================================================
+   Login page
+   ========================================================================= */
+function renderLoginPage() {
+  document.body.classList.add('login-page');
+  const app = document.getElementById('app');
+  app.innerHTML = `
+    <div class="login-card" style="max-width:420px">
+      <div class="logo">S</div>
+      <h1>Stock Management System</h1>
+      <p class="sub"></p>
+
+      <form id="loginForm">
+        <label for="username">Username</label>
+        <input id="username" name="username" autocomplete="username" placeholder="e.g. admin" required>
+        <label for="password">Password</label>
+        <input id="password" name="password" type="password" autocomplete="current-password" placeholder="e.g.adm" required>
+        <button type="submit">Sign In</button>
+      </form>
+      <div class="login-err" id="err"></div>
+
+      <hr style="margin:18px 0 14px;border:0;border-top:1px solid var(--line)">
+      <div style="text-align:center">
+        <button type="button" class="btn sm" id="toggleReset">Reset Password</button>
+      </div>
+      <div id="resetBox" style="display:none;margin-top:14px">
+        <label for="rp_user">Center / ASO Admin</label>
+        <select id="rp_user"></select>
+        <label for="rp_pass">New Password</label>
+        <input type="password" id="rp_pass" placeholder="At least 4 characters">
+        <label for="rp_confirm">Confirm New Password</label>
+        <input type="password" id="rp_confirm" placeholder="Repeat new password">
+        <button type="button" class="btn primary" id="rp_btn" style="width:100%;margin-top:14px">Reset Password</button>
+        <div class="login-err" id="rp_msg"></div>
+      </div>
+
+      <p class="hint"></p>
+    </div>
+  `;
+
+  sb.from('org_users').select('username, name, type').order('name', { ascending: true }).then(({ data, error }) => {
+    if (error) return;
+    document.getElementById('rp_user').innerHTML = data.map((c) => `<option value="${esc(c.username)}">${esc(c.name)} — ${esc(c.type)}</option>`).join('');
+  }).catch(() => {});
+
+  document.getElementById('toggleReset').addEventListener('click', () => {
+    const box = document.getElementById('resetBox');
+    box.style.display = box.style.display === 'none' ? 'block' : 'none';
+  });
+
+  document.getElementById('rp_btn').addEventListener('click', async () => {
+    const msg = document.getElementById('rp_msg');
+    const user = document.getElementById('rp_user').value;
+    const p1 = document.getElementById('rp_pass').value;
+    const p2 = document.getElementById('rp_confirm').value;
+    msg.style.display = 'none';
+    if (!user) { msg.textContent = 'Select a center'; msg.style.display = 'block'; return; }
+    if (!p1 || p1.length < 4) { msg.textContent = 'Password must be at least 4 characters'; msg.style.display = 'block'; return; }
+    if (p1 !== p2) { msg.textContent = 'Passwords do not match'; msg.style.display = 'block'; return; }
+    try {
+      const { data: u, error: findErr } = await sb.from('org_users').select('authId, name').eq('username', user).single();
+      if (findErr || !u) throw new Error('User not found');
+      if (!SUPABASE_SECRET_KEY) throw new Error('Password reset is disabled in this build (no service key configured).');
+      const { error: resetErr } = await sbAdmin.auth.admin.updateUserById(u.authId, { password: p1 });
+      if (resetErr) throw new Error(resetErr.message || 'Reset failed');
+      msg.textContent = 'Password reset for ' + u.name;
+      msg.style.display = 'block';
+      msg.style.color = 'var(--green)';
+      msg.style.background = 'var(--green-bg)';
+      document.getElementById('rp_pass').value = '';
+      document.getElementById('rp_confirm').value = '';
+    } catch (err) {
+      msg.textContent = err.message;
+      msg.style.display = 'block';
+      msg.style.color = '';
+      msg.style.background = '';
+    }
+  });
+
+  document.getElementById('loginForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const errEl = document.getElementById('err');
+    errEl.style.display = 'none';
+    try {
+      const body = await login(
+        document.getElementById('username').value.trim(),
+        document.getElementById('password').value
+      );
+      setSession(body.token, body.user);
+      document.body.classList.remove('login-page');
+      location.hash = '/dashboard';
+    } catch (err) {
+      errEl.textContent = err.message;
+      errEl.style.display = 'block';
+    }
+  });
+}
+
+/* =========================================================================
+   Dashboard page
+   ========================================================================= */
+function renderDashboardPage(user, routeParams) {
+  document.body.classList.remove('login-page');
+  const content = document.getElementById('content');
+  let selectedId = routeParams.get('c') || null;
+
+  function typeBadge(t) {
+    if (t === 'CENTRE') return '<span class="badge navy">CENTRE</span>';
+    if (t === 'SUB CENTRE') return '<span class="badge azure">SUB CENTRE</span>';
+    if (t === 'POINT') return '<span class="badge sky">POINT</span>';
+    return '<span class="badge green">ASO ADMIN</span>';
+  }
+
+  function groupByParent(centers) {
+    const byParent = {};
+    centers.forEach((c) => {
+      const key = c.parentId || '';
+      (byParent[key] = byParent[key] || []).push(c);
+    });
+    Object.keys(byParent).forEach((k) => {
+      byParent[k].sort((a, b) => {
+        const prio = (t) => (t === 'SUB CENTRE' ? 0 : t === 'POINT' ? 1 : 2);
+        return (prio(a.type) - prio(b.type)) || a.name.localeCompare(b.name);
+      });
+    });
+    return byParent;
+  }
+
+  function walkNode(c, depth, byParent) {
+    const children = byParent[c.id] || [];
+    const indented = depth ? ` style="margin-left:${Math.min(depth, 6) * 14}px"` : '';
+    const cardCls = 'card card-link card-compact ' + (c.type === 'CENTRE' ? 't-centre' : c.type === 'SUB CENTRE' ? 't-sub' : c.type === 'POINT' ? 't-point' : 't-admin');
+    return `
+      <div class="${cardCls}"${indented} data-id="${c.id}" data-name="${esc(c.name)}" title="Click to open stock of ${esc(c.name)}">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:6px">
+          <div class="center-name">${esc(c.name)}</div>
+          ${typeBadge(c.type)}
+        </div>
+        ${children.length ? `<div style="margin-top:6px"><span class="mini-meta">${children.length} children</span></div>` : ''}
+        ${children.map((ch) => walkNode(ch, depth + 1, byParent)).join('')}
+      </div>`;
+  }
+
+  function renderTree(centers, startId) {
+    const byParent = groupByParent(centers);
+    if (startId) {
+      const me = centers.find((c) => c.id === startId);
+      return me ? walkNode(me, 0, byParent) : '';
+    }
+    const roots = (byParent[''] || []).filter((c) => c.type === 'CENTRE');
+    const singles = roots.filter((r) => (byParent[r.id] || []).length === 0);
+    const fathers = roots.filter((r) => (byParent[r.id] || []).length > 0);
+    return {
+      singles: singles.map((r) => walkNode(r, 0, byParent)).join(''),
+      fathers: fathers.map((r) => walkNode(r, 0, byParent)).join('')
+    };
+  }
+
+  function bindClicks() {
+    content.addEventListener('click', (e) => {
+      const card = e.target.closest('.card-link');
+      if (card && card.dataset.id) {
+        location.hash = '/stock?c=' + encodeURIComponent(card.dataset.id);
+      }
+    });
+  }
+
+  const searchBox = createCenterSearch({
+    placeholder: 'Search center name…',
+    onSelect: (c) => { selectedId = c ? c.id : null; load(); }
+  });
+
+  function bindSearch(centers) {
+    searchBox.setItems(centers);
+    const box = content.querySelector('#csBox');
+    box.innerHTML = '';
+    box.appendChild(searchBox.el);
+    const sel = selectedId ? centers.find((x) => x.id === selectedId) : null;
+    searchBox.setValue(sel ? sel.name : '');
+  }
+
+  function highlightSel() {
+    if (!selectedId) return;
+    const card = content.querySelector('.card[data-id="' + selectedId.replace(/["\\]/g, '\\$&') + '"]');
+    if (card) {
+      card.classList.add('card-found');
+      card.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    }
+  }
+
+  async function load() {
+    const [centers, forms] = await Promise.all([fetchCenters(), fetchSCIForms()]);
+    const pending = forms.filter((f) => f.status === 'pending').length;
+    const approved = forms.filter((f) => f.status === 'approved').length;
+
+    if (isAdmin() || isViewer()) {
+      const tree = renderTree(centers);
+      const selected = selectedId ? centers.find((c) => c.id === selectedId) : null;
+      content.innerHTML = `
+        <div class="logo-banner">
+          <div>
+            <h2>${isAdmin() ? 'Main ASO Admin Dashboard' : 'ASO Viewer Dashboard'}</h2>
+            <p></p>
+          </div>
+          <div class="stat" style="background:rgba(255,255,255,.12);color:#fff;min-width:180px">
+            <b>${centers.length}</b>
+            <span style="color:rgba(255,255,255,.8)">Centres + ASO Admin</span>
+          </div>
+        </div>
+        <div class="grid cols-3" style="margin-bottom:22px">
+          <a href="#/log" class="stat-link"><div class="card"><h3>Total SCI Forms → Log</h3><div class="big-num">${forms.length}</div><small style="color:var(--muted)">Click to open the Forms Log</small></div></a>
+          <div class="card"><h3>Pending Forms</h3><div class="big-num" style="color:var(--amber)">${pending}</div></div>
+          <div class="card"><h3>Approved Forms</h3><div class="big-num" style="color:var(--green)">${approved}</div></div>
+        </div>
+        <div class="center-search"><div id="csBox"></div></div>
+        ${selected
+          ? `<div class="grid cols-4">${walkNode(selected, 0, groupByParent(centers))}</div>`
+          : `<h3 style="margin:4px 0 12px">Single Centres (no sub centre / point)</h3>
+        <div id="tree-singles" class="grid cols-4">${tree.singles}</div>
+        <h3 style="margin:26px 0 12px">Centres with Sub Centres &amp; Points</h3>
+        <div id="tree-fathers" class="grid cols-4">${tree.fathers}</div>`}
+      `;
+      bindClicks();
+      bindSearch(centers);
+      highlightSel();
+    } else {
+      const me = centers.find((c) => c.id === user.id);
+      const myForms = forms.filter((f) => f.centreId === user.id);
+      const myPending = myForms.filter((f) => f.status === 'pending').length;
+      const myApproved = myForms.filter((f) => f.status === 'approved').length;
+      const myTree = (() => {
+        const byP = {};
+        centers.forEach((c) => { (byP[c.parentId || ''] = byP[c.parentId || ''] || []).push(c); });
+        const out = [];
+        const w = (n) => { out.push(n); (byP[n.id] || []).forEach(w); };
+        if (me) w(me);
+        return out;
+      })();
+      const selected = selectedId ? centers.find((c) => c.id === selectedId) : null;
+      content.innerHTML = `
+        <div class="logo-banner">
+          <div>
+            <h2>${esc(user.name)}</h2>
+          </div>
+        </div>
+        <div class="grid cols-3" style="margin-bottom:22px">
+          <a href="#/log" class="stat-link"><div class="card"><h3>My SCI Forms → Log</h3><div class="big-num">${myForms.length}</div><small style="color:var(--muted)">Click to open the Forms Log</small></div></a>
+          <div class="card"><h3>Pending Forms</h3><div class="big-num" style="color:var(--primary)">${myPending}</div></div>
+          <div class="card"><h3>Approved Forms</h3><div class="big-num" style="color:var(--green)">${myApproved}</div></div>
+        </div>
+        <div class="center-search"><div id="csBox"></div></div>
+        ${selected
+          ? `<div class="grid cols-4">${walkNode(selected, 0, groupByParent(centers))}</div>`
+          : `<h3 style="margin-bottom:14px">My Area — ${esc(user.name)} + allocated sub centres &amp; points</h3>
+        <div id="tree" class="grid cols-4">${renderTree(centers, user.id)}</div>`}
+      `;
+      bindClicks();
+      bindSearch((isAdmin() || isViewer()) ? centers : myTree);
+      highlightSel();
+    }
+  }
+
+  load().catch((err) => toast(err.message, true));
+}
+
+/* =========================================================================
+   Log page
+   ========================================================================= */
+function renderSCIFormsLogPage(user) {
+  document.body.classList.remove('login-page');
+  const content = document.getElementById('content');
+  let centers = [];
+  let currentForms = [];
+
+  function badge(status) {
+    if (status === 'approved') return '<span class="badge green">Approved</span>';
+    if (status === 'rejected') return '<span class="badge red">Rejected</span>';
+    return '<span class="badge amber">Pending</span>';
+  }
+
+  function documentLink(form) {
+    return form.document
+      ? `<a class="file-link" href="${storageFileUrl(form.document)}" target="_blank">${esc(form.documentName || 'View PDF')}</a>`
+      : '—';
+  }
+
+  async function load() {
+    [centers] = await Promise.all([fetchCenters(), fetchSCIForms()]);
+    render();
+  }
+
+  function render() {
+    const today = new Date().toISOString().slice(0, 10);
+    content.innerHTML = `
+      <div class="logo-banner">
+        <div>
+          <h2>SCI Forms Log</h2>
+          <p>Search, filter, and review all submitted SCI forms across centres.</p>
+        </div>
+        <div class="stat" style="background:rgba(255,255,255,.12);color:#fff;min-width:150px">
+          <b id="formLogCount">0</b>
+          <span style="color:rgba(255,255,255,.8)">Forms shown</span>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom:18px">
+        <div class="search-bar">
+          <div class="field wide">
+            <label>SCI Form</label>
+            <select id="sci_log_type"><option value="">All forms</option>${SCI_FORM_META.map((f) => `<option value="${f.code}">${f.code}</option>`).join('')}</select>
+          </div>
+          <div class="field wide">
+            <label>Search</label>
+            <input type="text" id="sci_log_q" placeholder="sewadar / badge / centre">
+          </div>
+          <div class="field">
+            <label>Status</label>
+            <select id="sci_log_status"><option value="">All</option><option value="pending">Pending</option><option value="approved">Approved</option><option value="rejected">Rejected</option></select>
+          </div>
+          <div class="field">
+            <label>Centre</label>
+            <select id="sci_log_center"><option value="">All</option>${centers.map((c) => `<option value="${c.id}">${esc(c.name)}</option>`).join('')}</select>
+          </div>
+          <button class="btn primary" id="sci_log_go">Search Forms</button>
+          <button class="btn" id="sci_log_export">Export Excel</button>
+          <button class="btn" id="sci_log_reset">Reset</button>
+        </div>
+      </div>
+      <div class="table-wrap" id="sciLogTable"></div>
+    `;
+    document.getElementById('sci_log_go').addEventListener('click', applyFilter);
+    document.getElementById('sci_log_export').addEventListener('click', exportCurrent);
+    document.getElementById('sci_log_reset').addEventListener('click', resetFilter);
+    applyFilter();
+  }
+
+  function currentParams() {
+    const params = new URLSearchParams();
+    const type = document.getElementById('sci_log_type').value;
+    const q = document.getElementById('sci_log_q').value.trim();
+    const status = document.getElementById('sci_log_status').value;
+    const center = document.getElementById('sci_log_center').value;
+    if (type) params.set('formType', type);
+    if (q) params.set('q', q);
+    if (status) params.set('status', status);
+    if (center) params.set('centreId', center);
+    return params;
+  }
+
+  async function exportCurrent() {
+    const button = document.getElementById('sci_log_export');
+    button.disabled = true;
+    try {
+      await downloadSCIForms(currentParams().toString());
+      toast('SCI forms exported to Excel');
+    } catch (err) { toast(err.message, true); }
+    button.disabled = false;
+  }
+
+  async function applyFilter() {
+    const params = currentParams();
+    let forms;
+    try { forms = await fetchSCIForms(params.toString()); }
+    catch (err) { toast(err.message, true); return; }
+    currentForms = forms;
+    document.getElementById('formLogCount').textContent = forms.length;
+    const table = document.getElementById('sciLogTable');
+    table.innerHTML = `
+      <table>
+        <thead><tr><th>Date</th><th>Form</th><th>Centre</th><th>Sewadar</th><th>Badge No.</th><th>Details</th><th>Destination</th><th>Amount</th><th>PDF</th><th>Status</th><th>Action</th></tr></thead>
+        <tbody>${forms.length ? forms.map((f) => {
+          const detail = f.details ? Object.values(f.details).filter((v) => v !== null && v !== '').join(' · ') : '';
+          return `<tr title="Click to open the full form" data-form-id="${esc(f.id)}">
+            <td>${esc((f.submittedAt || '').slice(0, 10))}</td>
+            <td><b>${esc(f.formType)}</b><br><small>${esc(f.formTitle)}</small></td>
+            <td>${esc(f.centreName)}</td>
+            <td>${esc(f.sewadarName)}</td>
+            <td class="mono">${esc(f.sewadarBadge)}</td>
+            <td class="sci-detail">${esc(detail || '—')}</td>
+            <td>${esc(f.destinationCentreName || '—')}</td>
+            <td>${esc(f.amount || '—')}</td>
+            <td>${documentLink(f)}</td>
+            <td>${badge(f.status)}</td>
+            <td>${isAdmin() && f.status === 'pending' ? `<button class="btn green sm" data-form-action="approve" data-id="${esc(f.id)}">Approve</button> <button class="btn red sm" data-form-action="reject" data-id="${esc(f.id)}">Reject</button>` : '—'}</td>
+          </tr>`;
+        }).join('') : '<tr><td colspan="11" class="empty">No SCI forms found</td></tr>'}</tbody>
+      </table>
+      <div style="padding:10px 14px;border-top:1px solid var(--line);color:var(--muted);font-size:12.5px"><b>${forms.length}</b> forms shown</div>
+    `;
+    table.onclick = (e) => {
+      if (e.target.closest('[data-form-action], a, button')) return;
+      const tr = e.target.closest('tr[data-form-id]');
+      if (!tr) return;
+      const form = currentForms.find((f) => String(f.id) === String(tr.dataset.formId));
+      if (form) openSCIFormDetail(form, applyFilter);
+    };
+    table.querySelectorAll('[data-form-action]').forEach((button) => button.addEventListener('click', async () => {
+      button.disabled = true;
+      try {
+        await updateFormStatus(button.dataset.id, button.dataset.formAction);
+        toast(button.dataset.formAction === 'approve' ? 'SCI form approved' : 'SCI form rejected');
+        applyFilter();
+      } catch (err) { button.disabled = false; toast(err.message, true); }
+    }));
+  }
+
+  function resetFilter() {
+    document.getElementById('sci_log_type').value = '';
+    document.getElementById('sci_log_q').value = '';
+    document.getElementById('sci_log_status').value = '';
+    document.getElementById('sci_log_center').value = '';
+    applyFilter();
+  }
+
+  load().catch((err) => toast(err.message, true));
+}
+
+/* =========================================================================
+   Stock register page
+   ========================================================================= */
+function renderStockPage(user, routeParams) {
+  document.body.classList.remove('login-page');
+  const content = document.getElementById('content');
+  const state = { centers: [], items: [], stock: {} };
+  let anchorId = null;
+  let selectedCenter = null;
+  const SCROLL_KEY = 'stock-register-scroll';
+  const paramC = routeParams.get('c');
+  const fullScope = isAdmin() || isViewer();
+
+  function scopeCenters() {
+    if (fullScope) return state.centers;
+    const me = state.centers.find((c) => String(c.id) === String(user.id));
+    if (!me) return [];
+    const byParent = {};
+    state.centers.forEach((c) => { (byParent[c.parentId || ''] = byParent[c.parentId || ''] || []).push(c); });
+    const out = [];
+    const walk = (node) => { out.push(node); (byParent[node.id] || []).forEach(walk); };
+    walk(me);
+    return out;
+  }
+
+  function typeBadge(t) {
+    if (t === 'CENTRE') return '<span class="badge navy">CENTRE</span>';
+    if (t === 'SUB CENTRE') return '<span class="badge azure">SUB CENTRE</span>';
+    if (t === 'POINT') return '<span class="badge sky">POINT</span>';
+    return '<span class="badge green">ASO ADMIN</span>';
+  }
+
+  function conditionOf(stock, items) {
+    const cells = items.map((it) => Number(stock[it] || 0));
+    const total = cells.reduce((a, b) => a + b, 0);
+    const filled = cells.filter((v) => v > 0).length;
+    let label = 'No Stock', cls = 'red';
+    if (total > 0) {
+      const ratio = filled / items.length;
+      if (ratio >= 0.9 && total > 150) { label = 'Good'; cls = 'green'; }
+      else if (ratio >= 0.5) { label = 'Moderate'; cls = 'amber'; }
+      else { label = 'Low'; cls = 'red'; }
+    }
+    return { label, cls, total };
+  }
+
+  async function load() {
+    const [centers, stockData] = await Promise.all([fetchCenters(), fetchStock()]);
+    state.centers = centers;
+    state.items = stockData.items;
+    state.stock = stockData.stock;
+    render();
+  }
+
+  function buildTreeRows() {
+    const byParent = {};
+    state.centers.forEach((c) => { (byParent[c.parentId || ''] = byParent[c.parentId || ''] || []).push(c); });
+    Object.values(byParent).forEach((arr) => arr.sort((a, b) => a.name.localeCompare(b.name)));
+    const rows = [];
+    const walk = (node, depth) => {
+      rows.push({ c: node, depth });
+      (byParent[node.id] || []).forEach((ch) => walk(ch, depth + 1));
+    };
+    let roots;
+    if (fullScope) {
+      roots = (byParent[''] || []).filter((c) => c.type === 'CENTRE' || c.type === 'ASO ADMIN' || c.id === 'superadmin');
+    } else {
+      const me = state.centers.find((c) => String(c.id) === String(user.id));
+      roots = me ? [me] : [];
+    }
+    roots.forEach((r) => walk(r, 0));
+    return rows;
+  }
+
+  function render() {
+    const wrap = content.querySelector('.table-wrap');
+    let anchor = null;
+    if (anchorId && wrap) {
+      const row = wrap.querySelector('tr[data-id="' + anchorId.replace(/["\\]/g, '\\$&') + '"]');
+      if (row) {
+        const wr = wrap.getBoundingClientRect();
+        anchor = { top: row.getBoundingClientRect().top - wr.top, scrollTop: wrap.scrollTop };
+      }
+    }
+    const rows = buildTreeRows();
+    const visible = selectedCenter ? rows.filter((r) => r.c.id === selectedCenter) : rows;
+
+    content.innerHTML = `
+      <div class="logo-banner">
+        <div>
+          <h2>Stock Register</h2>
+          <p>${isAdmin() ? 'Live stock of every centre — tap ＋ / － on any figure to update it, or use the buttons above to add, edit, or delete items and export the register' : 'Your centre + allocated sub centres & points — tap ＋ / － on any figure to update it, or use the buttons above to manage items and export'}</p>
+        </div>
+        <div class="sr-actions">
+          <button class="btn primary" id="btnAddItem" title="Add a new stock item">＋ Add Item</button>
+          <button class="btn" id="btnEditItem" title="Edit an item name, description or category">Edit Item</button>
+          <button class="btn" id="btnDelItem" title="Delete an item and its stock from every centre">Delete Item</button>
+          <button class="btn" id="btnExportStock" title="Download the stock register as an Excel-compatible file">Export Stock</button>
+        </div>
+      </div>
+      <div class="center-search"><div id="csBox"></div></div>
+      <div class="table-wrap">
+        <table class="stock-table">
+          <thead><tr><th class="stick-1">Center</th><th class="stick-2">Type</th>${state.items.map((it) => `<th>${esc(it)}</th>`).join('')}<th>Total</th><th>Condition</th></tr></thead>
+        <tbody>${visible.map((r) => renderRow(r, state.stock[r.c.id] || {}, selectedCenter === r.c.id)).join('')}</tbody>
+      </table>
+      </div>
+      <p style="margin-top:12px;color:var(--muted);font-size:12px">${selectedCenter ? `<b style="color:var(--green)">Showing only the selected center — ${esc(centerName(selectedCenter))}.</b> ` : ''}Use ＋ / － on any quantity to add or update stock.${paramC ? '<b style="color:var(--green)"> ▼ Highlighted row = the center you clicked on the Dashboard.</b>' : ''}</p>
+    `;
+
+    bindSearch();
+    const btnAdd = document.getElementById('btnAddItem');
+    const btnEdit = document.getElementById('btnEditItem');
+    const btnDel = document.getElementById('btnDelItem');
+    const btnExport = document.getElementById('btnExportStock');
+    if (btnAdd) btnAdd.addEventListener('click', () => openItemsManager('add'));
+    if (btnEdit) btnEdit.addEventListener('click', () => openItemsManager('list'));
+    if (btnDel) btnDel.addEventListener('click', () => openItemsManager('list'));
+    if (btnExport) btnExport.addEventListener('click', exportStock);
+
+    const nav = performance.getEntriesByType && performance.getEntriesByType('navigation')[0];
+    const isReload = !!(nav && nav.type === 'reload');
+    const targetRow = paramC ? content.querySelector('tr[data-id="' + paramC.replace(/["\\]/g, '\\$&') + '"]') : null;
+    if (targetRow) targetRow.classList.add('row-highlight', 'row-flash');
+    const point = !!(targetRow && !anchorId && !isReload);
+    const wrap2 = content.querySelector('.table-wrap');
+    if (point && wrap2) {
+      const wr = wrap2.getBoundingClientRect();
+      const rr = targetRow.getBoundingClientRect();
+      const saved = sessionStorage.getItem(SCROLL_KEY);
+      try { wrap2.scrollLeft = saved ? (JSON.parse(saved).left || 0) : wrap2.scrollLeft; } catch (e) {}
+      wrap2.scrollTop += (rr.top - wr.top) - (wr.height / 2) + (rr.height / 2);
+    } else {
+      restoreScroll();
+      if (anchor) {
+        const row = content.querySelector('tr[data-id="' + anchorId.replace(/["\\]/g, '\\$&') + '"]');
+        if (row && wrap2) {
+          const wr = wrap2.getBoundingClientRect();
+          wrap2.scrollTop += (row.getBoundingClientRect().top - wr.top) - anchor.top;
+        }
+        anchorId = null;
+        saveScroll();
+      }
+    }
+  }
+
+  const searchBox = createCenterSearch({
+    placeholder: 'Search center name…',
+    onSelect: (c) => { selectedCenter = c ? c.id : null; render(); }
+  });
+
+  function bindSearch() {
+    searchBox.setItems(scopeCenters());
+    const box = content.querySelector('#csBox');
+    box.innerHTML = '';
+    box.appendChild(searchBox.el);
+    const sel = selectedCenter ? scopeCenters().find((x) => x.id === selectedCenter) : null;
+    searchBox.setValue(sel ? sel.name : '');
+  }
+
+  function saveScroll() {
+    const wrap = content.querySelector('.table-wrap');
+    if (!wrap) return;
+    sessionStorage.setItem(SCROLL_KEY, JSON.stringify({ top: wrap.scrollTop, left: wrap.scrollLeft }));
+  }
+  function restoreScroll() {
+    const wrap = content.querySelector('.table-wrap');
+    if (!wrap) return;
+    const saved = sessionStorage.getItem(SCROLL_KEY);
+    if (!saved) return;
+    try {
+      const pos = JSON.parse(saved);
+      wrap.scrollLeft = pos.left || 0;
+      wrap.scrollTop = pos.top || 0;
+    } catch (e) {}
+  }
+  content.addEventListener('scroll', saveScroll, true);
+
+  function renderRow(r, stock, highlight) {
+    const cells = state.items.map((it) => {
+      const v = Number(stock[it] || 0);
+      return `<td class="qty-cell">
+        <button class="qty-btn" data-item="${esc(it)}" data-c="${r.c.id}" data-delta="-10">−</button>
+        <span class="qty-val">${v}</span>
+        <button class="qty-btn" data-item="${esc(it)}" data-c="${r.c.id}" data-delta="10">+</button>
+      </td>`;
+    }).join('');
+    const cond = conditionOf(stock, state.items);
+    const indent = r.depth ? ` style="padding-left:${28 + r.depth * 22}px"` : '';
+    return `<tr data-id="${r.c.id}"${highlight ? ' class="row-highlight"' : ''}>
+      <td${indent} class="stick-1"><b>${esc(r.c.name)}</b></td>
+      <td class="stick-2">${typeBadge(r.c.type)}</td>
+      ${cells}
+      <td><b>${cond.total}</b></td>
+      <td><span class="badge ${cond.cls}">${cond.label}</span></td>
+    </tr>`;
+  }
+
+  function centerName(id) {
+    const c = state.centers.find((x) => x.id === id);
+    return c ? c.name : id;
+  }
+
+  function openStockModal(centerId, item, delta) {
+    anchorId = centerId;
+    const cur = Number(state.stock[centerId] ? state.stock[centerId][item] || 0 : 0);
+    let value = Math.max(0, cur + delta);
+
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    overlay.innerHTML = `
+      <div class="modal">
+        <h3>Update Stock — ${esc(centerName(centerId))}</h3>
+        <div class="m-sub">Item: <b>${esc(item)}</b> · Center: <b>${esc(centerName(centerId))}</b></div>
+        <div class="m-cur"><span>Current stock</span><b id="mCur">${cur}</b></div>
+        <label style="font-weight:600;font-size:13px;display:block;margin-bottom:5px">New stock quantity</label>
+        <input type="number" id="mVal" class="m-input" min="0" value="${value}">
+        <div class="m-step">
+          <button data-d="-100">−100</button>
+          <button data-d="-10">−10</button>
+          <button data-d="-1">−1</button>
+          <button data-d="1">+1</button>
+          <button data-d="10">+10</button>
+          <button data-d="100">+100</button>
+        </div>
+        <div class="m-actions">
+          <button class="btn" id="mCancel">Cancel</button>
+          <button class="btn primary" id="mSave">Save Stock</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+
+    const input = overlay.querySelector('#mVal');
+    const sync = () => { const v = Math.max(0, Number(input.value) || 0); input.value = v; overlay.querySelector('#mCur').textContent = v; };
+    input.addEventListener('input', () => { overlay.querySelector('#mCur').textContent = Math.max(0, Number(input.value) || 0); });
+    overlay.querySelectorAll('.m-step button').forEach((b) => b.addEventListener('click', () => {
+      input.value = Math.max(0, (Number(input.value) || 0) + Number(b.dataset.d));
+      sync();
+    }));
+    const close = () => { document.body.removeChild(overlay); };
+    overlay.querySelector('#mCancel').addEventListener('click', close);
+    overlay.addEventListener('mousedown', (e) => { if (e.target === overlay) close(); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); }, { once: true });
+    overlay.querySelector('#mSave').addEventListener('click', async () => {
+      const qty = Number(input.value);
+      if (isNaN(qty) || qty < 0) return toast('Enter a valid quantity', true);
+      overlay.querySelector('#mSave').disabled = true;
+      try {
+        await updateStock(centerId, { [item]: qty });
+        toast('Stock updated: ' + item + ' = ' + qty);
+        close();
+        load();
+      } catch (err) { overlay.querySelector('#mSave').disabled = false; toast(err.message, true); }
+    });
+    input.focus();
+    input.select();
+  }
+
+  content.addEventListener('click', (e) => {
+    const btn = e.target.closest('.qty-btn');
+    if (btn) { openStockModal(btn.dataset.c, btn.dataset.item, Number(btn.dataset.delta)); return; }
+    const row = e.target.closest('tr[data-id]');
+    if (row && row.classList.contains('row-highlight')) { row.classList.remove('row-highlight'); return; }
+    if (row) {
+      content.querySelectorAll('tr.row-highlight').forEach((r) => r.classList.remove('row-highlight'));
+      row.classList.add('row-highlight');
+    }
+  });
+
+  function exportStock() {
+    try {
+      const csvCell = (v) => {
+        const s = v == null ? '' : String(v);
+        return /[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+      };
+      const header = ['Center', 'Type'].concat(state.items).concat(['Total', 'Condition']);
+      const rows = buildTreeRows().map((r) => {
+        const stock = state.stock[r.c.id] || {};
+        const cells = state.items.map((it) => Number(stock[it] || 0));
+        const total = cells.reduce((a, b) => a + b, 0);
+        const indent = r.depth ? '    '.repeat(Math.min(r.depth, 5)) : '';
+        return [csvCell(indent + r.c.name), csvCell(r.c.type)]
+          .concat(cells.map((v) => csvCell(v)))
+          .concat(csvCell(total), csvCell(conditionOf(stock, state.items).label));
+      });
+      const csv = [header.map((h) => csvCell(h)).join(',')].concat(rows.map((r) => r.join(','))).join('\r\n');
+      const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'stock-register.xlsx';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
+      toast('Stock register exported to Excel');
+    } catch (err) {
+      toast('Export failed: ' + (err.message || err), true);
+    }
+  }
+
+  function openItemsManager(focus) {
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    overlay.innerHTML = `
+      <div class="modal" style="width:min(720px,94vw)">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+          <h3 style="margin:0">Manage Stock Items</h3>
+          <button class="btn sm" id="imClose">Close</button>
+        </div>
+        <div class="items-add" style="margin-top:14px">
+          <input id="im_name" placeholder="Item name" maxlength="200">
+          <input id="im_desc" placeholder="Description (optional)">
+          <input id="im_cat" placeholder="Category (optional)">
+          <button class="btn primary sm" id="im_add">Add Item</button>
+        </div>
+        <p class="hint" style="margin:8px 0 4px">Renaming an item updates it in every centre's stock register; deleting removes its stock rows from all centres.</p>
+        <div id="imList" style="margin-top:10px;max-height:52vh;overflow:auto"></div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+    if (focus === 'add') setTimeout(() => { try { overlay.querySelector('#im_name').focus(); } catch (e) {} }, 80);
+
+    let rows = [];
+    const listEl = overlay.querySelector('#imList');
+    const n = (id) => overlay.querySelector('#' + id);
+    const close = () => { document.body.removeChild(overlay); document.removeEventListener('keydown', escClose, true); };
+    const escClose = (e) => { if (e.key === 'Escape') close(); };
+    document.addEventListener('keydown', escClose, true);
+    n('imClose').addEventListener('click', close);
+    overlay.addEventListener('mousedown', (e) => { if (e.target === overlay) close(); });
+
+    function render() {
+      if (!rows.length) {
+        listEl.innerHTML = '<div class="card hint" style="padding:16px;text-align:center">No items yet — add the first one above.</div>';
+        return;
+      }
+      listEl.innerHTML = rows.map((r, i) => r.editing ? `
+        <div class="item-row">
+          <div class="item-edit">
+            <input id="row_name_${r.id}" value="${esc(r.name)}" maxlength="200" placeholder="Item name">
+            <input id="row_desc_${r.id}" value="${esc(r.description || '')}" placeholder="Description (optional)">
+            <input id="row_cat_${r.id}" value="${esc(r.category || '')}" placeholder="Category (optional)">
+          </div>
+          <div class="item-actions">
+            <button class="btn primary sm" data-act="save" data-id="${r.id}">Save</button>
+            <button class="btn sm" data-act="cancel">Cancel</button>
+          </div>
+        </div>` : `
+        <div class="item-row">
+          <div style="flex:1">
+            <b>${esc(r.name)}</b>
+            <div class="meta">${esc(r.description || '')}${(r.category ? ' · ' + esc(r.category) : (r.description ? '' : 'No description'))}</div>
+          </div>
+          <div class="item-actions">
+            <button class="btn sm" data-act="edit" data-id="${r.id}">Edit</button>
+            <button class="btn red sm" data-act="del" data-id="${r.id}" data-name="${esc(r.name)}">Delete</button>
+          </div>
+        </div>`).join('');
+    }
+
+    async function loadRows() {
+      try {
+        rows = await fetchItemsFull();
+        render();
+      } catch (err) { toast(err.message, true); }
+    }
+
+    n('im_add').addEventListener('click', async () => {
+      const name = n('im_name').value.trim();
+      if (!name) return toast('Item name is required', true);
+      try {
+        await createStockItem({ name, description: n('im_desc').value, category: n('im_cat').value });
+        n('im_name').value = ''; n('im_desc').value = ''; n('im_cat').value = '';
+        toast('Item added: ' + name);
+        load();
+        await loadRows();
+      } catch (err) { toast(err.message, true); }
+    });
+
+    listEl.addEventListener('click', async (e) => {
+      const btn = e.target.closest('[data-act]');
+      if (!btn) return;
+      const act = btn.dataset.act;
+      const row = rows.find((r) => Number(r.id) === Number(btn.dataset.id));
+    if (act === 'edit') {
+        rows.forEach((r) => { r.editing = false; });
+        if (row) row.editing = true;
+        render();
+      } else if (act === 'cancel') {
+        rows.forEach((r) => { r.editing = false; });
+        render();
+      } else if (act === 'save' && row) {
+        const nameEl = overlay.querySelector('#row_name_' + row.id);
+        const name = (nameEl ? nameEl.value : '').trim();
+        if (!name) return toast('Item name is required', true);
+        btn.disabled = true;
+        try {
+          await updateItemRecord(row.id, {
+            name,
+            description: overlay.querySelector('#row_desc_' + row.id).value,
+            category: overlay.querySelector('#row_cat_' + row.id).value
+          }, row.name);
+          toast('Item updated: ' + name);
+          load();
+          await loadRows();
+        } catch (err) { btn.disabled = false; toast(err.message, true); }
+      } else if (act === 'del' && row) {
+        if (!confirm('Delete item "' + row.name + '" and remove its stock from every centre? This cannot be undone.')) return;
+        btn.disabled = true;
+        try {
+          await deleteStockItem(row.id, row.name);
+          toast('Item deleted: ' + row.name);
+          load();
+          await loadRows();
+        } catch (err) { btn.disabled = false; toast(err.message, true); }
+      }
+    });
+
+    loadRows().catch((err) => toast(err.message, true));
+  }
+
+  load().catch((err) => toast(err.message, true));
+}
+
+/* =========================================================================
+   Masters page — item master (auto codes) + document master (GRN, uploads)
+   ========================================================================= */
+function renderMastersPage(user) {
+  document.body.classList.remove('login-page');
+  const content = document.getElementById('content');
+  content.innerHTML = `
+    <div class="logo-banner">
+      <div class="mark">M</div>
+      <div>
+        <h2>Inventory Masters</h2>
+        <p style="margin:4px 0 0;color:rgba(255,255,255,.82);font-size:13px">Item catalogue with auto-generated codes, and document master for GRN &amp; SCI form PDFs.</p>
+      </div>
+    </div>
+    <div class="masters-grid">
+      <div class="card">
+        <div class="ma-toolbar">
+          <div><span class="ma-badge item">Item Master</span><p class="ma-sub">Codes auto-generated as ITM-001, ITM-002, ...</p></div>
+          <button class="btn primary sm ma-add" id="maAddItem"><span class="icon">+</span> Add Item</button>
+        </div>
+        <div style="overflow:auto;max-height:56vh"><table class="ma-tbl">
+          <thead><tr><th>Code</th><th>Name</th><th>Description</th><th>Category</th><th></th></tr></thead>
+          <tbody id="maItemList"></tbody>
+        </table></div>
+      </div>
+      <div class="card">
+        <div class="ma-toolbar">
+          <div><span class="ma-badge doc">Document Master</span><p class="ma-sub">Upload SCI form PDFs &amp; manage GRN number</p></div>
+        </div>
+        <div style="overflow:auto;max-height:56vh"><table class="ma-tbl">
+          <thead><tr><th>Document</th><th>Doc No.</th><th>PDF</th>${isAdmin() ? '<th></th>' : ''}</tr></thead>
+          <tbody id="maDocList"></tbody>
+        </table></div>
+      </div>
+    </div>
+  `;
+
+  /* -------- Item master -------- */
+  const itemList = document.getElementById('maItemList');
+  let items = [];
+  let newEntry = null;
+
+  function renderItemRows() {
+    const newRow = newEntry ? `
+      <tr class="row-flash">
+        <td><span class="item-code" style="background:var(--bg);color:var(--muted);font-weight:600">AUTO</span></td>
+        <td><input id="maRowName_new" placeholder="Item name" maxlength="200" style="width:140px"></td>
+        <td><input id="maRowDesc_new" placeholder="Description" style="width:160px"></td>
+        <td><input id="maRowCat_new" placeholder="Category" style="width:110px"></td>
+        <td><div class="doc-row-actions"><button class="btn green sm" data-act="savenew">Save</button><button class="btn sm" data-act="cancelnew">Cancel</button></div></td>
+      </tr>` : '';
+    if (!items.length && !newEntry) {
+      itemList.innerHTML = '<tr><td colspan="5" class="empty">No items yet — click Add Item.</td></tr>';
+      return;
+    }
+    itemList.innerHTML = newRow + items.map((r) => r.editing ? `
+      <tr>
+        <td><span class="item-code" style="background:var(--bg);color:var(--muted)">${esc(r.code || 'AUTO')}</span></td>
+        <td><input id="maRowName_${r.id}" value="${esc(r.name)}" maxlength="200" style="width:140px"></td>
+        <td><input id="maRowDesc_${r.id}" value="${esc(r.description || '')}" placeholder="Description" style="width:160px"></td>
+        <td><input id="maRowCat_${r.id}" value="${esc(r.category || '')}" placeholder="Category" style="width:110px"></td>
+        <td><div class="doc-row-actions"><button class="btn green sm" data-act="save" data-id="${r.id}">Save</button><button class="btn sm" data-act="cancel">Cancel</button></div></td>
+      </tr>` : `
+      <tr>
+        <td><span class="item-code">${esc(r.code || 'ITM-###')}</span></td>
+        <td><span class="item-name">${esc(r.name)}</span></td>
+        <td>${esc(r.description || '—')}</td>
+        <td>${esc(r.category || '—')}</td>
+        <td><div class="doc-row-actions"><button class="btn sm" data-act="edit" data-id="${r.id}">Edit</button><button class="btn red sm" data-act="del" data-id="${r.id}">Delete</button></div></td>
+      </tr>`).join('');
+  }
+
+  function loadItems() {
+    return fetchItemsFull().then((rows) => { items = rows; renderItemRows(); });
+  }
+
+  document.getElementById('maAddItem').addEventListener('click', () => {
+    newEntry = { name: '', description: '', category: '' };
+    renderItemRows();
+    setTimeout(() => { const el = document.getElementById('maRowName_new'); if (el) el.focus(); }, 60);
+  });
+
+  itemList.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-act]');
+    if (!btn) return;
+    const id = btn.dataset.id;
+    const act = btn.dataset.act;
+    if (act === 'savenew') {
+      const name = document.getElementById('maRowName_new').value;
+      if (!name.trim()) return toast('Item name is required', true);
+      createStockItem({
+        name,
+        description: document.getElementById('maRowDesc_new').value,
+        category: document.getElementById('maRowCat_new').value
+      })
+        .then(() => { newEntry = null; toast('Item added with auto-generated code'); loadItems(); })
+        .catch((err) => toast(err.message, true));
+    } else if (act === 'cancelnew') {
+      newEntry = null; renderItemRows();
+    } else if (act === 'edit') {
+      const r = items.find((x) => String(x.id) === id);
+      if (r) { r.editing = true; renderItemRows(); }
+    } else if (act === 'cancel') {
+      const r = items.find((x) => String(x.id) === id);
+      if (r) { delete r.editing; renderItemRows(); }
+    } else if (act === 'save') {
+      const r = items.find((x) => String(x.id) === id);
+      if (!r) return;
+      const fields = {
+        name: document.getElementById('maRowName_' + id).value,
+        description: document.getElementById('maRowDesc_' + id).value,
+        category: document.getElementById('maRowCat_' + id).value
+      };
+      if (!fields.name.trim()) return toast('Item name is required', true);
+      updateItemRecord(id, fields, r.name)
+        .then(() => { toast('Item updated'); loadItems(); })
+        .catch((err) => toast(err.message, true));
+    } else if (act === 'del') {
+      const r = items.find((x) => String(x.id) === id);
+      if (!r || !confirm('Delete "' + r.name + '" and remove its stock rows from every centre?')) return;
+      deleteStockItem(id, r.name)
+        .then(() => { toast('Item deleted'); loadItems(); })
+        .catch((err) => toast(err.message, true));
+    }
+  });
+
+  loadItems().catch((err) => toast(err.message, true));
+
+  /* -------- Document master -------- */
+  const docList = document.getElementById('maDocList');
+  let docs = [];
+
+  function renderDocRows() {
+    if (!docs.length) {
+      docList.innerHTML = '<tr><td colspan="4" class="empty">No documents yet.</td></tr>';
+      return;
+    }
+    docList.innerHTML = docs.map((d) => `
+      <tr>
+        <td><span class="item-name">${esc(d.name)}</span><div class="doc-desc">${esc(d.description || '')}</div></td>
+        <td style="min-width:200px"><input class="doc-no" id="docNo_${d.id}" value="${esc(d.docNo || '')}" placeholder="Enter number"><button class="btn sm" data-act="savedoc" data-id="${d.id}" style="margin-left:6px">Save</button></td>
+        <td>
+          <div class="doc-row-actions">
+            <label class="btn sm" style="margin:0">${d.document ? 'Replace' : 'Upload PDF'}
+              <input type="file" accept="application/pdf,.pdf" data-act="upload" data-id="${d.id}" style="display:none">
+            </label>
+            ${d.document ? `<a class="file-link" href="${storageFileUrl(d.document)}" target="_blank" title="${esc(d.documentName || '')}">View PDF</a>` : ''}
+          </div>
+        </td>
+        ${isAdmin() ? `<td><button class="btn red sm" data-act="deldoc" data-id="${d.id}">Delete</button></td>` : ''}
+      </tr>`).join('');
+  }
+
+  function loadDocs() {
+    return fetchDocuments().then((rows) => { docs = rows; renderDocRows(); });
+  }
+
+  docList.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-act="savedoc"], [data-act="deldoc"]');
+    if (!btn) return;
+    const id = btn.dataset.id;
+    const d = docs.find((x) => String(x.id) === id);
+    if (!d) return;
+    if (btn.dataset.act === 'savedoc') {
+      const val = document.getElementById('docNo_' + id).value.trim();
+      updateDocumentRecord(id, { docNo: val })
+        .then(() => { toast('Document number saved'); d.docNo = val; })
+        .catch((err) => toast(err.message, true));
+    } else if (btn.dataset.act === 'deldoc') {
+      if (!confirm('Delete document "' + d.name + '"?')) return;
+      deleteDocumentRecord(id)
+        .then(() => { toast('Document deleted'); loadDocs(); })
+        .catch((err) => toast(err.message, true));
+    }
+  });
+
+  docList.addEventListener('change', (e) => {
+    const input = e.target;
+    if (!input.matches('[data-act="upload"]')) return;
+    const file = input.files[0];
+    if (!file) return;
+    if (file.size > 200 * 1024 || !/\.pdf$/i.test(file.name)) return toast('Choose a PDF no larger than 200 KB', true);
+    const id = input.dataset.id;
+    const path = 'docs/' + Date.now() + '_' + file.name;
+    sb.storage.from('uploads').upload(path, file, { contentType: 'application/pdf', cacheControl: '3600', upsert: false })
+      .then(async ({ error: upErr }) => {
+        if (upErr) throw new Error('PDF upload failed: ' + upErr.message);
+        const old = (docs.find((x) => String(x.id) === id) || {}).document;
+        await updateDocumentRecord(id, { document: path, documentName: file.name });
+        if (old) { try { await sb.storage.from('uploads').remove([old]); } catch (e) {} }
+        toast('PDF uploaded');
+        loadDocs();
+      })
+      .catch((err) => toast(err.message, true));
+  });
+
+  loadDocs().catch((err) => toast(err.message, true));
+}
+
+/* =========================================================================
+   SCI forms page
+   ========================================================================= */
+function renderSCIFormsPage(user) {
+  document.body.classList.remove('login-page');
+  const content = document.getElementById('content');
+  const state = { forms: [], destinations: [] };
+  let selectedCode = SCI_FORM_META[0].code;
+
+  function badge(status) {
+    if (status === 'approved') return '<span class="badge green">Approved</span>';
+    if (status === 'rejected') return '<span class="badge red">Rejected</span>';
+    return '<span class="badge amber">Pending</span>';
+  }
+
+  function documentLink(form) {
+    return form.document
+      ? `<a class="file-link" href="${storageFileUrl(form.document)}" target="_blank">${esc(form.documentName || 'View PDF')}</a>`
+      : '—';
+  }
+
+  async function load() {
+    [state.forms, state.destinations] = await Promise.all([fetchSCIForms(), fetchDestinations()]);
+    render();
+  }
+
+  function render() {
+    content.innerHTML = `
+      <div class="logo-banner">
+        <div>
+          <h2>SCI Forms</h2>
+          <p>Submit and manage SCI form submissions with document attachments.</p>
+        </div>
+        <span class="badge ${isAdmin() ? 'green' : 'navy'}" style="font-size:13px;padding:6px 14px">${esc(isAdmin() ? 'ADMIN REVIEW' : 'FORM SUBMISSION')}</span>
+      </div>
+      <div class="sci-form-grid" id="sciFormGrid">
+        ${SCI_FORM_META.map((form) => `
+          <div class="card sci-form-card${form.code === selectedCode ? ' card-found' : ''}" data-sci-code="${form.code}">
+            <div class="sci-code">${form.code}</div>
+            <h3>${esc(form.title)}</h3>
+            <p>${esc(form.hint)}</p>
+            <button class="btn primary sm" type="button">Open Form</button>
+          </div>`).join('')}
+      </div>
+      <div class="sci-editor" id="sciEditor"></div>
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+          <div><h3 style="margin-bottom:2px">Recent Submissions</h3><span class="hint">Your submitted SCI forms${isAdmin() ? ' and forms awaiting review' : ''}.</span></div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn sm" id="sci_export_recent" type="button">Export Excel</button><a class="btn sm" href="#/log">Open Forms Log</a></div>
+        </div>
+        <div class="table-wrap" style="margin-top:14px;box-shadow:none" id="sciMyTable"></div>
+      </div>
+    `;
+    content.querySelectorAll('[data-sci-code]').forEach((card) => card.addEventListener('click', () => {
+      selectedCode = card.dataset.sciCode;
+      render();
+    }));
+    document.getElementById('sci_export_recent').addEventListener('click', async (event) => {
+      event.target.disabled = true;
+      try { await downloadSCIForms(); toast('SCI forms exported to Excel'); }
+      catch (err) { toast(err.message, true); }
+      event.target.disabled = false;
+    });
+    renderEditor();
+    renderSubmissions();
+  }
+
+  function renderEditor() {
+    const form = SCI_FORM_META.find((item) => item.code === selectedCode) || SCI_FORM_META[0];
+    const destinationOptions = state.destinations.map((centre) => `<option value="${esc(centre.id)}">${esc(centre.name)} (${esc(centre.type)})</option>`).join('');
+    document.getElementById('sciEditor').innerHTML = `
+      <div class="card">
+        <div style="margin-bottom:14px"><div class="sci-code">${form.code}</div><h3>${esc(form.title)}</h3><p class="hint" style="margin:4px 0 0">${esc(form.hint)}</p></div>
+        <form id="sciSubmitForm" class="form-row">
+          <div class="field"><label>Sewadar Name</label><input id="sci_sewadar" type="text" maxlength="200" required placeholder="Full name"></div>
+          <div class="field"><label>Sewadar Badge No.</label><input id="sci_badge" type="text" maxlength="12" minlength="12" pattern="[A-Za-z0-9]{12}" required placeholder="e.g. AB12CD34EF56" autocomplete="off"></div>
+          ${form.code === 'SCI43' ? `<div class="field"><label>Destination Centre</label><select id="sci_destination" required><option value="">— select destination centre —</option>${destinationOptions}</select></div>` : ''}
+          ${form.code === 'SCI34' ? '<div class="field"><label>Sale Proceeds Amount</label><input id="sci_amount" type="number" min="0" step="0.01" required placeholder="0.00"></div>' : ''}
+          <div class="field"><label>Quantity</label><input id="sci_quantity" type="number" min="1" required placeholder="Number of items"></div>
+          <div class="field full"><label>Items / Material Details</label><textarea id="sci_details" required placeholder="Describe the articles, items, material, or transaction details"></textarea></div>
+          <div class="field full"><label>Remarks (optional)</label><textarea id="sci_remarks" placeholder="Additional information"></textarea></div>
+          <div class="field full"><label>Upload ${form.code} PDF</label><input id="sci_document" type="file" accept="application/pdf,.pdf" required><span class="hint">PDF only, maximum 200 KB.</span></div>
+          <div class="field full" style="flex-direction:row;gap:12px;align-items:center"><button type="submit" class="btn primary">Submit ${form.code}</button><span class="hint">The submission will be marked Pending for administrator review.</span></div>
+        </form>
+      </div>
+    `;
+    const badgeInput = document.getElementById('sci_badge');
+    badgeInput.addEventListener('input', () => { badgeInput.value = badgeInput.value.replace(/[^a-z0-9]/gi, '').toUpperCase().slice(0, 12); });
+    document.getElementById('sciSubmitForm').addEventListener('submit', submitForm);
+  }
+
+  async function submitForm(event) {
+    event.preventDefault();
+    const file = document.getElementById('sci_document').files[0];
+    const badgeInput = document.getElementById('sci_badge').value.trim().toUpperCase();
+    if (!/^[A-Z0-9]{12}$/.test(badgeInput)) return toast('Badge number must contain exactly 12 letters and numbers', true);
+    if (!file || file.size > 200 * 1024 || !/\.pdf$/i.test(file.name)) return toast('Choose a PDF no larger than 200 KB', true);
+    const button = event.target.querySelector('button[type="submit"]');
+    button.disabled = true;
+    const formMeta = SCI_FORM_META.find((m) => m.code === selectedCode) || SCI_FORM_META[0];
+    const me = getUser();
+    const centreId = typeof me.id === 'number' ? me.id : null;
+    const centreName = me.centreName || '';
+    const destEl = document.getElementById('sci_destination');
+    const destId = destEl && destEl.value ? Number(destEl.value) : null;
+    const destName = destId ? (state.destinations.find((c) => Number(c.id) === destId) || {}).name || '' : '';
+    const qty = document.getElementById('sci_quantity').value;
+    if (!qty || Number(qty) < 1) return toast('Quantity is required and must be at least 1', true);
+    const amt = document.getElementById('sci_amount');
+    const storagePath = Date.now() + '_' + file.name;
+    try {
+      const { error: upErr } = await sb.storage.from('uploads').upload(storagePath, file, { contentType: 'application/pdf', cacheControl: '3600', upsert: false });
+      if (upErr) throw new Error('PDF upload failed: ' + upErr.message);
+      const { error: insErr } = await sb.from('sci_forms').insert({
+        formType: selectedCode,
+        formTitle: formMeta.title,
+        centreId,
+        centreName,
+        sewadarName: document.getElementById('sci_sewadar').value.trim(),
+        sewadarBadge: badgeInput,
+        details: { description: document.getElementById('sci_details').value.trim() },
+        remarks: document.getElementById('sci_remarks').value.trim(),
+        quantity: qty ? Number(qty) : null,
+        amount: amt && amt.value ? Number(amt.value) : null,
+        destinationCentreId: destId,
+        destinationCentreName: destName,
+        document: storagePath,
+        documentName: file.name,
+        status: 'pending'
+      });
+      if (insErr) throw new Error('Submission failed: ' + insErr.message);
+      toast(selectedCode + ' submitted for review');
+      await load();
+    } catch (err) { button.disabled = false; toast(err.message, true); }
+  }
+
+  function renderSubmissions() {
+    const table = document.getElementById('sciMyTable');
+    table.innerHTML = `
+      <table>
+        <thead><tr><th>Date</th><th>Form</th><th>Centre</th><th>Sewadar</th><th>Badge</th><th>PDF</th><th>Status</th><th>Action</th></tr></thead>
+        <tbody>${state.forms.length ? state.forms.slice(0, 20).map((form) => `<tr title="Click to open the full form" data-form-id="${esc(form.id)}">
+          <td>${esc((form.submittedAt || '').slice(0, 10))}</td>
+          <td><b>${esc(form.formType)}</b><br><small>${esc(form.formTitle)}</small></td>
+          <td>${esc(form.centreName)}</td>
+          <td>${esc(form.sewadarName)}</td>
+          <td class="mono">${esc(form.sewadarBadge)}</td>
+          <td>${documentLink(form)}</td>
+          <td>${badge(form.status)}</td>
+          <td>${isAdmin() && form.status === 'pending' ? `<button class="btn green sm" data-form-action="approve" data-id="${esc(form.id)}">Approve</button> <button class="btn red sm" data-form-action="reject" data-id="${esc(form.id)}">Reject</button>` : '—'}</td>
+        </tr>`).join('') : '<tr><td colspan="8" class="empty">No SCI forms submitted yet</td></tr>'}</tbody>
+      </table>
+      ${state.forms.length > 20 ? '<div class="hint" style="padding:10px 14px">Showing the 20 most recent submissions. Open Forms Log for the full list.</div>' : ''}
+    `;
+    table.onclick = (e) => {
+      if (e.target.closest('[data-form-action], a, button')) return;
+      const tr = e.target.closest('tr[data-form-id]');
+      if (!tr) return;
+      const form = state.forms.find((f) => String(f.id) === String(tr.dataset.formId));
+      if (form) openSCIFormDetail(form, load);
+    };
+    table.querySelectorAll('[data-form-action]').forEach((button) => button.addEventListener('click', async () => {
+      button.disabled = true;
+      try {
+        await updateFormStatus(button.dataset.id, button.dataset.formAction);
+        toast(button.dataset.formAction === 'approve' ? 'SCI form approved' : 'SCI form rejected');
+        load();
+      } catch (err) { button.disabled = false; toast(err.message, true); }
+    }));
+  }
+
+  load().catch((err) => toast(err.message, true));
+}
+</script>
+</body>
+</html>
