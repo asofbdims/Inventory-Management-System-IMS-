@@ -43,31 +43,49 @@ a{color:var(--primary);text-decoration:none}
 input,select,button{font-family:inherit;font-size:13.5px}
 .mono{font-family:'JetBrains Mono',monospace}
 
-/* ---------- App shell ---------- */
-#app{min-height:100vh;display:flex;flex-direction:column}
-.topbar{
-  background:var(--primary-dark);
-  color:#fff;
-  display:flex;align-items:center;gap:26px;
-  padding:0 24px;height:60px;
-  position:sticky;top:0;z-index:40;
-  box-shadow:0 2px 10px rgba(0,0,0,.15);
+/* ---------- App shell (sidebar) ---------- */
+#app{min-height:100vh}
+.shell{display:flex;min-height:100vh;background:var(--bg)}
+.sidebar{
+  width:256px;flex:0 0 auto;background:var(--primary-dark);color:#fff;
+  display:flex;flex-direction:column;position:sticky;top:0;height:100vh;
 }
-.topbar .brand{display:flex;align-items:center;gap:10px;font-family:'Source Serif 4',serif;font-weight:600;font-size:17px;color:#fff}
-.topbar .brand .mark{
-  width:30px;height:30px;border-radius:7px;background:var(--accent);
-  display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--primary-dark);
-  font-family:'Source Serif 4',serif;
+.side-brand{display:flex;align-items:center;gap:11px;padding:18px 18px 14px;border-bottom:1px solid rgba(255,255,255,.08)}
+.side-brand .mark{width:34px;height:34px;border-radius:9px;background:var(--accent);color:var(--primary-dark);display:flex;align-items:center;justify-content:center;font-family:'Source Serif 4',serif;font-weight:800;font-size:17px}
+.side-brand b{display:block;font-family:'Source Serif 4',serif;font-size:16px;color:#fff}
+.side-brand small{color:rgba(255,255,255,.6);font-size:10.5px;letter-spacing:.04em}
+.side-nav{flex:1;overflow:auto;padding:12px 12px 16px}
+.nav-group{margin-bottom:18px}
+.nav-label{font-size:10px;font-weight:700;letter-spacing:.1em;color:rgba(255,255,255,.45);text-transform:uppercase;padding:0 10px;margin-bottom:6px}
+.nav-item{display:flex;align-items:center;gap:11px;color:rgba(255,255,255,.75);padding:9px 11px;border-radius:9px;font-size:13.5px;font-weight:500;margin-bottom:2px;transition:background .15s,color .15s}
+.nav-item svg{width:18px;height:18px;flex:0 0 auto}
+.nav-item:hover{background:rgba(255,255,255,.08);color:#fff}
+.nav-item.active{background:var(--accent);color:var(--primary-dark);font-weight:600}
+.side-foot{border-top:1px solid rgba(255,255,255,.08);padding:12px 14px}
+.side-foot .who{display:flex;align-items:center;gap:10px;color:rgba(255,255,255,.85);font-size:12.5px;margin-bottom:10px}
+.side-foot .avatar{width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.14);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;color:#fff;flex:0 0 auto}
+.side-foot .who-txt{min-width:0}
+.side-foot .who-txt b{color:#fff;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12.5px}
+.side-foot .role{font-size:10.5px;background:var(--accent);color:var(--primary-dark);padding:1px 8px;border-radius:100px;font-weight:700}
+.side-foot .logout{width:100%;background:transparent;border:1px solid rgba(255,255,255,.25);color:#fff;padding:8px 0;border-radius:8px;cursor:pointer;font-size:12.5px}
+.side-foot .logout:hover{background:rgba(255,255,255,.1)}
+.shell .main{flex:1;min-width:0;display:flex;flex-direction:column}
+.tophead{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 26px;border-bottom:1px solid var(--line);background:var(--surface)}
+.page-title{font-family:'Source Serif 4',serif;font-size:20px;font-weight:600;margin:0}
+.tophead-right{display:flex;align-items:center;gap:12px}
+.period-pill{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:600;color:var(--muted);background:var(--bg);border:1px solid var(--line);padding:6px 12px;border-radius:100px}
+.period-pill .dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 0 3px var(--green-bg)}
+main#content{max-width:1280px;margin:0 auto;padding:26px 26px 60px;width:100%}
+@media(max-width:980px){
+  .sidebar{width:72px}
+  .side-brand{justify-content:center;padding:16px 6px 12px}
+  .side-brand > div{display:none}
+  .nav-label{display:none}
+  .nav-item{justify-content:center;padding:10px 0}
+  .nav-item span{display:none}
+  .side-foot .who{padding:6px 0}
+  .side-foot .who-txt{display:none}
 }
-.topbar nav{display:flex;gap:4px;flex:1}
-.topbar nav a{
-  color:rgba(255,255,255,.72);padding:9px 14px;border-radius:7px;font-size:13.5px;font-weight:500;
-  transition:background .15s,color .15s;
-}
-.topbar nav a:hover{background:rgba(255,255,255,.08);color:#fff}
-.topbar nav a.active{background:rgba(255,255,255,.14);color:#fff}
-.topbar .who{display:flex;align-items:center;gap:12px;font-size:13px;color:rgba(255,255,255,.85)}
-.topbar .who b{color:#fff}
 .item-row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;margin-bottom:8px;background:var(--surface)}
 .item-row .meta{font-size:12px;color:var(--muted)}
 .items-add{display:grid;grid-template-columns:1.2fr 1fr 1fr auto;gap:8px}
@@ -79,12 +97,25 @@ input,select,button{font-family:inherit;font-size:13.5px}
 @media(max-width:720px){.sr-actions{justify-content:flex-start}}
 .sr-actions .btn{font-size:12.5px;padding:8px 14px;box-shadow:var(--shadow);white-space:nowrap}
 .sr-actions .btn:hover{transform:translateY(-1px)}
-.topbar .logout{
-  background:transparent;border:1px solid rgba(255,255,255,.3);color:#fff;
-  padding:6px 12px;border-radius:7px;cursor:pointer;font-size:12.5px;
-}
-.topbar .logout:hover{background:rgba(255,255,255,.12)}
-main#content{max-width:1280px;margin:0 auto;padding:26px 24px 60px;width:100%}
+
+/* ---------- Dashboard module cards (SRS style) ---------- */
+.mod-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;margin-bottom:22px}
+.mod-card{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:18px;cursor:pointer;text-decoration:none;color:inherit;transition:transform .12s,box-shadow .12s,border-color .12s}
+.mod-card:hover{transform:translateY(-2px);box-shadow:0 8px 24px -8px rgba(23,33,29,.28);border-color:var(--primary)}
+.mod-head{display:flex;align-items:center;gap:12px;margin-bottom:4px}
+.mod-icon{width:42px;height:42px;border-radius:11px;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+.mod-icon svg{width:22px;height:22px}
+.mod-icon.a{background:var(--green-bg);color:var(--green)}
+.mod-icon.b{background:var(--navy-bg);color:var(--navy)}
+.mod-icon.c{background:var(--amber-bg);color:var(--amber)}
+.mod-icon.d{background:var(--azure-bg);color:var(--azure)}
+.mod-title{font-size:15px;font-weight:600;color:var(--text);margin:0}
+.mod-desc{color:var(--muted);font-size:12px;margin:0 0 14px}
+.mod-stats{display:flex;flex-wrap:wrap;gap:8px;margin-top:auto}
+.mod-stat{background:var(--bg);border:1px solid var(--line);border-radius:100px;padding:3px 11px;font-size:12px;font-weight:600;color:var(--muted)}
+.mod-stat b{color:var(--primary-dark)}
+.mod-stat.warn b{color:var(--red)}
+.mod-go{display:flex;align-items:center;justify-content:space-between;margin-top:14px;font-size:12.5px;font-weight:600;color:var(--primary)}
 
 /* ---------- Login ---------- */
 body.login-page{
@@ -736,28 +767,66 @@ function createCenterSearch(opts) {
   };
 }
 
-/* ---------- Shell (top nav) ---------- */
+/* ---------- Shell (sidebar + header) ---------- */
+const NAV_ICONS = {
+  dash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>',
+  stock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8l-9-5-9 5v8l9 5 9-5z"/><line x1="3" y1="8" x2="12" y2="13"/><line x1="12" y1="13" x2="21" y2="8"/><line x1="12" y1="13" x2="12" y2="21"/></svg>',
+  master: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="16" rx="2"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>',
+  forms: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="12" y2="17"/></svg>',
+  log: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v4l3 2"/><circle cx="12" cy="12" r="9"/></svg>'
+};
+function fiscalYearLabel() {
+  const d = new Date();
+  const y = d.getFullYear();
+  const start = d.getMonth() >= 3 ? y : y - 1;
+  return 'FY ' + start + '\u2013' + (start + 1);
+}
+function initials(name) {
+  return String(name || '?').trim().split(/\s+/).map((w) => w[0]).join('').slice(0, 2).toUpperCase() || '?';
+}
 function renderShell(user, activePage) {
   const app = document.getElementById('app');
   const admin = isAdmin();
+  const PAGES = {
+    'dashboard.html': { label: 'Dashboard', icon: 'dash', href: '#/dashboard' },
+    'stock.html': { label: 'Stock Register', icon: 'stock', href: '#/stock' },
+    'masters.html': { label: 'Masters', icon: 'master', href: '#/masters' },
+    'forms.html': { label: 'SCI Forms', icon: 'forms', href: '#/forms' },
+    'log.html': { label: 'Forms Log', icon: 'log', href: '#/log' }
+  };
+  const GROUPS = [
+    { label: 'Overview', items: ['dashboard.html'] },
+    { label: 'Inventory', items: ['stock.html', 'masters.html'] },
+    { label: 'SCI', items: ['forms.html', 'log.html'] }
+  ];
   app.innerHTML = `
-    <div class="topbar">
-      <div class="brand"><span class="mark">S</span> Stock Management</div>
-      <nav>
-        <a href="#/dashboard" data-page="dashboard.html">Dashboard</a>
-        <a href="#/stock" data-page="stock.html">Stock Register</a>
-        <a href="#/masters" data-page="masters.html">Masters</a>
-        <a href="#/forms" data-page="forms.html">SCI Forms</a>
-        <a href="#/log" data-page="log.html">Forms Log</a>
-      </nav>
-      <div class="who"><b>${esc(user.name)}</b>${admin ? ' · <span style="color:var(--accent)">Admin</span>' : ''}</div>
-      <button class="logout" id="logoutBtn">Sign out</button>
+    <div class="shell">
+      <aside class="sidebar">
+        <div class="side-brand"><span class="mark">I</span><div><b>IMS</b><small>Inventory Management System</small></div></div>
+        <nav class="side-nav">
+          ${GROUPS.map((g) => `
+            <div class="nav-group">
+              <div class="nav-label">${g.label}</div>
+              ${g.items.map((key) => `
+                <a class="nav-item${key === activePage ? ' active' : ''}" href="${PAGES[key].href}">${NAV_ICONS[PAGES[key].icon]}<span>${PAGES[key].label}</span></a>`).join('')}
+            </div>`).join('')}
+        </nav>
+        <div class="side-foot">
+          <div class="who"><div class="avatar">${esc(initials(user.name))}</div><div class="who-txt"><b>${esc(user.name)}</b>${admin ? ' <span class="role">Admin</span>' : ''}</div></div>
+          <button class="logout" id="logoutBtn">Sign out</button>
+        </div>
+      </aside>
+      <div class="main">
+        <header class="tophead">
+          <div><h1 class="page-title">${PAGES[activePage] ? PAGES[activePage].label : ''}</h1></div>
+          <div class="tophead-right">
+            <div class="period-pill"><span class="dot"></span>Period: ${fiscalYearLabel()}</div>
+          </div>
+        </header>
+        <main id="content"></main>
+      </div>
     </div>
-    <main id="content"></main>
   `;
-  app.querySelectorAll('nav a').forEach((a) => {
-    if (a.dataset.page === activePage) a.classList.add('active');
-  });
   app.querySelector('#logoutBtn').addEventListener('click', () => {
     clearSession();
     sb.auth.signOut();
@@ -990,37 +1059,54 @@ function renderDashboardPage(user, routeParams) {
     }
   }
 
-  function buildTiles(t) {
+  function buildModules(s) {
     const fmt = (n) => Number(n || 0).toLocaleString('en-IN');
+    const stat = (label, val, warn) => `<span class="mod-stat${warn ? ' warn' : ''}"><b>${val}</b> ${label}</span>`;
     return `
-  <div class="tile-grid">
-    <a class="tile master" href="#/masters">
-      <div class="t-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="16" rx="2"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg></div>
-      <div class="t-body">
-        <div class="t-title"><h3>Masters</h3><span class="t-go">&#8250;</span></div>
-        <div class="t-desc">Items &amp; document masters for the register</div>
-        <div class="t-chips">
-          <span class="t-chip"><b>${t.items}</b> items</span>
-          <span class="t-chip"><b>${t.docs}</b> documents</span>
-        </div>
+  <div class="mod-grid">
+    <a class="mod-card" href="#/stock">
+      <div class="mod-head"><div class="mod-icon a"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8l-9-5-9 5v8l9 5 9-5z"/><line x1="3" y1="8" x2="12" y2="13"/><line x1="12" y1="13" x2="21" y2="8"/><line x1="12" y1="13" x2="12" y2="21"/></svg></div><h3 class="mod-title">Stock Register</h3></div>
+      <p class="mod-desc">${s.scoped} centres &middot; book stock &amp; physical verification ledger</p>
+      <div class="mod-stats">
+        ${stat('qty on hand', fmt(s.qty))}
+        ${stat('verification entries', s.entries)}
+        ${stat('centres no stock', s.noStock, s.noStock > 0)}
       </div>
+      <div class="mod-go"><span>Open register</span><span>&#8250;</span></div>
     </a>
-    <a class="tile stock" href="#/stock">
-      <div class="t-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8l-9-5-9 5v8l9 5 9-5z"/><line x1="3" y1="8" x2="12" y2="13"/><line x1="12" y1="13" x2="21" y2="8"/><line x1="12" y1="13" x2="12" y2="21"/></svg></div>
-      <div class="t-body">
-        <div class="t-title"><h3>Stock Register</h3><span class="t-go">&#8250;</span></div>
-        <div class="t-desc">${t.scoped} centres &middot; verification ledger</div>
-        <div class="t-chips">
-          <span class="t-chip"><b>${fmt(t.qty)}</b> qty on hand</span>
-          <span class="t-chip${t.noStock ? ' alert' : ''}"><b>${t.noStock}</b> with no stock</span>
-        </div>
+    <a class="mod-card" href="#/masters">
+      <div class="mod-head"><div class="mod-icon b"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="16" rx="2"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg></div><h3 class="mod-title">Masters</h3></div>
+      <p class="mod-desc">Item catalogue &amp; document master for the register</p>
+      <div class="mod-stats">
+        ${stat('items', s.items)}
+        ${stat('documents', s.docs)}
       </div>
+      <div class="mod-go"><span>Manage masters</span><span>&#8250;</span></div>
+    </a>
+    <a class="mod-card" href="#/forms">
+      <div class="mod-head"><div class="mod-icon c"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="12" y2="17"/></svg></div><h3 class="mod-title">SCI Forms</h3></div>
+      <p class="mod-desc">Submit and manage SCI forms with PDF attachments</p>
+      <div class="mod-stats">
+        ${stat('submitted', s.submitted)}
+        ${stat('pending', s.pending, s.pending > 0)}
+        ${stat('approved', s.approved)}
+      </div>
+      <div class="mod-go"><span>Open forms</span><span>&#8250;</span></div>
+    </a>
+    <a class="mod-card" href="#/log">
+      <div class="mod-head"><div class="mod-icon d"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v4l3 2"/><circle cx="12" cy="12" r="9"/></svg></div><h3 class="mod-title">Forms Log</h3></div>
+      <p class="mod-desc">Search, filter &amp; export all submitted SCI forms</p>
+      <div class="mod-stats">
+        ${stat('total in log', s.log)}
+        ${stat('pending review', s.pendingRev, s.pendingRev > 0)}
+      </div>
+      <div class="mod-go"><span>Open log</span><span>&#8250;</span></div>
     </a>
   </div>`;
   }
 
   async function load() {
-    const [centers, forms, stockData, docs] = await Promise.all([fetchCenters(), fetchSCIForms(), fetchStock(), fetchDocuments()]);
+    const [centers, forms, stockData, docs, entries] = await Promise.all([fetchCenters(), fetchSCIForms(), fetchStock(), fetchDocuments(), fetchStockRegister()]);
     const pending = forms.filter((f) => f.status === 'pending').length;
     const approved = forms.filter((f) => f.status === 'approved').length;
 
@@ -1034,7 +1120,7 @@ function renderDashboardPage(user, routeParams) {
         totalQty += t;
         if (t === 0) centresNoStock++;
       });
-      const tileRow = buildTiles({ items: stockData.items.length, docs: docs.length, scoped: centers.length, qty: totalQty, noStock: centresNoStock });
+      const modRow = buildModules({ scoped: centers.length, qty: totalQty, noStock: centresNoStock, entries: entries.length, items: stockData.items.length, docs: docs.length, submitted: forms.length, pending, approved, log: forms.length, pendingRev: pending });
       content.innerHTML = `
         <div class="logo-banner">
           <div>
@@ -1046,7 +1132,8 @@ function renderDashboardPage(user, routeParams) {
             <span style="color:rgba(255,255,255,.8)">Centres + ASO Admin</span>
           </div>
         </div>
-        ${tileRow}
+        ${modRow}
+        <h3 style="margin:0 0 12px">Forms &amp; Centres</h3>
         <div class="grid cols-3" style="margin-bottom:22px">
           <a href="#/log" class="stat-link"><div class="card"><h3>Total SCI Forms → Log</h3><div class="big-num">${forms.length}</div><small style="color:var(--muted)">Click to open the Forms Log</small></div></a>
           <div class="card"><h3>Pending Forms</h3><div class="big-num" style="color:var(--amber)">${pending}</div></div>
@@ -1065,9 +1152,6 @@ function renderDashboardPage(user, routeParams) {
       highlightSel();
     } else {
       const me = centers.find((c) => c.id === user.id);
-      const myForms = forms.filter((f) => f.centreId === user.id);
-      const myPending = myForms.filter((f) => f.status === 'pending').length;
-      const myApproved = myForms.filter((f) => f.status === 'approved').length;
       const myTree = (() => {
         const byP = {};
         centers.forEach((c) => { (byP[c.parentId || ''] = byP[c.parentId || ''] || []).push(c); });
@@ -1077,6 +1161,10 @@ function renderDashboardPage(user, routeParams) {
         return out;
       })();
       const scopeIds = new Set(myTree.map((c) => String(c.id)));
+      const scopedForms = forms.filter((f) => scopeIds.has(String(f.centreId)));
+      const scopedEntry = entries.filter((en) => scopeIds.has(String(en.centreId)));
+      const myPending = scopedForms.filter((f) => f.status === 'pending').length;
+      const myApproved = scopedForms.filter((f) => f.status === 'approved').length;
       let totalQty = 0, centresNoStock = 0;
       centers.forEach((c) => {
         if (!scopeIds.has(String(c.id))) return;
@@ -1085,7 +1173,7 @@ function renderDashboardPage(user, routeParams) {
         totalQty += t;
         if (t === 0) centresNoStock++;
       });
-      const tileRow = buildTiles({ items: stockData.items.length, docs: docs.length, scoped: myTree.length, qty: totalQty, noStock: centresNoStock });
+      const modRow = buildModules({ scoped: myTree.length, qty: totalQty, noStock: centresNoStock, entries: scopedEntry.length, items: stockData.items.length, docs: docs.length, submitted: scopedForms.length, pending: myPending, approved: myApproved, log: scopedForms.length, pendingRev: myPending });
       const selected = selectedId ? centers.find((c) => c.id === selectedId) : null;
       content.innerHTML = `
         <div class="logo-banner">
@@ -1093,9 +1181,10 @@ function renderDashboardPage(user, routeParams) {
             <h2>${esc(user.name)}</h2>
           </div>
         </div>
-        ${tileRow}
+        ${modRow}
+        <h3 style="margin:0 0 12px">My Forms &amp; Centres</h3>
         <div class="grid cols-3" style="margin-bottom:22px">
-          <a href="#/log" class="stat-link"><div class="card"><h3>My SCI Forms → Log</h3><div class="big-num">${myForms.length}</div><small style="color:var(--muted)">Click to open the Forms Log</small></div></a>
+          <a href="#/log" class="stat-link"><div class="card"><h3>My SCI Forms → Log</h3><div class="big-num">${scopedForms.length}</div><small style="color:var(--muted)">Click to open the Forms Log</small></div></a>
           <div class="card"><h3>Pending Forms</h3><div class="big-num" style="color:var(--primary)">${myPending}</div></div>
           <div class="card"><h3>Approved Forms</h3><div class="big-num" style="color:var(--green)">${myApproved}</div></div>
         </div>
@@ -1106,7 +1195,7 @@ function renderDashboardPage(user, routeParams) {
         <div id="tree" class="grid cols-4">${renderTree(centers, user.id)}</div>`}
       `;
       bindClicks();
-      bindSearch((isAdmin() || isViewer()) ? centers : myTree);
+      bindSearch(myTree);
       highlightSel();
     }
   }
