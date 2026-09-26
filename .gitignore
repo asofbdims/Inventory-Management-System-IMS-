@@ -30,3 +30,4 @@ supabase/.branches/
 
 # Vercel build output (generated; served from GitHub, no need to track)
 out/
+.vercel

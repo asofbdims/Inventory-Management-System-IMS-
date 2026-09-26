@@ -206,6 +206,47 @@ td.empty,tr td.empty{color:var(--muted);text-align:center;padding:26px;white-spa
 .qty-val{display:inline-block;min-width:34px;text-align:center;font-weight:600}
 .file-link{font-size:12px;font-weight:600}
 
+/* ---------- Dashboard tiles ---------- */
+.tile-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:22px}
+@media (max-width:820px){.tile-grid{grid-template-columns:1fr}}
+.tile{display:flex;align-items:flex-start;gap:14px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow);cursor:pointer;text-decoration:none;color:inherit;transition:transform .12s,box-shadow .12s,border-color .12s}
+.tile:hover{transform:translateY(-1px);box-shadow:0 6px 20px -8px rgba(23,33,29,.28);border-color:var(--primary)}
+.tile .t-icon{width:46px;height:46px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+.tile .t-icon svg{width:24px;height:24px}
+.tile.stock .t-icon{background:var(--green-bg);color:var(--green)}
+.tile.master .t-icon{background:var(--navy-bg);color:var(--navy)}
+.tile .t-body{flex:1;min-width:0}
+.tile .t-title{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.tile .t-title h3{margin:0;font-size:15px;color:var(--text)}
+.tile .t-go{color:var(--muted);font-size:14px}
+.tile .t-desc{color:var(--muted);font-size:12px;margin-top:3px}
+.tile .t-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.t-chip{background:var(--bg);border:1px solid var(--line);border-radius:100px;padding:3px 11px;font-size:12px;font-weight:600;color:var(--muted);white-space:nowrap}
+.t-chip b{color:var(--primary-dark)}
+.t-chip.alert b{color:var(--red)}
+
+/* ---------- Stock register (verification ledger) ---------- */
+.sum-bar{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:20px}
+@media (max-width:980px){.sum-bar{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:560px){.sum-bar{grid-template-columns:1fr}}
+.sum-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:13px 15px}
+.sum-card .k{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:5px}
+.sum-card .v{font-family:'Source Serif 4',serif;font-size:24px;font-weight:700;color:var(--primary-dark);line-height:1}
+.sum-card .v.warn{color:var(--red)}
+.reg-toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px}
+.reg-toolbar .chips{display:flex;gap:8px}
+.reg-filter{display:inline-flex;align-items:center;gap:6px;padding:7px 13px;border:1px solid var(--line);border-radius:100px;background:#fff;cursor:pointer;font-weight:600;font-size:12.5px;color:var(--muted)}
+.reg-filter.active{background:var(--primary);border-color:var(--primary);color:#fff}
+.reg-table th{white-space:nowrap}
+.reg-table td{vertical-align:top;white-space:nowrap}
+.reg-table td.wrap{white-space:normal;min-width:160px}
+.reg-table .sno{color:var(--muted);font-weight:600}
+.reg-table .centre{font-weight:700}
+.reg-table .diff.zero{color:var(--green)}
+.reg-table .diff.neg{color:var(--red);font-weight:700}
+.reg-table .diff.pos{color:var(--amber);font-weight:700}
+.row-actions{display:flex;gap:6px;flex-wrap:nowrap}
+
 /* ---------- Buttons ---------- */
 .btn{
   padding:9px 15px;border-radius:8px;border:1px solid var(--line);background:#fff;color:var(--text);
@@ -430,6 +471,47 @@ async function updateStock(centerId, updates) {
   const rows = Object.keys(updates).map((item) => ({ centreId: Number(centerId), item, qty: Number(updates[item]) }));
   if (!rows.length) return;
   const { error } = await sb.from('stock_items').upsert(rows, { onConflict: 'centreId,item' });
+  if (error) throw new Error(error.message);
+}
+
+async function fetchStockRegister() {
+  const { data, error } = await sb.from('stock_register').select('*').order('verifiedAt', { ascending: false });
+  if (error) throw new Error(error.message);
+  return data || [];
+}
+
+async function createStockRegisterEntry(f) {
+  const { error } = await sb.from('stock_register').insert({
+    centreId: Number(f.centreId),
+    item: String(f.item || '').trim(),
+    pageNo: String(f.pageNo || '').trim(),
+    approvalNo: String(f.approvalNo || '').trim(),
+    approvalDate: f.approvalDate || null,
+    qtyA: Math.max(0, Number(f.qtyA) || 0),
+    qtyB: Math.max(0, Number(f.qtyB) || 0),
+    reason: String(f.reason || '').trim(),
+    remarks: String(f.remarks || '').trim(),
+    verifiedBy: (getUser() && getUser().name) || ''
+  });
+  if (error) throw new Error(error.message);
+}
+
+async function updateStockRegisterEntry(id, f) {
+  const patch = {
+    pageNo: String(f.pageNo || '').trim(),
+    approvalNo: String(f.approvalNo || '').trim(),
+    approvalDate: f.approvalDate || null,
+    qtyA: Math.max(0, Number(f.qtyA) || 0),
+    qtyB: Math.max(0, Number(f.qtyB) || 0),
+    reason: String(f.reason || '').trim(),
+    remarks: String(f.remarks || '').trim()
+  };
+  const { error } = await sb.from('stock_register').update(patch).eq('id', Number(id));
+  if (error) throw new Error(error.message);
+}
+
+async function deleteStockRegisterEntry(id) {
+  const { error } = await sb.from('stock_register').delete().eq('id', Number(id));
   if (error) throw new Error(error.message);
 }
 
@@ -908,14 +990,51 @@ function renderDashboardPage(user, routeParams) {
     }
   }
 
+  function buildTiles(t) {
+    const fmt = (n) => Number(n || 0).toLocaleString('en-IN');
+    return `
+  <div class="tile-grid">
+    <a class="tile master" href="#/masters">
+      <div class="t-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="16" rx="2"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg></div>
+      <div class="t-body">
+        <div class="t-title"><h3>Masters</h3><span class="t-go">&#8250;</span></div>
+        <div class="t-desc">Items &amp; document masters for the register</div>
+        <div class="t-chips">
+          <span class="t-chip"><b>${t.items}</b> items</span>
+          <span class="t-chip"><b>${t.docs}</b> documents</span>
+        </div>
+      </div>
+    </a>
+    <a class="tile stock" href="#/stock">
+      <div class="t-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8l-9-5-9 5v8l9 5 9-5z"/><line x1="3" y1="8" x2="12" y2="13"/><line x1="12" y1="13" x2="21" y2="8"/><line x1="12" y1="13" x2="12" y2="21"/></svg></div>
+      <div class="t-body">
+        <div class="t-title"><h3>Stock Register</h3><span class="t-go">&#8250;</span></div>
+        <div class="t-desc">${t.scoped} centres &middot; verification ledger</div>
+        <div class="t-chips">
+          <span class="t-chip"><b>${fmt(t.qty)}</b> qty on hand</span>
+          <span class="t-chip${t.noStock ? ' alert' : ''}"><b>${t.noStock}</b> with no stock</span>
+        </div>
+      </div>
+    </a>
+  </div>`;
+  }
+
   async function load() {
-    const [centers, forms] = await Promise.all([fetchCenters(), fetchSCIForms()]);
+    const [centers, forms, stockData, docs] = await Promise.all([fetchCenters(), fetchSCIForms(), fetchStock(), fetchDocuments()]);
     const pending = forms.filter((f) => f.status === 'pending').length;
     const approved = forms.filter((f) => f.status === 'approved').length;
 
     if (isAdmin() || isViewer()) {
       const tree = renderTree(centers);
       const selected = selectedId ? centers.find((c) => c.id === selectedId) : null;
+      let totalQty = 0, centresNoStock = 0;
+      centers.forEach((c) => {
+        const s = stockData.stock[c.id] || {};
+        const t = Object.keys(s).reduce((a, k) => a + (Number(s[k]) || 0), 0);
+        totalQty += t;
+        if (t === 0) centresNoStock++;
+      });
+      const tileRow = buildTiles({ items: stockData.items.length, docs: docs.length, scoped: centers.length, qty: totalQty, noStock: centresNoStock });
       content.innerHTML = `
         <div class="logo-banner">
           <div>
@@ -927,6 +1046,7 @@ function renderDashboardPage(user, routeParams) {
             <span style="color:rgba(255,255,255,.8)">Centres + ASO Admin</span>
           </div>
         </div>
+        ${tileRow}
         <div class="grid cols-3" style="margin-bottom:22px">
           <a href="#/log" class="stat-link"><div class="card"><h3>Total SCI Forms → Log</h3><div class="big-num">${forms.length}</div><small style="color:var(--muted)">Click to open the Forms Log</small></div></a>
           <div class="card"><h3>Pending Forms</h3><div class="big-num" style="color:var(--amber)">${pending}</div></div>
@@ -956,6 +1076,16 @@ function renderDashboardPage(user, routeParams) {
         if (me) w(me);
         return out;
       })();
+      const scopeIds = new Set(myTree.map((c) => String(c.id)));
+      let totalQty = 0, centresNoStock = 0;
+      centers.forEach((c) => {
+        if (!scopeIds.has(String(c.id))) return;
+        const s = stockData.stock[c.id] || {};
+        const t = Object.keys(s).reduce((a, k) => a + (Number(s[k]) || 0), 0);
+        totalQty += t;
+        if (t === 0) centresNoStock++;
+      });
+      const tileRow = buildTiles({ items: stockData.items.length, docs: docs.length, scoped: myTree.length, qty: totalQty, noStock: centresNoStock });
       const selected = selectedId ? centers.find((c) => c.id === selectedId) : null;
       content.innerHTML = `
         <div class="logo-banner">
@@ -963,6 +1093,7 @@ function renderDashboardPage(user, routeParams) {
             <h2>${esc(user.name)}</h2>
           </div>
         </div>
+        ${tileRow}
         <div class="grid cols-3" style="margin-bottom:22px">
           <a href="#/log" class="stat-link"><div class="card"><h3>My SCI Forms → Log</h3><div class="big-num">${myForms.length}</div><small style="color:var(--muted)">Click to open the Forms Log</small></div></a>
           <div class="card"><h3>Pending Forms</h3><div class="big-num" style="color:var(--primary)">${myPending}</div></div>
@@ -1141,9 +1272,12 @@ function renderSCIFormsLogPage(user) {
 function renderStockPage(user, routeParams) {
   document.body.classList.remove('login-page');
   const content = document.getElementById('content');
-  const state = { centers: [], items: [], stock: {} };
+  const state = { centers: [], items: [], stock: {}, entries: [] };
   let anchorId = null;
   let selectedCenter = null;
+  let diffFilter = null;
+  let skipCurrentCentre = null;
+  const canDeleteReg = function () { return isAdmin(); }();
   const SCROLL_KEY = 'stock-register-scroll';
   const paramC = routeParams.get('c');
   const fullScope = isAdmin() || isViewer();
@@ -1181,109 +1315,121 @@ function renderStockPage(user, routeParams) {
     return { label, cls, total };
   }
 
+  const diffTxt = (d) => (d > 0 ? '+' : '') + d;
+  const diffCls = (d) => d < 0 ? 'neg' : (d > 0 ? 'pos' : 'zero');
+
   async function load() {
-    const [centers, stockData] = await Promise.all([fetchCenters(), fetchStock()]);
+    const [centers, stockData, entries] = await Promise.all([fetchCenters(), fetchStock(), fetchStockRegister()]);
     state.centers = centers;
     state.items = stockData.items;
     state.stock = stockData.stock;
+    state.entries = entries;
     render();
   }
 
-  function buildTreeRows() {
-    const byParent = {};
-    state.centers.forEach((c) => { (byParent[c.parentId || ''] = byParent[c.parentId || ''] || []).push(c); });
-    Object.values(byParent).forEach((arr) => arr.sort((a, b) => a.name.localeCompare(b.name)));
-    const rows = [];
-    const walk = (node, depth) => {
-      rows.push({ c: node, depth });
-      (byParent[node.id] || []).forEach((ch) => walk(ch, depth + 1));
-    };
-    let roots;
-    if (fullScope) {
-      roots = (byParent[''] || []).filter((c) => c.type === 'CENTRE' || c.type === 'ASO ADMIN' || c.id === 'superadmin');
-    } else {
-      const me = state.centers.find((c) => String(c.id) === String(user.id));
-      roots = me ? [me] : [];
-    }
-    roots.forEach((r) => walk(r, 0));
-    return rows;
+  function scopeIds() {
+    if (fullScope) return new Set(state.centers.map((c) => String(c.id)));
+    const byP = {};
+    state.centers.forEach((c) => { (byP[c.parentId || ''] = byP[c.parentId || ''] || []).push(c); });
+    const me = state.centers.find((c) => String(c.id) === String(user.id));
+    const out = [];
+    const w = (n) => { out.push(n); (byP[n.id] || []).forEach(w); };
+    if (me) w(me);
+    return new Set(out.map((c) => String(c.id)));
+  }
+
+  function summary(ids) {
+    let totalQty = 0, noStock = 0;
+    state.centers.forEach((c) => {
+      if (!ids.has(String(c.id))) return;
+      const s = state.stock[c.id] || {};
+      const t = Object.keys(s).reduce((a, k) => a + (Number(s[k]) || 0), 0);
+      totalQty += t;
+      if (t === 0) noStock++;
+    });
+    const scoped = state.entries.filter((en) => ids.has(String(en.centreId)));
+    return { items: state.items.length, qty: totalQty, noStock, entries: scoped.length, diff: scoped.filter((en) => Number(en.difference) !== 0).length };
   }
 
   function render() {
-    const wrap = content.querySelector('.table-wrap');
-    let anchor = null;
-    if (anchorId && wrap) {
-      const row = wrap.querySelector('tr[data-id="' + anchorId.replace(/["\\]/g, '\\$&') + '"]');
-      if (row) {
-        const wr = wrap.getBoundingClientRect();
-        anchor = { top: row.getBoundingClientRect().top - wr.top, scrollTop: wrap.scrollTop };
-      }
-    }
-    const rows = buildTreeRows();
-    const visible = selectedCenter ? rows.filter((r) => r.c.id === selectedCenter) : rows;
+    const ids = scopeIds();
+    const sum = summary(ids);
+    const scopedEntries = state.entries.filter((en) => ids.has(String(en.centreId)));
+    const centreScope = skipCurrentCentre ? scopedEntries.filter((en) => String(en.centreId) === String(skipCurrentCentre)) : scopedEntries;
+    const diffMode = diffFilter === 'diff' ? true : (diffFilter === 'clean' ? false : null);
+    const shown = diffMode == null ? centreScope : centreScope.filter((en) => diffMode ? Number(en.difference) !== 0 : Number(en.difference) === 0);
+
+    const fmt = (n) => Number(n || 0).toLocaleString('en-IN');
 
     content.innerHTML = `
       <div class="logo-banner">
         <div>
           <h2>Stock Register</h2>
-          <p>${isAdmin() ? 'Live stock of every centre — tap ＋ / － on any figure to update it, or use the buttons above to add, edit, or delete items and export the register' : 'Your centre + allocated sub centres & points — tap ＋ / － on any figure to update it, or use the buttons above to manage items and export'}</p>
+          <p>${isAdmin() ? 'Physical-stock verification ledger for every centre — log each verified count, spot any difference from the book figure, and adjust stock when needed.' : 'Verification ledger for your centre + allocated sub centres & points — log each verified count and spot differences from the book figure.'}</p>
         </div>
         <div class="sr-actions">
-          <button class="btn primary" id="btnAddItem" title="Add a new stock item">＋ Add Item</button>
-          <button class="btn" id="btnEditItem" title="Edit an item name, description or category">Edit Item</button>
-          <button class="btn" id="btnDelItem" title="Delete an item and its stock from every centre">Delete Item</button>
-          <button class="btn" id="btnExportStock" title="Download the stock register as an Excel-compatible file">Export Stock</button>
+          <button class="btn sm" id="btnManage" title="Add, edit or delete stock items">Manage Items</button>
+          <button class="btn sm" id="btnExport" title="Download the verification register as CSV">Export</button>
+          <button class="btn primary" id="btnNew" title="Enter a new physical verification entry">＋ New Verification Entry</button>
         </div>
       </div>
-      <div class="center-search"><div id="csBox"></div></div>
-      <div class="table-wrap">
-        <table class="stock-table">
-          <thead><tr><th class="stick-1">Center</th><th class="stick-2">Type</th>${state.items.map((it) => `<th>${esc(it)}</th>`).join('')}<th>Total</th><th>Condition</th></tr></thead>
-        <tbody>${visible.map((r) => renderRow(r, state.stock[r.c.id] || {}, selectedCenter === r.c.id)).join('')}</tbody>
-      </table>
+      <div class="sum-bar">
+        <div class="sum-card"><div class="k">Items</div><div class="v">${sum.items}</div></div>
+        <div class="sum-card"><div class="k">Qty on hand (book)</div><div class="v">${fmt(sum.qty)}</div></div>
+        <div class="sum-card"><div class="k">Centres with no stock</div><div class="v${sum.noStock ? ' warn' : ''}">${sum.noStock}</div></div>
+        <div class="sum-card"><div class="k">Verification entries</div><div class="v">${scopedEntries.length}</div></div>
+        <div class="sum-card"><div class="k">Entries with difference</div><div class="v${sum.diff ? ' warn' : ''}">${sum.diff}</div></div>
       </div>
-      <p style="margin-top:12px;color:var(--muted);font-size:12px">${selectedCenter ? `<b style="color:var(--green)">Showing only the selected center — ${esc(centerName(selectedCenter))}.</b> ` : ''}Use ＋ / － on any quantity to add or update stock.${paramC ? '<b style="color:var(--green)"> ▼ Highlighted row = the center you clicked on the Dashboard.</b>' : ''}</p>
+      <div class="reg-toolbar">
+        <div id="csBox" style="flex:1;min-width:200px;max-width:360px"></div>
+        <div class="chips">
+          <button class="reg-filter${diffFilter === null ? ' active' : ''}" data-df="all">All entries (${centreScope.length})</button>
+          <button class="reg-filter${diffFilter === 'diff' ? ' active' : ''}" data-df="diff">Differences (${centreScope.filter((en) => Number(en.difference) !== 0).length})</button>
+          <button class="reg-filter${diffFilter === 'clean' ? ' active' : ''}" data-df="clean">No difference (${centreScope.filter((en) => Number(en.difference) === 0).length})</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table class="stock-table reg-table">
+          <thead><tr>
+            <th>S. No.</th>
+            <th class="stick-1">Satsang Place</th>
+            <th>Name of Item</th>
+            <th>Stock Register Page No.</th>
+            <th>Approval No.</th>
+            <th>Approval Date</th>
+            <th>Qty as per Stock Register (A)</th>
+            <th>Physically Available (B)</th>
+            <th>Difference (A−B)</th>
+            <th>Reason for Difference</th>
+            <th>Remarks</th>
+            <th>Actions</th>
+          </tr></thead>
+          <tbody>${[...shown].reverse().map((en, i) => renderRegRow(en, shown.length - i)).join('') || '<tr><td class="empty" colspan="12">No verification entries yet — click "＋ New Verification Entry" to log the first physical count.</td></tr>'}</tbody>
+        </table>
+      </div>
+      <p style="margin-top:12px;color:var(--muted);font-size:12px">${shown.length} of ${centreScope.length} entries in scope${skipCurrentCentre ? ' · filtered to one centre' : ''}${diffFilter ? ' · filtered by difference' : ''}. The Difference column is computed automatically as (A − B); use <b>Apply</b> to write the physically counted quantity back into the book figure.</p>
     `;
 
     bindSearch();
-    const btnAdd = document.getElementById('btnAddItem');
-    const btnEdit = document.getElementById('btnEditItem');
-    const btnDel = document.getElementById('btnDelItem');
-    const btnExport = document.getElementById('btnExportStock');
-    if (btnAdd) btnAdd.addEventListener('click', () => openItemsManager('add'));
-    if (btnEdit) btnEdit.addEventListener('click', () => openItemsManager('list'));
-    if (btnDel) btnDel.addEventListener('click', () => openItemsManager('list'));
+    content.querySelector('#btnNew').addEventListener('click', () => openRegisterModal(null));
+    const btnManage = content.querySelector('#btnManage');
+    if (btnManage) btnManage.addEventListener('click', () => openItemsManager('list'));
+    const btnExport = content.querySelector('#btnExport');
     if (btnExport) btnExport.addEventListener('click', exportStock);
-
-    const nav = performance.getEntriesByType && performance.getEntriesByType('navigation')[0];
-    const isReload = !!(nav && nav.type === 'reload');
-    const targetRow = paramC ? content.querySelector('tr[data-id="' + paramC.replace(/["\\]/g, '\\$&') + '"]') : null;
-    if (targetRow) targetRow.classList.add('row-highlight', 'row-flash');
-    const point = !!(targetRow && !anchorId && !isReload);
-    const wrap2 = content.querySelector('.table-wrap');
-    if (point && wrap2) {
-      const wr = wrap2.getBoundingClientRect();
-      const rr = targetRow.getBoundingClientRect();
-      const saved = sessionStorage.getItem(SCROLL_KEY);
-      try { wrap2.scrollLeft = saved ? (JSON.parse(saved).left || 0) : wrap2.scrollLeft; } catch (e) {}
-      wrap2.scrollTop += (rr.top - wr.top) - (wr.height / 2) + (rr.height / 2);
-    } else {
-      restoreScroll();
-      if (anchor) {
-        const row = content.querySelector('tr[data-id="' + anchorId.replace(/["\\]/g, '\\$&') + '"]');
-        if (row && wrap2) {
-          const wr = wrap2.getBoundingClientRect();
-          wrap2.scrollTop += (row.getBoundingClientRect().top - wr.top) - anchor.top;
-        }
-        anchorId = null;
-        saveScroll();
-      }
+    content.querySelectorAll('.reg-filter').forEach((b) => b.addEventListener('click', () => {
+      diffFilter = b.dataset.df === 'all' ? null : b.dataset.df;
+      render();
+    }));
+    const wrap = content.querySelector('.table-wrap');
+    const saved = sessionStorage.getItem(SCROLL_KEY);
+    if (wrap && saved) {
+      try { const p = JSON.parse(saved); wrap.scrollLeft = p.left || 0; wrap.scrollTop = p.top || 0; } catch (e) {}
     }
   }
 
   const searchBox = createCenterSearch({
-    placeholder: 'Search center name…',
-    onSelect: (c) => { selectedCenter = c ? c.id : null; render(); }
+    placeholder: 'Search centre…',
+    onSelect: (c) => { if (c) skipCurrentCentre = c.id; render(); }
   });
 
   function bindSearch() {
@@ -1291,45 +1437,39 @@ function renderStockPage(user, routeParams) {
     const box = content.querySelector('#csBox');
     box.innerHTML = '';
     box.appendChild(searchBox.el);
-    const sel = selectedCenter ? scopeCenters().find((x) => x.id === selectedCenter) : null;
+    const sel = skipCurrentCentre ? scopeCenters().find((x) => x.id === skipCurrentCentre) : null;
     searchBox.setValue(sel ? sel.name : '');
   }
 
-  function saveScroll() {
+  content.addEventListener('scroll', () => {
     const wrap = content.querySelector('.table-wrap');
     if (!wrap) return;
     sessionStorage.setItem(SCROLL_KEY, JSON.stringify({ top: wrap.scrollTop, left: wrap.scrollLeft }));
-  }
-  function restoreScroll() {
-    const wrap = content.querySelector('.table-wrap');
-    if (!wrap) return;
-    const saved = sessionStorage.getItem(SCROLL_KEY);
-    if (!saved) return;
-    try {
-      const pos = JSON.parse(saved);
-      wrap.scrollLeft = pos.left || 0;
-      wrap.scrollTop = pos.top || 0;
-    } catch (e) {}
-  }
-  content.addEventListener('scroll', saveScroll, true);
+  }, true);
 
-  function renderRow(r, stock, highlight) {
-    const cells = state.items.map((it) => {
-      const v = Number(stock[it] || 0);
-      return `<td class="qty-cell">
-        <button class="qty-btn" data-item="${esc(it)}" data-c="${r.c.id}" data-delta="-10">−</button>
-        <span class="qty-val">${v}</span>
-        <button class="qty-btn" data-item="${esc(it)}" data-c="${r.c.id}" data-delta="10">+</button>
-      </td>`;
-    }).join('');
-    const cond = conditionOf(stock, state.items);
-    const indent = r.depth ? ` style="padding-left:${28 + r.depth * 22}px"` : '';
-    return `<tr data-id="${r.c.id}"${highlight ? ' class="row-highlight"' : ''}>
-      <td${indent} class="stick-1"><b>${esc(r.c.name)}</b></td>
-      <td class="stick-2">${typeBadge(r.c.type)}</td>
-      ${cells}
-      <td><b>${cond.total}</b></td>
-      <td><span class="badge ${cond.cls}">${cond.label}</span></td>
+  function renderRegRow(en, sno) {
+    const d = Number(en.difference);
+    const fmtDate = (s) => { if (!s) return '—'; const dt = new Date(s + (s.length === 10 ? 'T00:00:00' : '')); if (isNaN(dt)) return s; return dt.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }); };
+    const centre = centerName(en.centreId);
+    return `<tr data-id="${en.id}">
+      <td class="sno">${sno}</td>
+      <td class="centre stick-1"><b>${esc(centre)}</b></td>
+      <td>${esc(en.item)}</td>
+      <td>${esc(en.pageNo || '—')}</td>
+      <td>${esc(en.approvalNo || '—')}</td>
+      <td>${fmtDate(en.approvalDate)}</td>
+      <td>${Number(en.qtyA)}</td>
+      <td>${Number(en.qtyB)}</td>
+      <td class="diff ${diffCls(d)}">${diffTxt(d)}</td>
+      <td class="wrap">${esc(en.reason || '—')}</td>
+      <td class="wrap">${esc(en.remarks || '—')}</td>
+      <td>
+        <div class="row-actions">
+          <button class="btn sm" data-reg="edit" data-id="${en.id}" title="Edit this entry">Edit</button>
+          ${d !== 0 ? `<button class="btn sm" data-reg="apply" data-id="${en.id}" title="Write the physically counted quantity (B) into the book">Apply</button>` : ''}
+          ${canDeleteReg ? `<button class="btn red sm" data-reg="del" data-id="${en.id}" title="Delete this entry">×</button>` : ''}
+        </div>
+      </td>
     </tr>`;
   }
 
@@ -1338,70 +1478,115 @@ function renderStockPage(user, routeParams) {
     return c ? c.name : id;
   }
 
-  function openStockModal(centerId, item, delta) {
-    anchorId = centerId;
-    const cur = Number(state.stock[centerId] ? state.stock[centerId][item] || 0 : 0);
-    let value = Math.max(0, cur + delta);
-
+  function openRegisterModal(entry) {
+    const scoped = scopeCenters();
     const overlay = document.createElement('div');
     overlay.className = 'modal-overlay';
     overlay.innerHTML = `
-      <div class="modal">
-        <h3>Update Stock — ${esc(centerName(centerId))}</h3>
-        <div class="m-sub">Item: <b>${esc(item)}</b> · Center: <b>${esc(centerName(centerId))}</b></div>
-        <div class="m-cur"><span>Current stock</span><b id="mCur">${cur}</b></div>
-        <label style="font-weight:600;font-size:13px;display:block;margin-bottom:5px">New stock quantity</label>
-        <input type="number" id="mVal" class="m-input" min="0" value="${value}">
-        <div class="m-step">
-          <button data-d="-100">−100</button>
-          <button data-d="-10">−10</button>
-          <button data-d="-1">−1</button>
-          <button data-d="1">+1</button>
-          <button data-d="10">+10</button>
-          <button data-d="100">+100</button>
+      <div class="modal" style="width:min(680px,94vw)">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+          <h3 style="margin:0">${entry ? 'Edit Verification Entry' : 'New Verification Entry'}</h3>
+          <button class="btn sm" id="rmCancel">Close</button>
+        </div>
+        <p class="hint" style="margin:8px 0 0">Rows are appended to the paper style register. Column (A) is filled from the book figure; enter the counted quantity as (B) — the Difference is computed automatically.</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px">
+          <div class="field">
+            <label>Satsang Place (Centre) *</label>
+            <select id="rm_centre">${scoped.map((c) => `<option value="${c.id}"${entry && Number(entry.centreId) === c.id ? ' selected' : ''}>${esc(c.name)}</option>`).join('')}</select>
+          </div>
+          <div class="field">
+            <label>Name of Item *</label>
+            <select id="rm_item">${state.items.map((it) => `<option value="${esc(it)}"${entry && entry.item === it ? ' selected' : ''}>${esc(it)}</option>`).join('') || '<option value="">(no items yet)</option>'}</select>
+          </div>
+          <div class="field"><label>Stock Register Page No.</label><input id="rm_page" placeholder="e.g. 12" value="${esc(entry ? entry.pageNo || '' : '')}"></div>
+          <div class="field"><label>Approval Number</label><input id="rm_appr" placeholder="e.g. ARD/2026/001" value="${esc(entry ? entry.approvalNo || '' : '')}"></div>
+          <div class="field"><label>Approval Date</label><input type="date" id="rm_adate" value="${esc(entry && entry.approvalDate ? entry.approvalDate.slice(0, 10) : new Date().toISOString().slice(0, 10))}"></div>
+          <div class="field"><label>Qty as per Stock Register (A)</label><input type="number" id="rm_qtyA" min="0" value="${entry ? Number(entry.qtyA) : 0}" readonly></div>
+          <div class="field"><label>Physically Available (B)</label><input type="number" id="rm_qtyB" min="0" value="${entry ? Number(entry.qtyB) : 0}"></div>
+          <div class="field"><label>Difference (A − B)</label><input type="text" id="rm_diff" readonly value="${entry ? diffTxt(Number(entry.difference)) : 0}"></div>
+          <div class="field" style="grid-column:1/-1"><label>Reason for Difference</label><input id="rm_reason" placeholder="Only if there is any difference" value="${esc(entry ? entry.reason || '' : '')}"></div>
+          <div class="field" style="grid-column:1/-1"><label>Remarks</label><input id="rm_remarks" placeholder="Any remarks" value="${esc(entry ? entry.remarks || '' : '')}"></div>
         </div>
         <div class="m-actions">
-          <button class="btn" id="mCancel">Cancel</button>
-          <button class="btn primary" id="mSave">Save Stock</button>
+          <button class="btn" id="rmCancel2">Cancel</button>
+          <button class="btn primary" id="rmSave">${entry ? 'Save Changes' : 'Add Entry'}</button>
         </div>
       </div>
     `;
     document.body.appendChild(overlay);
 
-    const input = overlay.querySelector('#mVal');
-    const sync = () => { const v = Math.max(0, Number(input.value) || 0); input.value = v; overlay.querySelector('#mCur').textContent = v; };
-    input.addEventListener('input', () => { overlay.querySelector('#mCur').textContent = Math.max(0, Number(input.value) || 0); });
-    overlay.querySelectorAll('.m-step button').forEach((b) => b.addEventListener('click', () => {
-      input.value = Math.max(0, (Number(input.value) || 0) + Number(b.dataset.d));
-      sync();
-    }));
-    const close = () => { document.body.removeChild(overlay); };
-    overlay.querySelector('#mCancel').addEventListener('click', close);
+    const n = (id) => overlay.querySelector('#' + id);
+    const escTe = (id) => () => { try { return n(id).value.trim(); } catch (e) { return ''; } };
+    const close = () => { document.body.removeChild(overlay); document.removeEventListener('keydown', escClose, true); };
+    const escClose = (e) => { if (e.key === 'Escape') close(); };
+    document.addEventListener('keydown', escClose, true);
+
+    const syncA = () => {
+      const cid = n('rm_centre').value; const it = n('rm_item').value;
+      const cur = Number(state.stock[cid] ? state.stock[cid][it] || 0 : 0);
+      n('rm_qtyA').value = entry ? Number(entry.qtyA) : cur;
+      syncDiff();
+    };
+    const syncDiff = () => {
+      const a = Number(n('rm_qtyA').value) || 0; const b = Number(n('rm_qtyB').value) || 0;
+      n('rm_diff').value = diffTxt(a - b);
+    };
+    n('rm_centre').addEventListener('change', () => { if (!entry) syncA(); });
+    n('rm_item').addEventListener('change', () => { if (!entry) syncA(); });
+    n('rm_qtyB').addEventListener('input', syncDiff);
+
+    const close2 = () => { const b = n('rmCancel2'); if (b) b.addEventListener('click', close); };
+    n('rmCancel').addEventListener('click', close);
+    n('rmCancel2').addEventListener('click', close);
     overlay.addEventListener('mousedown', (e) => { if (e.target === overlay) close(); });
-    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); }, { once: true });
-    overlay.querySelector('#mSave').addEventListener('click', async () => {
-      const qty = Number(input.value);
-      if (isNaN(qty) || qty < 0) return toast('Enter a valid quantity', true);
-      overlay.querySelector('#mSave').disabled = true;
+    void close2;
+
+    n('rmSave').addEventListener('click', async () => {
+      const cid = n('rm_centre').value;
+      const it = n('rm_item').value;
+      if (!cid || !it) return toast('Select a centre and an item', true);
+      const qtyB = Math.max(0, Number(n('rm_qtyB').value) || 0);
+      const qtyA = entry ? Number(entry.qtyA) : (Number(state.stock[cid] ? state.stock[cid][it] || 0 : 0));
+      const fields = {
+        centreId: cid,
+        item: it,
+        pageNo: escTe('rm_page')(),
+        approvalNo: escTe('rm_appr')(),
+        approvalDate: n('rm_adate').value || null,
+        qtyA,
+        qtyB,
+        reason: escTe('rm_reason')(),
+        remarks: escTe('rm_remarks')()
+      };
+      n('rmSave').disabled = true;
       try {
-        await updateStock(centerId, { [item]: qty });
-        toast('Stock updated: ' + item + ' = ' + qty);
+        if (entry) await updateStockRegisterEntry(entry.id, fields);
+        else await createStockRegisterEntry(fields);
+        toast(entry ? 'Entry updated' : 'Verification entry added');
         close();
         load();
-      } catch (err) { overlay.querySelector('#mSave').disabled = false; toast(err.message, true); }
+      } catch (err) { n('rmSave').disabled = false; toast(err.message, true); }
     });
-    input.focus();
-    input.select();
+    setTimeout(() => { try { (entry ? n('rm_qtyB') : n('rm_centre')).focus(); } catch (e) {} }, 80);
+    syncA();
   }
 
   content.addEventListener('click', (e) => {
-    const btn = e.target.closest('.qty-btn');
-    if (btn) { openStockModal(btn.dataset.c, btn.dataset.item, Number(btn.dataset.delta)); return; }
-    const row = e.target.closest('tr[data-id]');
-    if (row && row.classList.contains('row-highlight')) { row.classList.remove('row-highlight'); return; }
-    if (row) {
-      content.querySelectorAll('tr.row-highlight').forEach((r) => r.classList.remove('row-highlight'));
-      row.classList.add('row-highlight');
+    const btn = e.target.closest('[data-reg]');
+    if (!btn) return;
+    const id = Number(btn.dataset.id);
+    const en = state.entries.find((x) => Number(x.id) === id);
+    if (!en) return;
+    if (btn.dataset.reg === 'edit') { openRegisterModal(en); return; }
+    if (btn.dataset.reg === 'del' && canDeleteReg) {
+      if (!confirm('Delete this verification entry for ' + centerName(en.centreId) + ' — ' + en.item + '?')) return;
+      deleteStockRegisterEntry(id).then(() => { toast('Entry deleted'); load(); }).catch((err) => toast(err.message, true));
+      return;
+    }
+    if (btn.dataset.reg === 'apply') {
+      if (!confirm('Set the book figure for ' + centerName(en.centreId) + ' — ' + en.item + ' to the physically counted quantity ' + en.qtyB + '?')) return;
+      btn.disabled = true;
+      updateStock(en.centreId, { [en.item]: Number(en.qtyB) }).then(() => { toast('Book figure updated to ' + en.qtyB); load(); }).catch((err) => { btn.disabled = false; toast(err.message, true); });
     }
   });
 
@@ -1411,27 +1596,25 @@ function renderStockPage(user, routeParams) {
         const s = v == null ? '' : String(v);
         return /[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
       };
-      const header = ['Center', 'Type'].concat(state.items).concat(['Total', 'Condition']);
-      const rows = buildTreeRows().map((r) => {
-        const stock = state.stock[r.c.id] || {};
-        const cells = state.items.map((it) => Number(stock[it] || 0));
-        const total = cells.reduce((a, b) => a + b, 0);
-        const indent = r.depth ? '    '.repeat(Math.min(r.depth, 5)) : '';
-        return [csvCell(indent + r.c.name), csvCell(r.c.type)]
-          .concat(cells.map((v) => csvCell(v)))
-          .concat(csvCell(total), csvCell(conditionOf(stock, state.items).label));
-      });
-      const csv = [header.map((h) => csvCell(h)).join(',')].concat(rows.map((r) => r.join(','))).join('\r\n');
+      const ids = scopeIds();
+      const rows = state.entries
+        .filter((en) => ids.has(String(en.centreId)))
+        .map((en) => {
+          const fmtDate = (s) => { if (!s) return ''; const dt = new Date(s + (s.length === 10 ? 'T00:00:00' : '')); return isNaN(dt) ? s : dt.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }); };
+          return [centerName(en.centreId), en.item, en.pageNo || '', en.approvalNo || '', fmtDate(en.approvalDate), Number(en.qtyA), Number(en.qtyB), Number(en.difference), en.reason || '', en.remarks || ''];
+        });
+      const header = ['S.No', 'Satsang Place', 'Name of Item', 'Stock Register Page No.', 'Approval No.', 'Approval Date', 'Qty as per Stock Register (A)', 'Physically Available (B)', 'Difference (A−B)', 'Reason for Difference', 'Remarks'];
+      const csv = [header.map((h) => csvCell(h)).join(',')].concat(rows.map((r, i) => [i + 1].concat(r).map(csvCell).join(','))).join('\r\n');
       const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = 'stock-register.xlsx';
+      link.download = 'stock-verification-register.csv';
       document.body.appendChild(link);
       link.click();
       link.remove();
       setTimeout(() => URL.revokeObjectURL(url), 10000);
-      toast('Stock register exported to Excel');
+      toast('Register exported as CSV');
     } catch (err) {
       toast('Export failed: ' + (err.message || err), true);
     }
