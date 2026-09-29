@@ -265,7 +265,8 @@ td.empty,tr td.empty{color:var(--muted);text-align:center;padding:26px;white-spa
 .sum-card .v{font-family:'Source Serif 4',serif;font-size:24px;font-weight:700;color:var(--primary-dark);line-height:1}
 .sum-card .v.warn{color:var(--red)}
 .reg-toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px}
-.reg-toolbar .chips{display:flex;gap:8px}
+.reg-toolbar .chips{display:flex;gap:8px;flex-wrap:wrap}
+.reg-toolbar select{padding:8px 12px;border:1px solid var(--line);border-radius:8px;background:#fff;font-weight:600;font-size:13px;min-width:230px;max-width:340px;outline:none;cursor:pointer;color:var(--muted)}
 .reg-filter{display:inline-flex;align-items:center;gap:6px;padding:7px 13px;border:1px solid var(--line);border-radius:100px;background:#fff;cursor:pointer;font-weight:600;font-size:12.5px;color:var(--muted)}
 .reg-filter.active{background:var(--primary);border-color:var(--primary);color:#fff}
 .reg-table th{white-space:nowrap}
@@ -1502,7 +1503,7 @@ function renderStockPage(user, routeParams) {
         <div class="sum-card"><div class="k">Entries with difference</div><div class="v${sum.diff ? ' warn' : ''}">${sum.diff}</div></div>
       </div>
       <div class="reg-toolbar">
-        <div id="csBox" style="flex:1;min-width:200px;max-width:360px"></div>
+        <select id="regCentre" title="Filter the register to one centre"></select>
         <div class="chips">
           <button class="reg-filter${diffFilter === null ? ' active' : ''}" data-df="all">All entries (${centreScope.length})</button>
           <button class="reg-filter${diffFilter === 'diff' ? ' active' : ''}" data-df="diff">Differences (${centreScope.filter((en) => Number(en.difference) !== 0).length})</button>
@@ -1548,18 +1549,22 @@ function renderStockPage(user, routeParams) {
     }
   }
 
-  const searchBox = createCenterSearch({
-    placeholder: 'Search centre…',
-    onSelect: (c) => { if (c) skipCurrentCentre = c.id; render(); }
-  });
-
   function bindSearch() {
-    searchBox.setItems(scopeCenters());
-    const box = content.querySelector('#csBox');
-    box.innerHTML = '';
-    box.appendChild(searchBox.el);
-    const sel = skipCurrentCentre ? scopeCenters().find((x) => x.id === skipCurrentCentre) : null;
-    searchBox.setValue(sel ? sel.name : '');
+    const sel = content.querySelector('#regCentre');
+    if (!sel) return;
+    const counts = {};
+    state.entries.forEach((en) => { counts[String(en.centreId)] = (counts[String(en.centreId)] || 0) + 1; });
+    const sorted = scopeCenters().slice().sort((a, b) => a.name.localeCompare(b.name));
+    const opts = ['<option value="">All Centres (all entries)</option>'].concat(sorted.map((c) => {
+      const cnt = counts[String(c.id)] || 0;
+      return `<option value="${esc(c.id)}">${esc(c.name)}${cnt ? ` (${cnt})` : ''}</option>`;
+    }));
+    sel.innerHTML = opts.join('');
+    if (skipCurrentCentre) sel.value = String(skipCurrentCentre);
+    sel.addEventListener('change', () => {
+      skipCurrentCentre = sel.value ? sel.value : null;
+      render();
+    });
   }
 
   content.addEventListener('scroll', () => {
