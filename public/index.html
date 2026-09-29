@@ -1525,7 +1525,7 @@ function renderStockPage(user, routeParams) {
             <th>Remarks</th>
             <th>Actions</th>
           </tr></thead>
-          <tbody>${[...shown].reverse().map((en, i) => renderRegRow(en, shown.length - i)).join('') || '<tr><td class="empty" colspan="12">No verification entries yet — click "＋ New Verification Entry" to log the first physical count.</td></tr>'}</tbody>
+          <tbody>${[...shown].reverse().map((en, i) => renderRegRow(en, i + 1)).join('') || '<tr><td class="empty" colspan="12">No verification entries yet — click "＋ New Verification Entry" to log the first physical count.</td></tr>'}</tbody>
         </table>
       </div>
       <p style="margin-top:12px;color:var(--muted);font-size:12px">${shown.length} of ${centreScope.length} entries in scope${skipCurrentCentre ? ' · filtered to one centre' : ''}${diffFilter ? ' · filtered by difference' : ''}. The Difference column is computed automatically as (A − B); use <b>Apply</b> to write the physically counted quantity back into the book figure.</p>
