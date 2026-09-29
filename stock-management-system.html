@@ -441,6 +441,29 @@ td.empty,tr td.empty{color:var(--muted);text-align:center;padding:26px;white-spa
 .sci-item-row input:focus,.sci-item-row select:focus{border-color:var(--primary)}
 .sci-item-row .sci-item-qty{width:100%;box-sizing:border-box}
 .sci-item-row .sci-item-unit{color:var(--muted);font-size:12px;text-overflow:ellipsis;overflow:hidden;white-space:nowrap}
+.sci-items{display:flex;flex-direction:column;gap:8px;margin:2px 0 8px}
+.sci-items .sci-item-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px;border:1px solid var(--line);border-radius:10px;background:#fbfcfd}
+.sci-items .sci-item-row .cell{flex:1 1 96px;min-width:0}
+.sci-items .sci-item-row .cell.cell-name{flex:1.8 1 210px}
+.sci-items .sci-item-row .cell-del{flex:0 0 32px}
+.sci-items .sci-item-row input[type=number]{width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid var(--line);border-radius:8px;outline:none;background:#fff;font-size:13px;color:var(--text);min-width:0}
+.sci-items .sci-item-row input[type=number]:focus{border-color:var(--primary)}
+.sci-items .sci-item-row input[readonly]{background:#f4f6f8;color:var(--muted)}
+.off-tbl-head,.off-tbl-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.off-tbl-head{padding:0 2px 4px}
+.off-tbl-head .cell{flex:1 1 96px;min-width:0;font-size:10.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.02em}
+.off-tbl-head .cell.cell-name{flex:1.8 1 210px}
+.off-tbl-head .cell.cell-del{flex:0 0 32px}
+.off-addr{font-size:12px;font-weight:600;color:var(--text);margin-bottom:12px;line-height:1.5}
+.off-para{background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin:6px 0;font-size:13.5px;line-height:2}
+.off-para .off-inline{display:inline-block;border:none;border-bottom:1px solid var(--primary);background:transparent;color:var(--text);font-size:13.5px;outline:none;min-width:120px;text-align:center;margin:0 4px}
+.off-note{font-size:12.5px;color:var(--muted);line-height:1.5}
+.off-sign{border:1px solid var(--line);border-radius:10px;background:#fbfcfd;padding:12px 14px;margin:8px 0}
+.off-sign-title{font-size:12px;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:.02em;margin-bottom:8px}
+.off-sign .off-note{margin:6px 0 10px}
+.off-tick{display:flex;flex-wrap:wrap;gap:14px;align-items:center;padding:10px 0;font-size:13px}
+.off-tick label{display:inline-flex;align-items:center;gap:6px;font-weight:600;font-size:13px;text-transform:none;letter-spacing:0}
+.off-quote{font-style:italic;color:var(--muted);margin:8px 0}
 .btn-del{width:32px;height:32px;padding:0;border-radius:8px;border:1px solid var(--line);background:#fff;color:var(--muted);font-size:15px;line-height:1;cursor:pointer}
 .btn-del:hover{border-color:var(--red);color:var(--red);background:var(--red-bg)}
 .sci-submit-bar{display:flex;flex-wrap:wrap;align-items:center;gap:14px;justify-content:space-between;padding-top:16px}
@@ -852,6 +875,23 @@ function openSCIFormDetail(form, onChanged) {
         .filter(([, v]) => v !== null && v !== '')
         .map(([k, v]) => `<div class="f-d"><span>${k.replace(/([A-Z])/g, (m) => ' ' + m.toLowerCase())}</span><b>${escH(String(v))}</b></div>`).join('');
     }
+    if (Array.isArray(form.details.replacement) && form.details.replacement.length) {
+      detailsHtml += `<div class="off-note" style="margin-top:10px">Replacement items against condemnation:</div><table class="sci-detail-tbl"><thead><tr><th>Item</th><th>Qty</th><th>Unit</th></tr></thead><tbody>${form.details.replacement.map((it) => `<tr><td>${escH(it.name || '')}</td><td>${escH(it.qty)}</td><td>${escH(it.unit || '—')}</td></tr>`).join('')}</tbody></table>`;
+    }
+    const official = form.details.form && typeof form.details.form === 'object' ? form.details.form : null;
+    if (official) {
+      const labels = {
+        beasFileNo: 'BEAS FILE NO.', refNo: 'NO.', date: 'DATE', placeName: 'SATSANG PLACE', area: 'AREA', avgAttendance: 'AVG WEEKLY ATTENDANCE',
+        disposeOf: 'Items disposed of', amount: 'Sale proceeds (Rs.)', ddNo: 'DD no.', ddDate: 'DD dated', beasRcptAmt: 'Receipt acknowledged (Rs.)',
+        relevantType: 'Type', reqPlace: 'Required at', reqAttachedTo: 'Attached to', fromPlace: 'Transfer from', toPlace: 'Transfer to',
+        workshopName: 'Workshop', workshopType: 'Workshop type', workshopAttachedTo: 'Workshop attached to', zone: 'Zone', indentNo: 'Indent no.', indentDate: 'Indent date', indentType: 'Indent type',
+        issuedPlace: 'Issued to', issuedArea: 'Issued area', issuedZone: 'Issued zone', boardPlace: 'Board at', boardDate: 'Board on',
+        boardAreaSecretary: 'Board — Area Secy', boardPresident: 'Board — President', boardSecretary: 'Board — Secretary', examinedCentreType: 'Centre examined',
+        cashSewa: 'Offer against cash Sewa?'
+      };
+      const rows = Object.entries(official).filter(([, v]) => v !== null && v !== '' && v !== undefined).map(([k, v]) => `<div class="f-d"><span>${escH(labels[k] || k.replace(/([A-Z])/g, (m) => ' ' + m.toLowerCase()))}</span><b>${escH(Array.isArray(v) ? v.map((x) => String(x == null ? '' : x).replace(/"/g, '""')).join(', ') : String(v))}</b></div>`).join('');
+      if (rows) detailsHtml += `<div class="off-note" style="margin-top:10px">Official fields</div><div class="fd-grid">${rows}</div>`;
+    }
   }
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay';
@@ -946,6 +986,229 @@ const SCI_STOCK_EFFECT = {
   SCI15: { src: 'centre', delta: -1 },
   SCI34: { src: 'centre', delta: -1 }
 };
+
+/* ---------- SCI official paper-format builder ---------- */
+// Column config for each SCI item grid. 'name' is the article; 'qty' is always
+// the quantity used for the stock effect; 'unit' shows register sync.
+const ITEM_COLS = {
+  SCI34: [
+    { key: 'name', label: 'NAME OF ARTICLE / MATERIAL', type: 'name' },
+    { key: 'qty', label: 'QUANTITY', type: 'number' },
+    { key: 'unit', label: 'UNIT', type: 'unit' }
+  ],
+  SCI43: [
+    { key: 'name', label: 'ITEM', type: 'name' },
+    { key: 'qty', label: 'QUANTITY', type: 'number' },
+    { key: 'unit', label: 'UNIT', type: 'unit' }
+  ],
+  SCI53: [
+    { key: 'name', label: 'NAME OF ARTICLE', type: 'name' },
+    { key: 'qty', label: 'PRESENT REQUIREMENT', type: 'number' },
+    { key: 'justification', label: 'JUSTIFICATION FOR ISSUE', type: 'text' },
+    { key: 'existingQty', label: 'EXISTING HOLDING QTY', type: 'number' },
+    { key: 'existingDate', label: 'EXISTING HOLDING DATE', type: 'text' },
+    { key: 'storage', label: 'STORAGE FACILITY DETAILS', type: 'text' },
+    { key: 'remarks', label: 'REMARKS', type: 'text' },
+    { key: 'unit', label: 'UNIT', type: 'unit' }
+  ],
+  SCI15: [
+    { key: 'name', label: 'NAME OF ARTICLE', type: 'name' },
+    { key: 'qty', label: 'PRESENT OFFER QTY', type: 'number' },
+    { key: 'cost', label: 'COST OF ITEM (₹)', type: 'number' },
+    { key: 'justification', label: 'JUSTIFICATION FOR ACCEPTANCE OR PURPOSE', type: 'text' },
+    { key: 'existingQty', label: 'EXISTING HOLDING QTY', type: 'number' },
+    { key: 'existingDate', label: 'EXISTING HOLDING DATE', type: 'text' },
+    { key: 'donorName', label: 'DONOR NAME', type: 'text' },
+    { key: 'donorAddress', label: 'DONOR ADDRESS', type: 'text' },
+    { key: 'unit', label: 'UNIT', type: 'unit' }
+  ],
+  SCI76: [
+    { key: 'name', label: 'ITEM', type: 'name' },
+    { key: 'qty', label: 'QUANTITY', type: 'number' },
+    { key: 'rate', label: 'RATE (₹)', type: 'number' },
+    { key: 'totalCost', label: 'TOTAL COST (₹)', type: 'calc' },
+    { key: 'workProject', label: 'NAME OF WORK / PROJECT', type: 'text' },
+    { key: 'beasNo', label: 'BEAS APPROVAL LTR NO.', type: 'text' },
+    { key: 'beasDate', label: 'BEAS APPROVAL DATE', type: 'text' },
+    { key: 'unit', label: 'UNIT', type: 'unit' }
+  ],
+  SCI45c: [
+    { key: 'name', label: 'NAME OF ARTICLE', type: 'name' },
+    { key: 'qty', label: 'NO. OF ARTICLES', type: 'number' },
+    { key: 'acqDate', label: 'ACQUISITION DATE', type: 'text' },
+    { key: 'condition', label: 'CONDITION', type: 'select', options: ['UNSERVICEABLE', 'REPAIRABLE', 'SERVICEABLE'] },
+    { key: 'signatures', label: 'SIGNATURES', type: 'text' },
+    { key: 'approxValue', label: 'APPROX. VALUE (₹)', type: 'number' },
+    { key: 'unit', label: 'UNIT', type: 'unit' }
+  ],
+  SCI45r: [
+    { key: 'name', label: 'NAME OF ARTICLES REQUIRED', type: 'name' },
+    { key: 'qty', label: 'PRESENT REQUIREMENT', type: 'number' },
+    { key: 'existingQty', label: 'EXISTING HOLDING QTY', type: 'number' },
+    { key: 'existingDate', label: 'EXISTING HOLDING DATE', type: 'text' },
+    { key: 'storage', label: 'STORAGE FACILITY DETAILS', type: 'text' },
+    { key: 'unit', label: 'UNIT', type: 'unit' }
+  ]
+};
+
+function offFld(key, label, o = {}) {
+  const t = o.type || 'text';
+  let attrs = `type="${t}" data-official="${key}"`;
+  if (t === 'number') attrs += ' step="any" min="0"';
+  if (o.placeholder) attrs += ` placeholder="${esc(o.placeholder)}"`;
+  if (o.maxlength) attrs += ` maxlength="${o.maxlength}"`;
+  if (o.title) attrs += ` title="${esc(o.title)}"`;
+  return `<div class="field"><label>${label}</label><input ${attrs}></div>`;
+}
+
+function offSel(key, label, options, o = {}) {
+  const opts = (o.allowEmpty ? '<option value="">— select —</option>' : '') +
+    options.map((opt) => `<option value="${esc(opt[0])}">${esc(opt[1] == null ? opt[0] : opt[1])}</option>`).join('');
+  return `<div class="field"><label>${label}</label><select data-official="${key}"${o.required ? ' required' : ''}>${opts}</select></div>`;
+}
+
+function offCentreSel(key, label, centres, o = {}) {
+  return offSel(key, label, (centres || []).map((c) => [c.name, c.name + (c.type ? ' (' + c.type + ')' : '')]), o);
+}
+
+function offTick(key, options, label, o = {}) {
+  return `
+    <div class="field"><label>${label}</label><div class="off-tick">
+      ${options.map((opt, i) => `<label style="text-transform:none;font-weight:600"><input type="radio" name="off_tick_${key}" value="${esc(opt[0])}" data-official="${key}"${o.required && i === 0 ? ' required' : ''}> ${esc(opt[1] == null ? opt[0] : opt[1])}</label>`).join('')}
+    </div></div>`;
+}
+
+function offPara(parts, o = {}) {
+  const html = parts.map((p) => typeof p === 'string' ? esc(p) : `<input class="off-inline" type="${p.type || 'text'}" data-official="${p.key}"${p.placeholder ? ` placeholder="${esc(p.placeholder)}"` : ''}${p.title ? ` title="${esc(p.title)}"` : ''} style="min-width:${p.w || 120}px">`).join('');
+  return `<div class="off-para"${o.note ? ' style="font-weight:600;margin-bottom:0"' : ''}>${html}</div>`;
+}
+
+function offSign(title, fields, noteHtml) {
+  const inp = (fields || []).map((k) => `<div class="field"><label>${k[0]}</label><input type="text" data-official="${k[1]}" placeholder="—"></div>`).join('');
+  return `<div class="off-sign"><div class="off-sign-title">${title}</div>${noteHtml ? `<div class="off-note">${noteHtml}</div>` : ''}<div class="sci-grid">${inp || '<span class="off-note">Signature</span>'}</div></div>`;
+}
+
+function offSec(title, inner) {
+  return `<div class="sci-section"><div class="sci-sec-title">${title}</div>${inner}</div>`;
+}
+
+// Letterhead + satsang place fields shared by the SERIAL SCI letters.
+function offLetterhead(o, extraFields) {
+  const g = [offFld('beasFileNo', 'BEAS FILE NO.'), offFld('refNo', 'NO.'), offFld('date', 'DATE')]
+    .concat(offCentreSel('placeName', 'NAME OF SATSANG PLACE (C/SC/SP)', o.centres))
+    .concat(offFld('area', 'AREA'))
+    .concat(extraFields || []);
+  return offSec('Letterhead', `<div class="off-addr">THE SEWADAR I/C SATSANG CENTRES IN INDIA &nbsp;·&nbsp; RSSB, DERA BABA JAIMAL SINGH, DISTT. AMRITSAR</div><div class="sci-grid">${g.join('')}</div>`);
+}
+
+// Build the non-items sections of a form editor to mirror the official format.
+function officialSections(code, o) {
+  const lock = `<div class="off-note">Locked from the stock register — the digital copy is a mirror of the filled paper form, which you upload below.</div>`;
+  switch (code) {
+    case 'SCI34': return offLetterhead(o) +
+      offSec('Permission &amp; Sale Proceeds',
+        offPara(['1. Permission was granted to dispose of ', { key: 'disposeOf', w: 260 }, ' by Zonal Secretary.']) +
+        offPara(['2. The Sale proceeds amounting to Rs. ', { key: 'amount', type: 'number', w: 120 }, ' of the said items are sent herewith vide DD no. ', { key: 'ddNo', w: 130 }, ' dated ', { key: 'ddDate', w: 120 }, '.']) +
+        offTick('relevantType', [['CONDEMNED', 'Condemned'], ['SURPLUS', 'Surplus'], ['SCRAP', 'Scrap']], '* PLEASE TICK (√) THE RELEVANT TYPE', { required: true }) + lock) +
+      offSec('Signature Blocks',
+        offSign('SECRETARY', [['NO.', 'noRef'], ['DATE', 'dateRef']]) +
+        offSign('FORWARDED — AREA SECRETARY', [['NO.', 'areaSecNo'], ['DATE', 'areaSecDate']]) +
+        offSign('ZONAL SECRETARY', [['NO.', 'zonalNo'], ['DATE', 'zonalDate']]) +
+        offSign('DECISION BY BEAS', [['NO.', 'beasNo'], ['DATE', 'beasDate']], 'Receipt of above cheque/DD for Rs. <span class="off-note"><input class="off-inline" type="number" step="any" min="0" data-official="beasRcptAmt" style="min-width:120px"></span> is hereby acknowledged.') +
+        offSign('SIC SATSANG CENTRES IN INDIA')) +
+      offSec('DISTRIBUTION',
+        `<div class="off-para">CT/SECRETARY/AREA SECRETARY/ZONAL SECRETARY</div>`);
+    case 'SCI15': return offLetterhead(o, [offFld('avgAttendance', 'AVERAGE WEEKLY ATTENDANCE', { placeholder: 'e.g. 250' })]) +
+      offSec('Offer',
+        `<div class="off-para">Dear Brother,<br>An offer of the following items is being sent, for which approval may please be accorded. ${lock}</div>` +
+        offSec('Recommendations &amp; Approvals',
+          offSign('INCHARGE/CT/SECRETARY') +
+          offSign('RECOMMENDATIONS OF — ZONAL SECRETARY', [['NO.', 'zonalNo'], ['DATE', 'zonalDate']]) +
+          offSign('APPROVAL OF SECRETARY, RSSB', [['NO.', 'secNo'], ['DATE', 'secDate']],
+            'The sewa material being offered in donation is as per Beas Design &amp; will be used as per Beas Drawings.') +
+          `<div class="off-tick"><label style="text-transform:none;font-weight:600">Specify whether Offer of Donation is against acceptance of cash Sewa —</label> ${(['YES', 'NO'].map((v) => `<label style="text-transform:none"><input type="radio" name="off_tick_cashSewa" value="${v}" data-official="cashSewa"> ${v}</label>`).join(''))}</div>` +
+          `<div class="off-note">If yes, the information of Sewa in cash/bank should be reported to sewa@rssb.in</div>` +
+          offSign('ZONAL SECRETARY', [['NO.', 'zonalNo2'], ['DATE', 'zonalDate2']]) +
+          offSign('AREA SECRETARY — RECOMMENDED', [['NO.', 'areaSecNo'], ['DATE', 'areaSecDate']], 'Note: 1. The Sewa material approved is to be used as per Beas approved design/drawing. 2. No collection whatsoever is to be made at any Satsang Place.') +
+          offSign('SIC SATSANG CENTRES IN INDIA · SECRETARY, RSSB, BEAS · RETURNED TO SIC')) +
+          offSec('DISTRIBUTION — CC CAO',
+            offPara(['DISTRIBUTION — INCHARGE/CT/SECRETARY/AREA SECRETARY/ZONAL SECRETARY. CC — CAO for necessary adjustment of Rs. ', { key: 'amountCc', type: 'number', w: 110 }, '.'])));
+    case 'SCI43': return offLetterhead(o) +
+      offSec('Transfer Request',
+        `<div class="off-para">THE ZONAL SECRETARY:</div>` +
+        offPara(['1. The following items, which are surplus with the above Centre, are required at ', { key: 'reqPlace', w: 200 }, ' (C/SC/SP) attached to ', { key: 'reqAttachedTo', w: 160 }, '.']) +
+        offPara(['2. Form No. SCI/09/53 in respect of ', { key: 'reqPlace2', w: 200 }, ' (C/SC/SP — where the items are required) duly completed is enclosed.']) +
+        offPara(['3. You are requested to allow the transfer of above items from ', { key: 'fromPlace', w: 160 }, ' to ', { key: 'toPlace', w: 160 }, ' Satsang Place.'])) +
+      offSec('Signature Blocks',
+        offSign('INCHARGE/CT/SECRETARY') +
+        offSign('RECOMMENDATIONS OF — AREA SECRETARY', [['NO.', 'areaSecNo'], ['DATE', 'areaSecDate']]) +
+        offSign('DECISION GIVEN BY ZONAL SECRETARY', [['NO.', 'zonalNo'], ['DATE', 'zonalDate']], 'Transfer of the above items is approved as proposed.') +
+        offSign('DISTRIBUTION — AREA SECRETARY / INCHARGE-CT / SECRETARY'));
+    case 'SCI76': return offSec('Workshop',
+      `<div class="sci-grid">
+        ${offFld('workshopName', 'NAME OF WORKSHOP')}
+        ${offSel('workshopType', 'TYPE OF WORKSHOP * (TICK)', [['TILE'], ['MECHANICAL'], ['ALUMINIUM'], ['ELECTRICAL'], ['OTHER']], { allowEmpty: true })}
+        ${offCentreSel('workshopAttachedTo', 'ATTACHED TO (CENTRE)', o.centres)}
+        ${offFld('area', 'AREA')}
+        ${offFld('zone', 'ZONE')}
+        ${offFld('indentNo', 'INDENT NO.')}
+        ${offFld('indentDate', 'INDENT DATE')}
+        ${offSel('indentType', 'INDENT TYPE', [['CAPITAL'], ['REVENUE']], { allowEmpty: true })}
+      </div>${lock}`) +
+      offSec('Material Issued To — Book Debit Adjustment (Amt. in Rs.)',
+        `<div class="off-tick"><label style="text-transform:none;font-weight:600">MATERIAL ISSUED TO</label></div>
+        <div class="sci-grid">
+          ${offCentreSel('issuedPlace', 'NAME OF SATSANG PLACE', o.centres)}
+          ${offCentreSel('issuedAttachedTo', 'ATTACHED TO (CENTRE)', o.centres)}
+          ${offFld('issuedArea', 'AREA')}
+          ${offFld('issuedZone', 'ZONE')}
+        </div>`) +
+      offSec('Authorization',
+        offSign('INDENT AUTHORIZED BY WORKSHOP I/C', [['SIGNATURE (NAME)', 'wsSignature'], ['NAME', 'wsName']]) +
+        offSign('MATERIAL RECEIVED BY', [['SIGNATURE (NAME)', 'rcvSignature'], ['NAME', 'rcvName']]) +
+        offSign('SIGNATURE OF SECRETARY FOR RECEIPT OF MATERIAL (WITH RUBBER SEAL)' ) +
+        `<div class="off-note">NOTE: * PLEASE TICK (√) THE TYPE OF WORKSHOP</div>`);
+    case 'SCI53': return offLetterhead(o, [offFld('avgAttendance', 'AVERAGE WEEKLY ATTENDANCE', { placeholder: 'e.g. 250' })]) +
+      offSec('Requirement',
+        `<div class="off-para">DEAR BROTHER,<br>Requirement of items/material in respect of above Satsang place is submitted as under for necessary action at your end. ${lock}</div>` +
+        offSec('Signature Blocks',
+          offSign('INCHARGE / CT / SECRETARY') +
+          offSign('RECOMMENDATIONS OF — AREA SECRETARY', [['NO.', 'areaSecNo'], ['DATE', 'areaSecDate']]) +
+          offSign('ZONAL SECRETARY', [['NO.', 'zonalNo'], ['DATE', 'zonalDate']])));
+    case 'SCI45': return offLetterhead(o, [offFld('avgAttendance', 'AVERAGE WEEKLY ATTENDANCE', { placeholder: 'e.g. 250' })]) +
+      offSec('Condemnation Board', `<div class="off-para">THE ZONAL SECRETARY:</div>` +
+        offPara(['1. A condemnation board consisting of the following sewadars was assembled at ', { key: 'boardPlace', w: 160 }, ' on ', { key: 'boardDate', w: 120 }, '.']) +
+        `<div class="sci-grid">${offFld('boardAreaSecretary', 'a. Area Secretary (name)')}${offFld('boardPresident', 'b. President (name)')}${offFld('boardSecretary', 'c. Secretary (name)')}</div>` +
+        offPara(['2. The Board examined the articles of ', { key: 'examinedCentreType', w: 120 }, ' Centre / Sub Centre / Satsang Point produced before it and its report is as follows:']) + lock) +
+      offSec('Condemnation List', `<div class="off-note" style="margin-bottom:8px">Please enter the condemned articles below.</div>`) +
+      offSec('Replacement (if required)', `<div class="off-note">Note: In case replacement against condemnation is required, please fill the following details.</div>`) +
+      offSec('Signature Blocks',
+        offSign('AREA SECRETARY · SECRETARY · PRESIDENT') +
+        offSign('INCHARGE/CT/SECRETARY') +
+        offSign('RECOMMENDATIONS OF — AREA SECRETARY', [['NO.', 'areaSecNo'], ['DATE', 'areaSecDate']]) +
+        offSign('ZONAL SECRETARY', [['NO.', 'zonalNo'], ['DATE', 'zonalDate']], 'Please arrange to collect the above mentioned items against condemnation from Area Depot.'));
+    default: return '';
+  }
+}
+
+function itemRowHtml(cols, hasRegister, itemOptions) {
+  const cell = (cls, inner) => `<div class="cell ${cls}">${inner}</div>`;
+  const cells = cols.map((c) => {
+    const cls = c.key === 'name' ? 'cell-name' : '';
+    if (c.type === 'name') return cell('cell-name', hasRegister
+      ? `<select class="sci-item-name" title="Item from the centre stock register">${itemOptions}</select>`
+      : `<input class="sci-item-name" type="text" placeholder="Item / material name" list="sciManualItems" maxlength="200">`);
+    if (c.type === 'unit') return cell('', hasRegister ? '<span class="sci-unit"></span>' : `<input class="sci-unit" type="text" placeholder="Unit" maxlength="20">`);
+    if (c.type === 'select') return cell('', `<select class="sci-sel" data-col="${c.key}"><option value="">— ${esc(c.label)} —</option>${c.options.map((opt) => `<option value="${esc(opt)}">${esc(opt)}</option>`).join('')}</select>`);
+    if (c.type === 'calc') return cell('', `<input type="number" class="sci-calc" data-col="${c.key}" readonly placeholder="Auto" title="Auto-computed">`);
+    return cell(cls, c.type === 'number'
+      ? `<input type="number" class="sci-num" data-col="${c.key}" placeholder="${esc(c.label)}" title="${esc(c.label)}" step="any" min="${c.key === 'qty' ? '1' : '0'}">`
+      : `<input type="text" class="sci-txt" data-col="${c.key}" placeholder="${esc(c.label)}" title="${esc(c.label)}">`);
+  }).join('');
+  return `<div class="sci-item-row">${cells}${cell('cell-del', '<button type="button" class="btn-del" title="Remove this row" aria-label="Remove row"></button>')}</div>`;
+}
+
+const tableHead = (cols) => `<div class="off-tbl-head"><div class="cell cell-name">Item</div>${cols.filter((c) => c.type !== 'name').map((c) => `<div class="cell">${c.label}</div>`).join('')}<div class="cell cell-del"></div></div>`;
 
 /* ---------- Center search combobox ---------- */
 function createCenterSearch(opts) {
@@ -2565,6 +2828,75 @@ function renderSCIFormsPage(user, focus) {
       : '—';
   }
 
+  function tableTitle(code) {
+    return {
+      SCI34: 'Items disposed of / sold',
+      SCI43: 'Items to be transferred',
+      SCI53: 'Requirement of Items / Material',
+      SCI15: 'Offer of Items / Material in Donation',
+      SCI76: 'Items issued — Book Debit Adjustment',
+      SCI45: 'Articles examined for Condemnation'
+    }[code] || 'Items / Material';
+  }
+
+  function initItemsGrid(containerId, cols, hasRegister, registerItems, itemOptions) {
+    const items = document.getElementById(containerId);
+    const addBtn = document.getElementById(containerId === 'sciItemsRepl' ? 'sciAddItemRepl' : 'sciAddItem');
+    if (!items || !addBtn) return;
+    const updateCalc = (row) => {
+      const qty = row.querySelector('.sci-num[data-col="qty"]');
+      const rate = row.querySelector('.sci-num[data-col="rate"]');
+      const tot = row.querySelector('.sci-calc');
+      if (!qty || !rate || !tot) return;
+      const v = (Number(qty.value) || 0) * (Number(rate.value) || 0);
+      tot.value = v ? Number(v.toFixed(2)) : '';
+    };
+    const syncUnit = (row) => {
+      if (!hasRegister) return;
+      const sel = row.querySelector('.sci-item-name');
+      const unit = row.querySelector('.sci-unit');
+      const reg = registerItems.find((r) => r.item === sel.value);
+      unit.textContent = reg && reg.unit ? reg.unit : '';
+    };
+    const addRow = () => {
+      const wrap = document.createElement('div');
+      wrap.innerHTML = itemRowHtml(cols, hasRegister, itemOptions);
+      const row = wrap.firstElementChild;
+      items.appendChild(row);
+      syncUnit(row);
+    };
+    addRow();
+    items.addEventListener('click', (e) => {
+      const del = e.target.closest('.btn-del');
+      const rows = items.querySelectorAll('.sci-item-row');
+      if (del && rows.length > 1) del.closest('.sci-item-row').remove();
+    });
+    items.addEventListener('input', (e) => {
+      const row = e.target.closest('.sci-item-row');
+      if (!row) return;
+      if (hasRegister && e.target.classList.contains('sci-item-name')) syncUnit(row);
+      if (e.target.matches('.sci-num[data-col="qty"], .sci-num[data-col="rate"]')) updateCalc(row);
+    });
+    addBtn.addEventListener('click', addRow);
+  }
+
+  function collectGrid(containerId, cols) {
+    const rows = Array.from(document.getElementById(containerId).querySelectorAll('.sci-item-row'));
+    return rows.map((row) => {
+      const out = {};
+      cols.forEach((c) => {
+        if (c.type === 'name') { const el = row.querySelector('.sci-item-name'); out.name = (el.value || el.textContent || '').trim(); return; }
+        if (c.type === 'unit') { const el = row.querySelector('.sci-unit'); out.unit = (el.value || el.textContent || '').trim(); return; }
+        if (c.type === 'calc') { const el = row.querySelector('.sci-calc'); out.totalCost = Number(el.value) || null; return; }
+        const el = row.querySelector('[data-col="' + c.key + '"]');
+        if (!el) return;
+        const v = (el.value || '').trim();
+        out[c.key] = c.type === 'number' ? (v === '' ? null : Number(v)) : v;
+      });
+      return out;
+    }).filter((r) => (r.name || '').trim() && (r.qty == null || Number(r.qty) > 0));
+  }
+
   async function load() {
     [state.forms, state.destinations, state.stock] = await Promise.all([fetchSCIForms(), fetchDestinations(), fetchStock()]);
     render();
@@ -2606,7 +2938,6 @@ function renderSCIFormsPage(user, focus) {
 
   function renderEditor() {
     const form = SCI_FORM_META.find((item) => item.code === selectedCode) || SCI_FORM_META[0];
-    const destinationOptions = state.destinations.map((centre) => `<option value="${esc(centre.id)}">${esc(centre.name)} (${esc(centre.type)})</option>`).join('');
     const me = getUser();
     const today = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
     const userCentreId = typeof me.id === 'number' ? me.id : null;
@@ -2614,25 +2945,14 @@ function renderSCIFormsPage(user, focus) {
     const registerItems = centreStock ? Object.keys(centreStock).sort((a, b) => a.localeCompare(b)).map((item) => ({ item, qty: Number(centreStock[item]) || 0, unit: (state.stock.unit[userCentreId] || {})[item] || '' })) : [];
     const hasRegister = registerItems.length > 0;
     const itemOptions = registerItems.map((r) => `<option value="${esc(r.item)}">${esc(r.item)} (in register: ${r.qty}${r.unit ? ' ' + esc(r.unit) : ''})</option>`).join('');
-    const rowTemplate = hasRegister
-      ? `
-      <div class="sci-item-row">
-        <select class="sci-item-name" title="Item from the centre stock register">${itemOptions}</select>
-        <div class="sci-qty-wrap"><input class="sci-item-qty" type="number" min="1" placeholder="Qty" title="Quantity for this item"></div>
-        <span class="sci-item-unit"></span>
-        <button type="button" class="btn-del" title="Remove this item" aria-label="Remove item"></button>
-      </div>`
-      : `
-      <div class="sci-item-row">
-        <input class="sci-item-name" type="text" placeholder="Item / material name" title="Item or material name" list="sciManualItems">
-        <div class="sci-qty-wrap"><input class="sci-item-qty" type="number" min="1" placeholder="Qty" title="Quantity for this item"></div>
-        <input class="sci-item-unit" type="text" placeholder="Unit" title="Unit, e.g. pcs / kg / mtr">
-        <button type="button" class="btn-del" title="Remove this item" aria-label="Remove item"></button>
-      </div>`;
+    const cols = form.code === 'SCI45' ? ITEM_COLS.SCI45c : (ITEM_COLS[form.code] || ITEM_COLS.SCI43);
+    const destOptions = state.destinations.map((centre) => `<option value="${esc(centre.id)}">${esc(centre.name)} (${esc(centre.type)})</option>`).join('');
+    const oreq = { me, today, centres: state.destinations };
+
     document.getElementById('sciEditor').innerHTML = `
       <div class="sci-meta-bar reg-toolbar" style="margin-bottom:14px">
         <div class="sci-meta"><span>Date: <b>${today}</b></span><span>Satsang Place / Centre: <b>${esc(me.centreName || '—')}</b></span><span>Form No.: <b>${form.code}</b></span></div>
-        <span class="rt-right"><span class="badge navy">Fill like the paper form, then upload the signed hardcopy</span></span>
+        <span class="rt-right"><span class="badge navy">Fill exactly like the paper ${form.code}, then upload the signed hardcopy</span></span>
       </div>
       <div class="card" style="padding:0">
         <div class="sci-section-head">
@@ -2642,26 +2962,37 @@ function renderSCIFormsPage(user, focus) {
           </div>
         </div>
         <form id="sciSubmitForm" class="sci-form-body">
+          ${officialSections(form.code, oreq)}
           <div class="sci-section">
             <div class="sci-sec-title">Sewadar Details</div>
             <div class="sci-grid">
               <div class="field"><label>1. Sewadar Name (in block letters)</label><input id="sci_sewadar" type="text" maxlength="200" required placeholder="Full name"></div>
               <div class="field"><label>2. Sewadar Badge No.</label><input id="sci_badge" type="text" maxlength="12" minlength="12" pattern="[A-Za-z0-9]{12}" required placeholder="e.g. AB12CD34EF56" autocomplete="off"></div>
               <div class="field"><label>Approval No.</label><input id="sci_approval" type="text" maxlength="40" placeholder="Approval number for this form" title="Approval number printed on the approved form"></div>
-              ${form.code === 'SCI43' ? `<div class="field"><label>3. Destination Centre</label><select id="sci_destination" required><option value="">— select destination centre —</option>${destinationOptions}</select></div>` : ''}
-              ${form.code === 'SCI34' ? '<div class="field"><label>3. Sale Proceeds Amount</label><input id="sci_amount" type="number" min="0" step="0.01" required placeholder="0.00"></div>' : ''}
+              ${form.code === 'SCI43' ? `<div class="field"><label>3. Destination Centre</label><select id="sci_destination" required><option value="">— select destination centre —</option>${destOptions}</select></div>` : ''}
             </div>
           </div>
           <div class="sci-section">
-            <div class="sci-sec-title">Items / Material${hasRegister ? " (from this centre's stock register)" : ''}</div>
+            <div class="sci-sec-title">${tableTitle(form.code)} ${hasRegister ? "(from this centre's stock register)" : ''}</div>
             <datalist id="sciManualItems">${state.stock && state.stock.items ? state.stock.items.map((i) => `<option value="${esc(i)}"></option>`).join('') : ''}</datalist>
+            ${tableHead(cols)}
             <div class="sci-items" id="sciItems"></div>
             <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:4px">
-              <button type="button" class="btn sm" id="sciAddItem">＋ Add another item</button>
-              <span class="hint">${hasRegister ? 'Pick the items from the stock register above and enter the quantity. The register balance is shown for reference.' : 'Enter item / material name, quantity and unit. Items are listed from the Item Master for quick entry.'}</span>
+              <button type="button" class="btn sm" id="sciAddItem">＋ Add another row</button>
+              <span class="hint">${hasRegister ? 'Pick the items from the stock register above and enter the quantity.' : 'Enter the item / material, quantity and other details as on the paper form.'}</span>
             </div>
             <div class="field full" style="margin-top:16px"><label>Description / serial numbers</label><textarea id="sci_details" placeholder="Serial numbers, condition, or notes if the items above are not enough"></textarea></div>
           </div>
+          ${form.code === 'SCI45' ? `
+          <div class="sci-section">
+            <div class="sci-sec-title">Replacement Items Against Condemnation</div>
+            ${tableHead(ITEM_COLS.SCI45r)}
+            <div class="sci-items" id="sciItemsRepl"></div>
+            <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:4px">
+              <button type="button" class="btn sm" id="sciAddItemRepl">＋ Add replacement item</button>
+              <span class="hint">Leave empty when no replacement is required.</span>
+            </div>
+          </div>` : ''}
           <div class="sci-section">
             <div class="sci-sec-title">Remarks</div>
             <textarea id="sci_remarks" placeholder="Additional information"></textarea>
@@ -2683,33 +3014,24 @@ function renderSCIFormsPage(user, focus) {
         </form>
       </div>
     `;
+    document.querySelectorAll('#sciSubmitForm [data-official]').forEach((el) => {
+      if (el.dataset.official === 'date' && !el.value) el.value = today;
+      if (el.dataset.official === 'placeName' && !el.value && me.centreName) el.value = me.centreName;
+    });
     const badgeInput = document.getElementById('sci_badge');
     badgeInput.addEventListener('input', () => { badgeInput.value = badgeInput.value.replace(/[^a-z0-9]/gi, '').toUpperCase().slice(0, 12); });
-    {
-      const items = document.getElementById('sciItems');
-      const syncUnit = (row) => {
-        if (!hasRegister) return;
-        const sel = row.querySelector('.sci-item-name');
-        const unit = row.querySelector('.sci-item-unit');
-        const reg = registerItems.find((r) => r.item === sel.value);
-        unit.textContent = reg && reg.unit ? reg.unit : '';
-      };
-      const addRow = () => {
-        const wrap = document.createElement('div');
-        wrap.innerHTML = rowTemplate;
-        const row = wrap.firstElementChild;
-        items.appendChild(row);
-        syncUnit(row);
-      };
-      addRow();
-      items.addEventListener('click', (e) => {
-        const del = e.target.closest('.btn-del');
-        const rows = items.querySelectorAll('.sci-item-row');
-        if (del && rows.length > 1) del.closest('.sci-item-row').remove();
+
+    initItemsGrid('sciItems', cols, hasRegister, registerItems, itemOptions);
+    if (form.code === 'SCI45') initItemsGrid('sciItemsRepl', ITEM_COLS.SCI45r, hasRegister, registerItems, itemOptions);
+
+    const destSel = document.getElementById('sci_destination');
+    if (destSel) destSel.addEventListener('change', () => {
+      const name = (state.destinations.find((c) => Number(c.id) === Number(destSel.value)) || {}).name || '';
+      ['reqPlace', 'reqPlace2', 'toPlace'].forEach((k) => {
+        const el = document.querySelector('[data-official="' + k + '"]');
+        if (el && !el.value && name) el.value = name;
       });
-      items.addEventListener('input', (e) => { if (hasRegister && e.target.classList.contains('sci-item-name')) syncUnit(e.target.closest('.sci-item-row')); });
-      document.getElementById('sciAddItem').addEventListener('click', addRow);
-    }
+    });
     document.getElementById('sciSubmitForm').addEventListener('submit', submitForm);
   }
 
@@ -2728,29 +3050,26 @@ function renderSCIFormsPage(user, focus) {
     const destEl = document.getElementById('sci_destination');
     const destId = destEl && destEl.value ? Number(destEl.value) : null;
     const destName = destId ? (state.destinations.find((c) => Number(c.id) === destId) || {}).name || '' : '';
-    const amt = document.getElementById('sci_amount');
-    const sciItems = document.getElementById('sciItems');
-    let details, quantity;
-    {
-      const rows = Array.from(sciItems.querySelectorAll('.sci-item-row'));
-      const picked = rows.map((row) => {
-        const nameEl = row.querySelector('.sci-item-name');
-        const qtyEl = row.querySelector('.sci-item-qty');
-        const unitEl = row.querySelector('.sci-item-unit');
-        return {
-          name: (nameEl.value || '').trim(),
-          qty: Number(qtyEl.value) || 0,
-          unit: (unitEl.value || unitEl.textContent || '').trim()
-        };
-      }).filter((r) => r.name && r.qty > 0);
-      if (!picked.length) return toast('Select or enter at least one item and a quantity', true);
-      details = {
-        items: picked,
-        description: document.getElementById('sci_details').value.trim(),
-        approvalNo: (document.getElementById('sci_approval').value || '').trim()
-      };
-      quantity = picked.reduce((a, r) => a + r.qty, 0);
-    }
+    const cols = selectedCode === 'SCI45' ? ITEM_COLS.SCI45c : (ITEM_COLS[selectedCode] || ITEM_COLS.SCI43);
+    const official = {};
+    document.querySelectorAll('#sciSubmitForm [data-official]').forEach((el) => {
+      const k = el.dataset.official;
+      if (el.type === 'radio') { if (el.checked) official[k] = el.value; return; }
+      if (/amount|Rcpt/.test(k)) official[k] = (el.value || '') === '' ? null : Number(el.value);
+      else official[k] = el.value.trim();
+    });
+    const items = collectGrid('sciItems', cols);
+    if (!items.length) { button.disabled = false; return toast('Enter at least one item and its quantity', true); }
+    const quantity = items.reduce((a, r) => a + (Number(r.qty) || 0), 0);
+    const replacement = selectedCode === 'SCI45' ? collectGrid('sciItemsRepl', ITEM_COLS.SCI45r) : [];
+    const details = {
+      items,
+      replacement,
+      description: document.getElementById('sci_details').value.trim(),
+      approvalNo: (document.getElementById('sci_approval').value || '').trim(),
+      form: official
+    };
+    const amount = official.amount == null ? (official.amountCc == null ? null : Number(official.amountCc)) : Number(official.amount);
     const storagePath = Date.now() + '_' + file.name;
     try {
       const { error: upErr } = await sb.storage.from('uploads').upload(storagePath, file, { contentType: 'application/pdf', cacheControl: '3600', upsert: false });
@@ -2765,7 +3084,7 @@ function renderSCIFormsPage(user, focus) {
         details: details,
         remarks: document.getElementById('sci_remarks').value.trim(),
         quantity: quantity,
-        amount: amt && amt.value ? Number(amt.value) : null,
+        amount: amount,
         destinationCentreId: destId,
         destinationCentreName: destName,
         document: storagePath,
