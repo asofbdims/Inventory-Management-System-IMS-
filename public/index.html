@@ -1418,7 +1418,12 @@ function renderStockPage(user, routeParams) {
   const state = { centers: [], items: [], stock: {}, units: {}, entries: [] };
   let anchorId = null;
   let selectedCenter = null;
-  let diffFilter = null;
+  let diffFilter = 'clean';
+  /* NOTE (2026-09-29): 98 'difference' entries (A != B) are dummy/test stock.
+     Hidden by default: diffFilter starts as 'clean' so only the 2,336 clean
+     entries show. Data is NOT deleted - the DB is intact. To bring the 98
+     rows back into default view, change the line above to:
+       let diffFilter = null;  */
   let skipCurrentCentre = null;
   let page = 0;
   let pageSize = 50;
@@ -1814,6 +1819,8 @@ function renderStockPage(user, routeParams) {
       const ids = scopeIds();
       const rows = state.entries
         .filter((en) => ids.has(String(en.centreId)))
+        .filter((en) => (skipCurrentCentre ? String(en.centreId) === String(skipCurrentCentre) : true))
+        .filter((en) => (diffFilter === 'diff' ? Number(en.difference) !== 0 : (diffFilter === 'clean' ? Number(en.difference) === 0 : true)))
         .map((en) => {
           const fmtDate = (s) => { if (!s) return ''; const dt = new Date(s + (s.length === 10 ? 'T00:00:00' : '')); return isNaN(dt) ? s : dt.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }); };
           return [centerName(en.centreId), en.item, en.pageNo || '', en.approvalNo || '', fmtDate(en.approvalDate), Number(en.qtyA), Number(en.qtyB), en.unit || unitOf(en.centreId, en.item), Number(en.difference), en.reason || '', en.remarks || ''];
