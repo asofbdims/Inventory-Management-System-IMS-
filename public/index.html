@@ -1309,6 +1309,7 @@ function renderDashboardPage(user, routeParams) {
   function bindSearch(centers) {
     searchBox.setItems(centers);
     const box = content.querySelector('#csBox');
+    if (!box) return;
     box.innerHTML = '';
     box.appendChild(searchBox.el);
     const sel = selectedId ? centers.find((x) => x.id === selectedId) : null;
@@ -1405,13 +1406,7 @@ ${canMasters ? `
           <div class="card"><h3>Pending Forms</h3><div class="big-num" style="color:var(--amber)">${pending}</div></div>
           <div class="card"><h3>Approved Forms</h3><div class="big-num" style="color:var(--green)">${approved}</div></div>
         </div>
-        <div class="center-search"><div id="csBox"></div></div>
-        ${selected
-          ? `<div class="grid cols-4">${walkNode(selected, 0, groupByParent(centers))}</div>`
-          : `<h3 style="margin:4px 0 12px">Single Centres (no sub centre / point)</h3>
-        <div id="tree-singles" class="grid cols-4">${tree.singles}</div>
-        <h3 style="margin:26px 0 12px">Centres with Sub Centres &amp; Points</h3>
-        <div id="tree-fathers" class="grid cols-4">${tree.fathers}</div>`}
+        <!-- Centre list hidden per request (was: center-search box + Single Centres / Centres with Sub Centres tree) -->
       `;
       bindClicks();
       bindSearch(centers);
@@ -1454,11 +1449,7 @@ ${canMasters ? `
           <div class="card"><h3>Pending Forms</h3><div class="big-num" style="color:var(--primary)">${myPending}</div></div>
           <div class="card"><h3>Approved Forms</h3><div class="big-num" style="color:var(--green)">${myApproved}</div></div>
         </div>
-        <div class="center-search"><div id="csBox"></div></div>
-        ${selected
-          ? `<div class="grid cols-4">${walkNode(selected, 0, groupByParent(centers))}</div>`
-          : `<h3 style="margin-bottom:14px">My Area — ${esc(user.name)} + allocated sub centres &amp; points</h3>
-        <div id="tree" class="grid cols-4">${renderTree(centers, user.id)}</div>`}
+        <!-- Centre list hidden per request (was: My Area heading + tree) -->
       `;
       bindClicks();
       bindSearch(myTree);
