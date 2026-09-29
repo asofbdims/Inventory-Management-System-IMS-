@@ -365,6 +365,7 @@ td.empty,tr td.empty{color:var(--muted);text-align:center;padding:26px;white-spa
 .ma-picker label{font-size:12.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
 .reg-toolbar input[type=text]{padding:8px 12px;border:1px solid var(--line);border-radius:8px;background:#fff;outline:none;font-size:13px;color:var(--text);flex:1;min-width:220px}
 .reg-toolbar input[type=text]:focus{border-color:var(--primary)}
+.reg-toolbar .ma-letter{min-width:110px;max-width:140px}
 .ma-badge{display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:8px;font-size:13px;font-weight:700;letter-spacing:.02em}
 .ma-badge.item{background:var(--accent-tint);color:var(--accent)}
 .ma-badge.doc{background:var(--green-bg);color:var(--green)}
@@ -654,6 +655,15 @@ async function fetchDocuments() {
 
 async function updateDocumentRecord(id, patch) {
   const { error } = await sb.from('documents').update({ ...patch, updatedAt: new Date().toISOString() }).eq('id', Number(id));
+  if (error) throw new Error(error.message);
+}
+
+async function createDocumentRecord(fields) {
+  const { error } = await sb.from('documents').insert({
+    name: (fields.name || '').trim(),
+    description: (fields.description || '').trim(),
+    updatedAt: new Date().toISOString()
+  });
   if (error) throw new Error(error.message);
 }
 
@@ -2013,7 +2023,7 @@ function renderMastersPage(user) {
         <div class="reg-toolbar">
           <div class="rt-row">
             <input id="maSearch" type="text" placeholder="Search items by name, code or description…" autocomplete="off">
-            <select id="maCat"><option value="">All categories</option></select>
+            <select id="maLetter" class="ma-letter" title="Filter items by the first letter of their name"><option value="">All letters</option></select>
             <button class="btn sm" id="maClear" title="Clear all filters">Clear All</button>
             <div class="rt-right">
               <span class="rt-size"><span>Show</span><select id="maPgSize" title="Rows per page"><option value="25">25</option><option value="50" selected>50</option><option value="100">100</option></select><span>Entries</span></span>
@@ -2034,7 +2044,7 @@ function renderMastersPage(user) {
           <div class="rt-row">
             <span class="ma-badge doc">Document Master</span>
             <span class="ma-sub">Upload SCI form PDFs &amp; manage GRN number</span>
-            <div class="rt-right"><span class="rt-count" id="maDocCount"></span></div>
+            <div class="rt-right"><span class="rt-count" id="maDocCount"></span>${isAdmin() ? '<button class="btn primary sm" id="maAddDoc" title="Add a new document type">＋ Add Document</button>' : ''}</div>
           </div>
         </div>
         <div class="table-wrap">
@@ -2061,25 +2071,28 @@ function renderMastersPage(user) {
   let items = [];
   let newEntry = null;
   let itemSearch = '';
-  let itemCat = '';
+  let itemLetter = '';
   let itemPage = 0;
   let itemPageSize = 50;
 
   const q = (id) => document.getElementById(id);
 
-  function populateCatOptions() {
-    const cats = Array.from(new Set(items.map((r) => (r.category || '').trim()).filter(Boolean))).sort((a, b) => a.localeCompare(b));
-    const sel = q('maCat');
+  function populateLetterOptions() {
+    const sel = q('maLetter');
     if (!sel) return;
-    const cur = itemCat;
-    sel.innerHTML = '<option value="">All categories</option>' + cats.map((c) => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
-    if (cur && cats.includes(cur)) sel.value = cur;
+    const cur = itemLetter;
+    const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+    sel.innerHTML = '<option value="">All letters</option>' + letters.map((L) => `<option value="${L}">${L}</option>`).join('');
+    sel.value = cur;
   }
 
   function filteredItems() {
     const term = itemSearch.trim().toLowerCase();
     return items.filter((r) => {
-      if (itemCat && (r.category || '').trim() !== itemCat) return false;
+      if (itemLetter) {
+        const first = (r.name || '').trim().charAt(0).toUpperCase();
+        if (first !== itemLetter) return false;
+      }
       if (!term) return true;
       return (r.name || '').toLowerCase().includes(term) || (r.code || '').toLowerCase().includes(term) || (r.description || '').toLowerCase().includes(term);
     });
@@ -2177,21 +2190,21 @@ function renderMastersPage(user) {
   }
 
   function loadItems() {
-    return fetchItemsFull().then((rows) => { items = rows; populateCatOptions(); renderItemRows(); });
+    return fetchItemsFull().then((rows) => { items = rows; populateLetterOptions(); renderItemRows(); });
   }
 
   const maSearch = q('maSearch');
-  const maCat = q('maCat');
+  const maLetter = q('maLetter');
   const maClear = q('maClear');
   const maPgSize = q('maPgSize');
   const maAddItem = q('maAddItem');
   const maExport = q('maExport');
   if (maSearch) maSearch.addEventListener('input', () => { itemSearch = maSearch.value; itemPage = 0; renderItemRows(); });
-  if (maCat) maCat.addEventListener('change', () => { itemCat = maCat.value; itemPage = 0; renderItemRows(); });
+  if (maLetter) maLetter.addEventListener('change', () => { itemLetter = maLetter.value; itemPage = 0; renderItemRows(); });
   if (maClear) maClear.addEventListener('click', () => {
-    itemSearch = ''; itemCat = ''; itemPage = 0;
+    itemSearch = ''; itemLetter = ''; itemPage = 0;
     if (maSearch) maSearch.value = '';
-    if (maCat) maCat.value = '';
+    if (maLetter) maLetter.value = '';
     renderItemRows();
   });
   if (maPgSize) maPgSize.addEventListener('change', () => { itemPageSize = Number(maPgSize.value) || 50; itemPage = 0; renderItemRows(); });
@@ -2257,7 +2270,7 @@ function renderMastersPage(user) {
     const cnt = q('maDocCount');
     if (cnt) cnt.textContent = docs.length ? `${docs.length} documents` : '';
     if (!docs.length) {
-      docList.innerHTML = '<tr><td colspan="4" class="empty">No documents yet.</td></tr>';
+      docList.innerHTML = `<tr><td colspan="${isAdmin() ? 5 : 4}" class="empty">No documents yet.</td></tr>`;
       return;
     }
     docList.innerHTML = docs.map((d) => `
@@ -2279,6 +2292,38 @@ function renderMastersPage(user) {
   function loadDocs() {
     return fetchDocuments().then((rows) => { docs = rows; renderDocRows(); });
   }
+
+  const maAddDoc = q('maAddDoc');
+  if (maAddDoc) maAddDoc.addEventListener('click', () => {
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    overlay.innerHTML = `
+      <div class="modal" style="width:min(440px,94vw)">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+          <h3 style="margin:0">Add Document</h3>
+          <button class="btn sm" id="adClose">Close</button>
+        </div>
+        <div style="margin-top:14px;display:grid;gap:10px">
+          <input id="adName" placeholder="Document name (e.g. SCI55)" maxlength="100" autocomplete="off">
+          <input id="adDesc" placeholder="Description (optional)" maxlength="255" autocomplete="off">
+          <button class="btn primary" id="adSave">＋ Create Document</button>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+    const close = () => overlay.remove();
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+    overlay.querySelector('#adClose').addEventListener('click', close);
+    overlay.querySelector('#adSave').addEventListener('click', () => {
+      const name = overlay.querySelector('#adName').value.trim();
+      if (!name) return toast('Document name is required', true);
+      const btn = overlay.querySelector('#adSave');
+      btn.disabled = true;
+      createDocumentRecord({ name, description: overlay.querySelector('#adDesc').value })
+        .then(() => { toast('Document added'); close(); loadDocs(); })
+        .catch((err) => { btn.disabled = false; toast(err.message, true); });
+    });
+    setTimeout(() => { const el = overlay.querySelector('#adName'); if (el) el.focus(); }, 60);
+  });
 
   docList.addEventListener('click', (e) => {
     const btn = e.target.closest('[data-act="savedoc"], [data-act="deldoc"]');
