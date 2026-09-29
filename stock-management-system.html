@@ -1557,16 +1557,20 @@ function renderStockPage(user, routeParams) {
         </div>
         <div class="rt-row">
           <div class="chips">
+            <button class="reg-filter${diffFilter === 'clean' ? ' active' : ''}" data-df="clean">No difference (${centreScope.filter((en) => Number(en.difference) === 0).length})</button>
+            <!-- DIFFERENCE CHIPS COMMENTED OUT (2026-09-29): dummy stock hidden per request.
+                 Uncomment to restore viewing the 98 difference rows:
             <button class="reg-filter${diffFilter === null ? ' active' : ''}" data-df="all">All entries (${centreScope.length})</button>
             <button class="reg-filter${diffFilter === 'diff' ? ' active' : ''}" data-df="diff">Differences (${centreScope.filter((en) => Number(en.difference) !== 0).length})</button>
-            <button class="reg-filter${diffFilter === 'clean' ? ' active' : ''}" data-df="clean">No difference (${centreScope.filter((en) => Number(en.difference) === 0).length})</button>
+            -->
           </div>
         </div>
       </div>
-      ${(centreSel || diffFilter != null) ? `<div class="reg-pills">
-        ${centreSel ? `<span class="reg-pill">Centre : ${esc(centreSel.name)}<button data-clearf="centre" title="Remove filter">✕</button></span>` : ''}
-        ${diffFilter != null ? `<span class="reg-pill">Filter : ${diffFilter === 'diff' ? 'With difference' : 'No difference'}<button data-clearf="diff" title="Remove filter">✕</button></span>` : ''}
+      ${(centreSel) ? `<div class="reg-pills">
+        ${`<span class="reg-pill">Centre : ${esc(centreSel.name)}<button data-clearf="centre" title="Remove filter">✕</button></span>`}
       </div>` : ''}
+      <!-- DIFF PILL COMMENTED OUT: filter locked to "No difference" (see code note near diffFilter default). 
+           ${diffFilter != null ? `<span class="reg-pill">Filter : No difference</span>` : ''} -->
       <div class="table-wrap">
         <table class="stock-table reg-table">
           <thead><tr>
@@ -1599,18 +1603,17 @@ function renderStockPage(user, routeParams) {
     const btnPrint = content.querySelector('#btnPrint');
     if (btnPrint) btnPrint.addEventListener('click', printStock);
     content.querySelectorAll('.reg-filter').forEach((b) => b.addEventListener('click', () => {
-      diffFilter = b.dataset.df === 'all' ? null : b.dataset.df;
+      diffFilter = 'clean';
       page = 0;
       render();
     }));
     content.querySelectorAll('[data-clearf]').forEach((b) => b.addEventListener('click', () => {
       if (b.dataset.clearf === 'centre') skipCurrentCentre = null;
-      if (b.dataset.clearf === 'diff') diffFilter = null;
       page = 0;
       render();
     }));
     const btnClear = content.querySelector('#btnClear');
-    if (btnClear) btnClear.addEventListener('click', () => { skipCurrentCentre = null; diffFilter = null; page = 0; render(); });
+    if (btnClear) btnClear.addEventListener('click', () => { skipCurrentCentre = null; page = 0; render(); });
     const pgSize = content.querySelector('#pgSize');
     if (pgSize) pgSize.addEventListener('change', () => { pageSize = Number(pgSize.value) || 50; page = 0; render(); });
     content.querySelectorAll('.pg-btn').forEach((b) => b.addEventListener('click', () => {
