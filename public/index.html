@@ -894,6 +894,7 @@ function initials(name) {
 function renderShell(user, activePage) {
   const app = document.getElementById('app');
   const admin = isAdmin();
+  const canMasters = isAdmin() || isViewer();
   const PAGES = {
     'dashboard.html': { label: 'Dashboard', icon: 'dash', href: '#/dashboard' },
     'stock.html': { label: 'Stock Register', icon: 'stock', href: '#/stock' },
@@ -909,7 +910,7 @@ function renderShell(user, activePage) {
   };
   const GROUPS = [
     { label: 'Overview', items: ['dashboard.html'] },
-    { label: 'Inventory', items: ['stock.html', { key: 'masters', label: 'Masters', icon: 'master', children: ['masters-item.html', 'masters-doc.html'] }] },
+    { label: 'Inventory', items: ['stock.html'].concat(canMasters ? [{ key: 'masters', label: 'Masters', icon: 'master', children: ['masters-item.html', 'masters-doc.html'] }] : []) },
     { label: 'SCI', items: [{ key: 'sci', label: 'SCI Forms', icon: 'forms', children: ['sci45.html', 'sci53.html', 'sci76.html', 'sci43.html', 'sci15.html', 'sci34.html'] }, 'log.html'] }
   ];
   app.innerHTML = `
@@ -993,8 +994,10 @@ function route() {
 
   if (path === '/dashboard') { renderShell(user, 'dashboard.html'); renderDashboardPage(user, params); }
   else if (path === '/stock') { renderShell(user, 'stock.html'); renderStockPage(user, params); }
-  else if (path === '/masters/item' || path === '/masters') { renderShell(user, 'masters-item.html'); renderMastersPage(user, 'item'); }
-  else if (path === '/masters/doc') { renderShell(user, 'masters-doc.html'); renderMastersPage(user, 'doc'); }
+  else if ((path === '/masters/item' || path === '/masters' || path === '/masters/doc') && (isAdmin() || isViewer())) {
+    if (path === '/masters/doc') { renderShell(user, 'masters-doc.html'); renderMastersPage(user, 'doc'); }
+    else { renderShell(user, 'masters-item.html'); renderMastersPage(user, 'item'); }
+  }
   else if (path === '/forms' || /^\/forms\/SCI\d+$/.test(path)) {
     const code = /^\/forms\/(SCI\d+)$/.test(path) ? path.match(/^\/forms\/(SCI\d+)$/)[1] : 'SCI45';
     const ok = SCI_FORM_META.some((m) => m.code === code) ? code : 'SCI45';
@@ -1112,6 +1115,7 @@ function renderLoginPage() {
 function renderDashboardPage(user, routeParams) {
   document.body.classList.remove('login-page');
   const content = document.getElementById('content');
+  const canMasters = isAdmin() || isViewer();
   let selectedId = routeParams.get('c') || null;
 
   function typeBadge(t) {
@@ -1213,6 +1217,7 @@ function renderDashboardPage(user, routeParams) {
       </div>
       <div class="mod-go"><span>Open register</span><span>&#8250;</span></div>
     </a>
+${canMasters ? `
     <a class="mod-card" href="#/masters">
       <div class="mod-head"><div class="mod-icon b"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="16" rx="2"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg></div><h3 class="mod-title">Masters</h3></div>
       <p class="mod-desc">Item catalogue &amp; document master for the register</p>
@@ -1221,7 +1226,7 @@ function renderDashboardPage(user, routeParams) {
         ${stat('documents', s.docs)}
       </div>
       <div class="mod-go"><span>Manage masters</span><span>&#8250;</span></div>
-    </a>
+    </a>` : ''}
     <a class="mod-card" href="#/forms">
       <div class="mod-head"><div class="mod-icon c"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="12" y2="17"/></svg></div><h3 class="mod-title">SCI Forms</h3></div>
       <p class="mod-desc">Submit and manage SCI forms with PDF attachments</p>
