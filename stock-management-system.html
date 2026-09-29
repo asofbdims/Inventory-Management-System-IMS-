@@ -331,6 +331,17 @@ td.empty,tr td.empty{color:var(--muted);text-align:center;padding:26px;white-spa
 .form-row{display:flex;flex-wrap:wrap;gap:14px}
 .form-row .field{flex:1 1 220px}
 .hint{color:var(--muted);font-size:11.5px}
+.sci-items{display:flex;flex-direction:column;gap:8px;margin:2px 0 8px}
+.sci-item-row{display:flex;gap:8px;align-items:center}
+.sci-item-row select{flex:1 1 auto;min-width:0;padding:8px 10px;border:1px solid var(--line);border-radius:8px;outline:none;background:#fff;font-size:13px;color:var(--text)}
+.sci-item-row .sci-item-qty{width:90px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;outline:none;background:#fff;font-size:13px;color:var(--text)}
+.sci-item-row .sci-item-unit{flex:0 0 60px;color:var(--muted);font-size:12px}
+.btn-del{flex:0 0 auto;width:32px;height:32px;padding:0;border-radius:8px;border:1px solid var(--line);background:#fff;color:var(--muted);font-size:15px;line-height:1;cursor:pointer}
+.btn-del:hover{border-color:var(--red);color:var(--red);background:var(--red-bg)}
+.sci-detail-tbl{width:100%;border-collapse:collapse;font-size:12.5px}
+.sci-detail-tbl th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.03em;color:var(--muted);padding:4px 8px;border-bottom:1px solid var(--line)}
+.sci-detail-tbl td{padding:5px 8px;border-bottom:1px solid var(--line)}
+.sci-detail-tbl td:last-child{border-bottom:none}
 
 /* ---------- Tabs ---------- */
 .tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:18px;flex-wrap:wrap}
@@ -733,9 +744,16 @@ function openSCIFormDetail(form, onChanged) {
   ].map(([k, v]) => `<div class="f-d"><span>${k}</span><b>${v}</b></div>`).join('');
   let detailsHtml = '';
   if (form.details && typeof form.details === 'object') {
-    detailsHtml = Object.entries(form.details)
-      .filter(([, v]) => v !== null && v !== '')
-      .map(([k, v]) => `<div class="f-d"><span>${k.replace(/([A-Z])/g, (m) => ' ' + m.toLowerCase())}</span><b>${escH(String(v))}</b></div>`).join('');
+    const items = Array.isArray(form.details.items) ? form.details.items : null;
+    if (items && items.length) {
+      detailsHtml = `<table class="sci-detail-tbl"><thead><tr><th>Item</th><th>Qty</th><th>Unit</th></tr></thead><tbody>${items.map((it) => `<tr><td>${escH(it.name || '')}</td><td>${escH(it.qty)}</td><td>${escH(it.unit || '—')}</td></tr>`).join('')}</tbody></table>`;
+      const desc = String(form.details.description || '').trim();
+      if (desc) detailsHtml += `<div class="f-d" style="margin-top:8px"><span>description</span><b>${escH(desc)}</b></div>`;
+    } else {
+      detailsHtml = Object.entries(form.details)
+        .filter(([, v]) => v !== null && v !== '')
+        .map(([k, v]) => `<div class="f-d"><span>${k.replace(/([A-Z])/g, (m) => ' ' + m.toLowerCase())}</span><b>${escH(String(v))}</b></div>`).join('');
+    }
   }
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay';
@@ -778,12 +796,24 @@ function openSCIFormDetail(form, onChanged) {
 
 async function fetchDestinations() { return fetchCenters(); }
 
+function sciDetailsText(f) {
+  const d = f && f.details;
+  if (!d || typeof d !== 'object') return '';
+  if (Array.isArray(d.items)) {
+    const parts = d.items.filter((it) => it && it.name).map((it) => `${it.name} x${it.qty || 0}${it.unit ? ' ' + it.unit : ''}`);
+    const desc = String(d.description || '').trim();
+    if (desc) parts.push(desc);
+    return parts.join(' · ');
+  }
+  return Object.values(d).filter((v) => v !== null && v !== '').join(' · ');
+}
+
 async function downloadSCIForms(qs) {
   const forms = await fetchSCIForms(qs);
   const cols = ['submittedAt', 'formType', 'formTitle', 'centreName', 'sewadarName', 'sewadarBadge', 'details', 'destinationCentreName', 'amount', 'status'];
   const csv = [cols.join(',')].concat(forms.map((f) => cols.map((k) => {
     let v = f[k];
-    if (k === 'details') v = (v && typeof v === 'object') ? Object.values(v).filter((x) => x !== null && x !== '').join(' · ') : (v || '');
+    if (k === 'details') v = sciDetailsText(f);
     if (k === 'submittedAt') v = String(v || '').slice(0, 10);
     v = v == null ? '' : String(v);
     return '"' + v.replace(/"/g, '""') + '"';
@@ -1416,7 +1446,7 @@ function renderSCIFormsLogPage(user) {
       <table>
         <thead><tr><th>Date</th><th>Form</th><th>Centre</th><th>Sewadar</th><th>Badge No.</th><th>Details</th><th>Destination</th><th>Amount</th><th>PDF</th><th>Status</th><th>Action</th></tr></thead>
         <tbody>${forms.length ? forms.map((f) => {
-          const detail = f.details ? Object.values(f.details).filter((v) => v !== null && v !== '').join(' · ') : '';
+          const detail = sciDetailsText(f);
           return `<tr title="Click to open the full form" data-form-id="${esc(f.id)}">
             <td>${esc((f.submittedAt || '').slice(0, 10))}</td>
             <td><b>${esc(f.formType)}</b><br><small>${esc(f.formTitle)}</small></td>
@@ -2399,7 +2429,7 @@ function renderMastersPage(user, focus) {
 function renderSCIFormsPage(user) {
   document.body.classList.remove('login-page');
   const content = document.getElementById('content');
-  const state = { forms: [], destinations: [] };
+  const state = { forms: [], destinations: [], stock: null };
   let selectedCode = SCI_FORM_META[0].code;
 
   function badge(status) {
@@ -2415,7 +2445,7 @@ function renderSCIFormsPage(user) {
   }
 
   async function load() {
-    [state.forms, state.destinations] = await Promise.all([fetchSCIForms(), fetchDestinations()]);
+    [state.forms, state.destinations, state.stock] = await Promise.all([fetchSCIForms(), fetchDestinations(), fetchStock()]);
     render();
   }
 
@@ -2465,6 +2495,18 @@ function renderSCIFormsPage(user) {
     const destinationOptions = state.destinations.map((centre) => `<option value="${esc(centre.id)}">${esc(centre.name)} (${esc(centre.type)})</option>`).join('');
     const me = getUser();
     const today = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+    const userCentreId = typeof me.id === 'number' ? me.id : null;
+    const centreStock = userCentreId && state.stock ? (state.stock.stock[userCentreId] || null) : null;
+    const registerItems = centreStock ? Object.keys(centreStock).sort((a, b) => a.localeCompare(b)).map((item) => ({ item, qty: Number(centreStock[item]) || 0, unit: (state.stock.unit[userCentreId] || {})[item] || '' })) : [];
+    const useStructured = registerItems.length > 0;
+    const itemOptions = registerItems.map((r) => `<option value="${esc(r.item)}">${esc(r.item)} (in register: ${r.qty}${r.unit ? ' ' + esc(r.unit) : ''})</option>`).join('');
+    const rowTemplate = `
+      <div class="sci-item-row">
+        <select class="sci-item-name" title="Item from the centre stock register">${itemOptions}</select>
+        <input class="sci-item-qty" type="number" min="1" placeholder="Qty" title="Quantity for this item">
+        <span class="sci-item-unit"></span>
+        <button type="button" class="btn sm btn-del" title="Remove this item" aria-label="Remove item"></button>
+      </div>`;
     document.getElementById('sciEditor').innerHTML = `
       <div class="card" style="padding:0">
         <div class="sci-paper">
@@ -2486,8 +2528,15 @@ function renderSCIFormsPage(user) {
               <div class="field"><label>2. Sewadar Badge No.</label><input id="sci_badge" type="text" maxlength="12" minlength="12" pattern="[A-Za-z0-9]{12}" required placeholder="e.g. AB12CD34EF56" autocomplete="off"></div>
               ${form.code === 'SCI43' ? `<div class="field"><label>3. Destination Centre</label><select id="sci_destination" required><option value="">— select destination centre —</option>${destinationOptions}</select></div>` : ''}
               ${form.code === 'SCI34' ? '<div class="field"><label>' + (form.code === 'SCI34' ? '3.' : '') + ' Sale Proceeds Amount</label><input id="sci_amount" type="number" min="0" step="0.01" required placeholder="0.00"></div>' : ''}
-              <div class="field"><label>Quantity</label><input id="sci_quantity" type="number" min="1" required placeholder="Number of items"></div>
-              <div class="field full"><label>Items / Material Details</label><textarea id="sci_details" required placeholder="Describe the articles, items, material, or transaction details (serial no., description, condition)"></textarea></div>
+              ${useStructured
+                ? `<div class="field full"><label>Items / Material (from this centre's stock register)</label>
+                    <div class="sci-items" id="sciItems"></div>
+                    <button type="button" class="btn sm" id="sciAddItem">＋ Add another item</button>
+                    <span class="hint">Pick the items from the stock register above and enter the quantity. The register balance is shown for reference.</span>
+                  </div>
+                  <div class="field full"><label>Description / serial numbers (optional)</label><textarea id="sci_details" placeholder="Serial numbers, condition, or notes if the items above are not enough"></textarea></div>`
+                : `<div class="field"><label>3. Quantity</label><input id="sci_quantity" type="number" min="1" required placeholder="Number of items"></div>
+                   <div class="field full"><label>3. Items / Material Details</label><textarea id="sci_details" required placeholder="Describe the articles, items, material, or transaction details (serial no., description, condition)"></textarea></div>`}
               <div class="field full"><label>Remarks (optional)</label><textarea id="sci_remarks" placeholder="Additional information"></textarea></div>
               <div class="field full"><label>Upload the filled hardcopy (${form.code} PDF)</label><input id="sci_document" type="file" accept="application/pdf,.pdf" required><span class="hint">SCAN the hardcopy you filled in the paper format and upload it here — PDF only, maximum 200 KB.</span></div>
               <div class="field full" style="flex-direction:row;gap:12px;align-items:center"><button type="submit" class="btn primary">Submit ${form.code}</button><span class="hint">The submission will be marked Pending for administrator review.</span></div>
@@ -2503,6 +2552,30 @@ function renderSCIFormsPage(user) {
     `;
     const badgeInput = document.getElementById('sci_badge');
     badgeInput.addEventListener('input', () => { badgeInput.value = badgeInput.value.replace(/[^a-z0-9]/gi, '').toUpperCase().slice(0, 12); });
+    if (useStructured) {
+      const items = document.getElementById('sciItems');
+      const syncUnit = (row) => {
+        const sel = row.querySelector('.sci-item-name');
+        const unit = row.querySelector('.sci-item-unit');
+        const reg = registerItems.find((r) => r.item === sel.value);
+        unit.textContent = reg && reg.unit ? reg.unit : '';
+      };
+      const addRow = () => {
+        const wrap = document.createElement('div');
+        wrap.innerHTML = rowTemplate;
+        const row = wrap.firstElementChild;
+        items.appendChild(row);
+        syncUnit(row);
+      };
+      addRow();
+      items.addEventListener('click', (e) => {
+        const del = e.target.closest('.btn-del');
+        const rows = items.querySelectorAll('.sci-item-row');
+        if (del && rows.length > 1) del.closest('.sci-item-row').remove();
+      });
+      items.addEventListener('input', (e) => { if (e.target.classList.contains('sci-item-name')) syncUnit(e.target.closest('.sci-item-row')); });
+      document.getElementById('sciAddItem').addEventListener('click', addRow);
+    }
     document.getElementById('sciSubmitForm').addEventListener('submit', submitForm);
   }
 
@@ -2521,9 +2594,25 @@ function renderSCIFormsPage(user) {
     const destEl = document.getElementById('sci_destination');
     const destId = destEl && destEl.value ? Number(destEl.value) : null;
     const destName = destId ? (state.destinations.find((c) => Number(c.id) === destId) || {}).name || '' : '';
-    const qty = document.getElementById('sci_quantity').value;
-    if (!qty || Number(qty) < 1) return toast('Quantity is required and must be at least 1', true);
     const amt = document.getElementById('sci_amount');
+    const sciItems = document.getElementById('sciItems');
+    let details, quantity;
+    if (sciItems) {
+      const rows = Array.from(sciItems.querySelectorAll('.sci-item-row'));
+      const picked = rows.map((row) => ({
+        name: row.querySelector('.sci-item-name').value,
+        qty: Number(row.querySelector('.sci-item-qty').value) || 0,
+        unit: row.querySelector('.sci-item-unit').textContent || ''
+      })).filter((r) => r.name && r.qty > 0);
+      if (!picked.length) return toast('Select at least one item from the register and enter a quantity', true);
+      details = { items: picked, description: document.getElementById('sci_details').value.trim() };
+      quantity = picked.reduce((a, r) => a + r.qty, 0);
+    } else {
+      const qty = document.getElementById('sci_quantity').value;
+      if (!qty || Number(qty) < 1) return toast('Quantity is required and must be at least 1', true);
+      details = { description: document.getElementById('sci_details').value.trim() };
+      quantity = Number(qty);
+    }
     const storagePath = Date.now() + '_' + file.name;
     try {
       const { error: upErr } = await sb.storage.from('uploads').upload(storagePath, file, { contentType: 'application/pdf', cacheControl: '3600', upsert: false });
@@ -2535,9 +2624,9 @@ function renderSCIFormsPage(user) {
         centreName,
         sewadarName: document.getElementById('sci_sewadar').value.trim(),
         sewadarBadge: badgeInput,
-        details: { description: document.getElementById('sci_details').value.trim() },
+        details: details,
         remarks: document.getElementById('sci_remarks').value.trim(),
-        quantity: qty ? Number(qty) : null,
+        quantity: quantity,
         amount: amt && amt.value ? Number(amt.value) : null,
         destinationCentreId: destId,
         destinationCentreName: destName,
