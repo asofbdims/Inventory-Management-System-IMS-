@@ -61,6 +61,19 @@ input,select,button{font-family:inherit;font-size:13.5px}
 .nav-item svg{width:18px;height:18px;flex:0 0 auto}
 .nav-item:hover{background:rgba(255,255,255,.08);color:#fff}
 .nav-item.active{background:var(--accent);color:var(--primary-dark);font-weight:600}
+.nav-drop{margin-bottom:2px}
+.nav-parent{display:flex;align-items:center;gap:11px;color:rgba(255,255,255,.75);width:100%;background:none;border:none;padding:9px 11px;border-radius:9px;font-size:13.5px;font-weight:500;cursor:pointer;text-align:left;transition:background .15s,color .15s;font-family:inherit}
+.nav-parent svg{width:18px;height:18px;flex:0 0 auto}
+.nav-parent:hover{background:rgba(255,255,255,.08);color:#fff}
+.nav-parent.active{background:var(--accent);color:var(--primary-dark);font-weight:600}
+.nav-parent .nav-chev{margin-left:auto;width:14px;height:14px;transition:transform .18s}
+.nav-parent.open .nav-chev{transform:rotate(180deg)}
+.nav-sub{max-height:0;overflow:hidden;transition:max-height .2s ease}
+.nav-sub.open{max-height:260px}
+.nav-sub-item{display:flex;align-items:center;gap:11px;color:rgba(255,255,255,.62);padding:8px 11px 8px 26px;border-radius:8px;font-size:12.5px;font-weight:500;margin-bottom:1px;text-decoration:none}
+.nav-sub-item svg{width:16px;height:16px;flex:0 0 auto}
+.nav-sub-item:hover{background:rgba(255,255,255,.08);color:#fff}
+.nav-sub-item.active{background:rgba(255,255,255,.16);color:#fff}
 .side-foot{border-top:1px solid rgba(255,255,255,.08);padding:12px 14px}
 .side-foot .who{display:flex;align-items:center;gap:10px;color:rgba(255,255,255,.85);font-size:12.5px;margin-bottom:10px}
 .side-foot .avatar{width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.14);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;color:#fff;flex:0 0 auto}
@@ -82,7 +95,11 @@ main#content{max-width:1280px;margin:0 auto;padding:26px 26px 60px;width:100%}
   .side-brand > div{display:none}
   .nav-label{display:none}
   .nav-item{justify-content:center;padding:10px 0}
-  .nav-item span{display:none}
+  .nav-item span,.nav-parent span,.nav-sub-item span{display:none}
+  .nav-parent{padding:10px 0;justify-content:center}
+  .nav-parent .nav-chev{display:none}
+  .nav-sub.open{max-height:200px}
+  .nav-sub-item{justify-content:center;padding:8px 0}
   .side-foot .who{padding:6px 0}
   .side-foot .who-txt{display:none}
 }
@@ -859,13 +876,14 @@ function renderShell(user, activePage) {
   const PAGES = {
     'dashboard.html': { label: 'Dashboard', icon: 'dash', href: '#/dashboard' },
     'stock.html': { label: 'Stock Register', icon: 'stock', href: '#/stock' },
-    'masters.html': { label: 'Masters', icon: 'master', href: '#/masters' },
+    'masters-item.html': { label: 'Item Master', icon: 'master', href: '#/masters/item' },
+    'masters-doc.html': { label: 'Document Master', icon: 'master', href: '#/masters/doc' },
     'forms.html': { label: 'SCI Forms', icon: 'forms', href: '#/forms' },
     'log.html': { label: 'Forms Log', icon: 'log', href: '#/log' }
   };
   const GROUPS = [
     { label: 'Overview', items: ['dashboard.html'] },
-    { label: 'Inventory', items: ['stock.html', 'masters.html'] },
+    { label: 'Inventory', items: ['stock.html', { key: 'masters', label: 'Masters', icon: 'master', children: ['masters-item.html', 'masters-doc.html'] }] },
     { label: 'SCI', items: ['forms.html', 'log.html'] }
   ];
   app.innerHTML = `
@@ -876,8 +894,22 @@ function renderShell(user, activePage) {
           ${GROUPS.map((g) => `
             <div class="nav-group">
               <div class="nav-label">${g.label}</div>
-              ${g.items.map((key) => `
-                <a class="nav-item${key === activePage ? ' active' : ''}" href="${PAGES[key].href}">${NAV_ICONS[PAGES[key].icon]}<span>${PAGES[key].label}</span></a>`).join('')}
+              ${g.items.map((it) => {
+                if (typeof it === 'string') {
+                  return `<a class="nav-item${it === activePage ? ' active' : ''}" href="${PAGES[it].href}">${NAV_ICONS[PAGES[it].icon]}<span>${PAGES[it].label}</span></a>`;
+                }
+                const open = it.children.includes(activePage);
+                return `
+                <div class="nav-drop">
+                  <button class="nav-parent${open ? ' open active' : ''}" type="button" aria-expanded="${open}">
+                    ${NAV_ICONS[it.icon]}<span>${it.label}</span>
+                    <svg class="nav-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+                  </button>
+                  <div class="nav-sub${open ? ' open' : ''}">
+                    ${it.children.map((child) => `<a class="nav-sub-item${child === activePage ? ' active' : ''}" href="${PAGES[child].href}">${NAV_ICONS[PAGES[child].icon]}<span>${PAGES[child].label}</span></a>`).join('')}
+                  </div>
+                </div>`;
+              }).join('')}
             </div>`).join('')}
         </nav>
         <div class="side-foot">
@@ -901,6 +933,12 @@ function renderShell(user, activePage) {
     sb.auth.signOut();
     location.hash = '/login';
   });
+  app.querySelectorAll('.nav-parent').forEach((b) => b.addEventListener('click', () => {
+    b.classList.toggle('open');
+    b.setAttribute('aria-expanded', b.classList.contains('open') ? 'true' : 'false');
+    const sub = b.nextElementSibling;
+    if (sub) sub.classList.toggle('open', b.classList.contains('open'));
+  }));
 }
 
 function requireAuth() {
@@ -929,7 +967,8 @@ function route() {
 
   if (path === '/dashboard') { renderShell(user, 'dashboard.html'); renderDashboardPage(user, params); }
   else if (path === '/stock') { renderShell(user, 'stock.html'); renderStockPage(user, params); }
-  else if (path === '/masters') { renderShell(user, 'masters.html'); renderMastersPage(user); }
+  else if (path === '/masters/item' || path === '/masters') { renderShell(user, 'masters-item.html'); renderMastersPage(user, 'item'); }
+  else if (path === '/masters/doc') { renderShell(user, 'masters-doc.html'); renderMastersPage(user, 'doc'); }
   else if (path === '/forms') { renderShell(user, 'forms.html'); renderSCIFormsPage(user); }
   else if (path === '/log') { renderShell(user, 'log.html'); renderSCIFormsLogPage(user); }
   else { location.hash = '/dashboard'; }
@@ -1995,7 +2034,7 @@ function renderStockPage(user, routeParams) {
 /* =========================================================================
    Masters page — item master (auto codes) + document master (GRN, uploads)
    ========================================================================= */
-function renderMastersPage(user) {
+function renderMastersPage(user, focus) {
   document.body.classList.remove('login-page');
   const content = document.getElementById('content');
   content.innerHTML = `
@@ -2064,7 +2103,9 @@ function renderMastersPage(user) {
     document.getElementById('maPanel-doc').style.display = showItem ? 'none' : '';
   }
   maSelect.addEventListener('change', () => showMaster(maSelect.value));
-  showMaster('item');
+  const initialFocus = focus === 'doc' ? 'doc' : 'item';
+  maSelect.value = initialFocus;
+  showMaster(initialFocus);
 
   /* -------- Item master -------- */
   const itemList = document.getElementById('maItemList');
