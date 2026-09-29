@@ -424,20 +424,34 @@ td.empty,tr td.empty{color:var(--muted);text-align:center;padding:26px;white-spa
 /* ---------- SCI forms ---------- */
 .sci-editor{margin-bottom:20px}
 .sci-editor h3{font-family:'Source Serif 4',serif;color:var(--primary-dark);font-size:18px;text-transform:none;letter-spacing:0}
-.field textarea{padding:9px 11px;border:1px solid var(--line);border-radius:8px;outline:none;background:#fff;min-height:92px;resize:vertical}
-.field textarea:focus{border-color:var(--primary)}
-.sci-meta{display:flex;flex-wrap:wrap;gap:8px 18px;color:var(--muted);font-size:12px}
+.sci-editor textarea{padding:9px 11px;border:1px solid var(--line);border-radius:8px;outline:none;background:#fff;width:100%;box-sizing:border-box;min-height:92px;resize:vertical}
+.sci-editor textarea:focus{border-color:var(--primary)}
+.sci-editor input[type=text],.sci-editor input[type=number],.sci-editor input[type=file],.sci-editor select{padding:9px 11px;border:1px solid var(--line);border-radius:8px;outline:none;background:#fff;font-size:13px;color:var(--text)}
+.sci-editor input:focus,.sci-editor select:focus{border-color:var(--primary)}
+.sci-meta-bar{margin-bottom:14px}
+.sci-meta{display:flex;flex-wrap:wrap;gap:8px 22px;color:var(--muted);font-size:13px}
+.sci-meta b{color:var(--ink);font-weight:600}
+.sci-section-head{padding:16px 18px;border-bottom:1px solid var(--line)}
+.sci-section-head h3{margin:0;font-family:'Source Serif 4',serif;color:var(--primary-dark);font-size:17px;text-transform:none;letter-spacing:0}
+.sci-section-head p{margin:3px 0 0;color:var(--muted);font-size:12.5px}
+.sci-form-body{padding:0 18px 18px}
+.sci-section{padding:16px 0;border-bottom:1px solid var(--line)}
+.sci-section:last-child{border-bottom:none}
+.sci-sec-title{font-size:11.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px}
+.sci-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+.sci-grid .field{display:flex;flex-direction:column;gap:5px}
+.sci-grid label,.sci-section > label{font-size:11.5px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;margin-bottom:5px}
 .sci-detail{white-space:pre-wrap;max-width:420px;white-space:normal}
-.sci-paper{border:1.5px solid var(--line);border-radius:12px;background:#fff;box-shadow:0 3px 14px -8px rgba(23,33,29,.2);overflow:hidden}
-.sci-paper-head{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 18px;border-bottom:1.5px solid var(--line);background:var(--bg)}
-.sci-paper-title{flex:1;min-width:0}
-.sci-paper-title h3{margin:0;font-family:'Source Serif 4',serif;color:var(--primary-dark);font-size:17px;text-transform:none;letter-spacing:0}
-.sci-paper-title p{margin:3px 0 0;color:var(--muted);font-size:12px}
-.sci-paper-hdr{display:flex;flex-wrap:wrap;gap:12px 26px;padding:12px 18px;border-bottom:1.5px dashed var(--line);font-size:13px;color:var(--muted)}
-.sci-paper-hdr b{color:var(--ink);font-weight:600}
-.sci-paper-body{padding:18px}
-.sci-paper-body .form-row{margin:0}
-.sci-paper-sign{display:flex;flex-wrap:wrap;justify-content:space-between;gap:18px 26px;margin-top:16px;padding-top:14px;border-top:1.5px dashed var(--line);font-size:12.5px;color:var(--muted)}
+.sci-items{display:flex;flex-direction:column;gap:8px;margin:2px 0 8px}
+.sci-items .sci-item-row{display:grid;grid-template-columns:1fr 98px 64px 36px;gap:8px;align-items:center}
+.sci-item-row select{width:100%;min-width:0}
+.sci-item-row .sci-item-qty{width:100%;box-sizing:border-box}
+.sci-item-row .sci-item-unit{color:var(--muted);font-size:12px;text-overflow:ellipsis;overflow:hidden;white-space:nowrap}
+.btn-del{width:32px;height:32px;padding:0;border-radius:8px;border:1px solid var(--line);background:#fff;color:var(--muted);font-size:15px;line-height:1;cursor:pointer}
+.btn-del:hover{border-color:var(--red);color:var(--red);background:var(--red-bg)}
+.sci-submit-bar{display:flex;flex-wrap:wrap;align-items:center;gap:14px;justify-content:space-between;padding-top:16px}
+.sci-submit-bar > .btn{margin-right:auto}
+.sci-paper-sign{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:18px 26px;padding-top:12px;margin-top:4px;border-top:1px dashed var(--line);font-size:12.5px;color:var(--muted);width:100%}
 .sci-paper-sign .sig{display:inline-block;min-width:130px;border-bottom:1px solid var(--line);height:24px;margin-left:6px}
 
 /* ---------- Print ---------- */
@@ -2466,12 +2480,18 @@ function renderSCIFormsPage(user, focus) {
         <span class="badge ${isAdmin() ? 'green' : 'navy'}" style="font-size:13px;padding:6px 14px">${esc(isAdmin() ? 'ADMIN REVIEW' : 'FORM SUBMISSION')}</span>
       </div>
       <div class="sci-editor" id="sciEditor"></div>
-      <div class="card">
-        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
-          <div><h3 style="margin-bottom:2px">Recent Submissions</h3><span class="hint">Your submitted SCI forms${isAdmin() ? ' and forms awaiting review' : ''}.</span></div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn sm" id="sci_export_recent" type="button">Export Excel</button><a class="btn sm" href="#/log">Open Forms Log</a></div>
+      <div class="card" id="sciRecentCard" style="padding:0">
+        <div class="reg-toolbar" style="margin:0;border:none;border-bottom:1px solid var(--line);box-shadow:none;border-radius:0">
+          <div class="rt-row">
+            <div><h3 style="margin:0 0 2px">Recent Submissions</h3><span class="hint">Your submitted SCI forms${isAdmin() ? ' and forms awaiting review' : ''}.</span></div>
+            <div class="rt-right">
+              <span class="rt-count" id="sciRecentCount"></span>
+              <button class="btn sm" id="sci_export_recent" type="button">Export Excel</button>
+              <a class="btn sm" href="#/log">Open Forms Log</a>
+            </div>
+          </div>
         </div>
-        <div class="table-wrap" style="margin-top:14px;box-shadow:none" id="sciMyTable"></div>
+        <div class="table-wrap" style="box-shadow:none;border:none" id="sciMyTable"></div>
       </div>
     `;
     document.getElementById('sci_export_recent').addEventListener('click', async (event) => {
@@ -2497,51 +2517,65 @@ function renderSCIFormsPage(user, focus) {
     const rowTemplate = `
       <div class="sci-item-row">
         <select class="sci-item-name" title="Item from the centre stock register">${itemOptions}</select>
-        <input class="sci-item-qty" type="number" min="1" placeholder="Qty" title="Quantity for this item">
+        <div class="sci-qty-wrap"><input class="sci-item-qty" type="number" min="1" placeholder="Qty" title="Quantity for this item"></div>
         <span class="sci-item-unit"></span>
-        <button type="button" class="btn sm btn-del" title="Remove this item" aria-label="Remove item"></button>
+        <button type="button" class="btn-del" title="Remove this item" aria-label="Remove item"></button>
       </div>`;
     document.getElementById('sciEditor').innerHTML = `
+      <div class="sci-meta-bar reg-toolbar" style="margin-bottom:14px">
+        <div class="sci-meta"><span>Date: <b>${today}</b></span><span>Satsang Place / Centre: <b>${esc(me.centreName || '—')}</b></span><span>Form No.: <b>${form.code}</b></span></div>
+        <span class="rt-right"><span class="badge navy">Fill like the paper form, then upload the signed hardcopy</span></span>
+      </div>
       <div class="card" style="padding:0">
-        <div class="sci-paper">
-          <div class="sci-paper-head">
-            <div class="sci-paper-title">
-              <h3>Form No. ${form.code} — ${esc(form.title)}</h3>
-              <p>${esc(form.hint)}</p>
-            </div>
-            <span class="badge navy">Fill like the paper form, then upload the signed hardcopy</span>
+        <div class="sci-section-head">
+          <div>
+            <h3>${form.code} — ${esc(form.title)}</h3>
+            <p>${esc(form.hint)}</p>
           </div>
-          <div class="sci-paper-hdr">
-            <span>Date: <b>${today}</b></span>
-            <span>From Satsang Place / Centre: <b>${esc(me.centreName || '—')}</b></span>
-            <span>Form No.: <b>${form.code}</b></span>
-          </div>
-          <div class="sci-paper-body">
-            <form id="sciSubmitForm" class="form-row">
+        </div>
+        <form id="sciSubmitForm" class="sci-form-body">
+          <div class="sci-section">
+            <div class="sci-sec-title">Sewadar Details</div>
+            <div class="sci-grid">
               <div class="field"><label>1. Sewadar Name (in block letters)</label><input id="sci_sewadar" type="text" maxlength="200" required placeholder="Full name"></div>
               <div class="field"><label>2. Sewadar Badge No.</label><input id="sci_badge" type="text" maxlength="12" minlength="12" pattern="[A-Za-z0-9]{12}" required placeholder="e.g. AB12CD34EF56" autocomplete="off"></div>
               ${form.code === 'SCI43' ? `<div class="field"><label>3. Destination Centre</label><select id="sci_destination" required><option value="">— select destination centre —</option>${destinationOptions}</select></div>` : ''}
-              ${form.code === 'SCI34' ? '<div class="field"><label>' + (form.code === 'SCI34' ? '3.' : '') + ' Sale Proceeds Amount</label><input id="sci_amount" type="number" min="0" step="0.01" required placeholder="0.00"></div>' : ''}
-              ${useStructured
-                ? `<div class="field full"><label>Items / Material (from this centre's stock register)</label>
-                    <div class="sci-items" id="sciItems"></div>
+              ${form.code === 'SCI34' ? '<div class="field"><label>3. Sale Proceeds Amount</label><input id="sci_amount" type="number" min="0" step="0.01" required placeholder="0.00"></div>' : ''}
+            </div>
+          </div>
+          <div class="sci-section">
+            <div class="sci-sec-title">Items / Material (from this centre's stock register)</div>
+            ${useStructured
+              ? `<div class="sci-items" id="sciItems"></div>
+                  <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:4px">
                     <button type="button" class="btn sm" id="sciAddItem">＋ Add another item</button>
                     <span class="hint">Pick the items from the stock register above and enter the quantity. The register balance is shown for reference.</span>
                   </div>
-                  <div class="field full"><label>Description / serial numbers (optional)</label><textarea id="sci_details" placeholder="Serial numbers, condition, or notes if the items above are not enough"></textarea></div>`
-                : `<div class="field"><label>3. Quantity</label><input id="sci_quantity" type="number" min="1" required placeholder="Number of items"></div>
-                   <div class="field full"><label>3. Items / Material Details</label><textarea id="sci_details" required placeholder="Describe the articles, items, material, or transaction details (serial no., description, condition)"></textarea></div>`}
-              <div class="field full"><label>Remarks (optional)</label><textarea id="sci_remarks" placeholder="Additional information"></textarea></div>
-              <div class="field full"><label>Upload the filled hardcopy (${form.code} PDF)</label><input id="sci_document" type="file" accept="application/pdf,.pdf" required><span class="hint">SCAN the hardcopy you filled in the paper format and upload it here — PDF only, maximum 200 KB.</span></div>
-              <div class="field full" style="flex-direction:row;gap:12px;align-items:center"><button type="submit" class="btn primary">Submit ${form.code}</button><span class="hint">The submission will be marked Pending for administrator review.</span></div>
-            </form>
+                  <div class="field full" style="margin-top:16px"><label>Description / serial numbers (optional)</label><textarea id="sci_details" placeholder="Serial numbers, condition, or notes if the items above are not enough"></textarea></div>`
+              : `<div class="sci-grid">
+                   <div class="field"><label>3. Quantity</label><input id="sci_quantity" type="number" min="1" required placeholder="Number of items"></div>
+                   <div class="field"><label>Items / Material Details</label><textarea id="sci_details" required placeholder="Describe the articles, items, material, or transaction details (serial no., description, condition)"></textarea></div>
+                 </div>`}
+          </div>
+          <div class="sci-section">
+            <div class="sci-sec-title">Remarks (optional)</div>
+            <textarea id="sci_remarks" placeholder="Additional information"></textarea>
+          </div>
+          <div class="sci-section">
+            <div class="sci-sec-title">Upload the filled hardcopy (${form.code} PDF)</div>
+            <input id="sci_document" type="file" accept="application/pdf,.pdf" required>
+            <span class="hint">SCAN the hardcopy you filled in the paper format and upload it here — PDF only, maximum 200 KB.</span>
+          </div>
+          <div class="sci-submit-bar">
+            <button type="submit" class="btn primary">Submit ${form.code}</button>
+            <span class="hint">The submission will be marked Pending for administrator review.</span>
             <div class="sci-paper-sign">
               <span>Prepared by: <span class="sig"></span></span>
               <span>Verified by: <span class="sig"></span></span>
               <span>Approved by / Administrator: <span class="sig"></span></span>
             </div>
           </div>
-        </div>
+        </form>
       </div>
     `;
     const badgeInput = document.getElementById('sci_badge');
@@ -2636,6 +2670,8 @@ function renderSCIFormsPage(user, focus) {
 
   function renderSubmissions() {
     const table = document.getElementById('sciMyTable');
+    const count = document.getElementById('sciRecentCount');
+    if (count) count.textContent = state.forms.length ? state.forms.length + ' submission' + (state.forms.length === 1 ? '' : 's') : '';
     table.innerHTML = `
       <table>
         <thead><tr><th>Date</th><th>Form</th><th>Centre</th><th>Sewadar</th><th>Badge</th><th>PDF</th><th>Status</th><th>Action</th></tr></thead>
@@ -2650,7 +2686,7 @@ function renderSCIFormsPage(user, focus) {
           <td>${isAdmin() && form.status === 'pending' ? `<button class="btn green sm" data-form-action="approve" data-id="${esc(form.id)}">Approve</button> <button class="btn red sm" data-form-action="reject" data-id="${esc(form.id)}">Reject</button>` : '—'}</td>
         </tr>`).join('') : '<tr><td colspan="8" class="empty">No SCI forms submitted yet</td></tr>'}</tbody>
       </table>
-      ${state.forms.length > 20 ? '<div class="hint" style="padding:10px 14px">Showing the 20 most recent submissions. Open Forms Log for the full list.</div>' : ''}
+      ${state.forms.length > 20 ? '<div style="padding:10px 14px;border-top:1px solid var(--line);color:var(--muted);font-size:12.5px"><b>Showing the 20 most recent submissions.</b> Open the Forms Log for the full list.</div>' : ''}
     `;
     table.onclick = (e) => {
       if (e.target.closest('[data-form-action], a, button')) return;
