@@ -368,6 +368,10 @@ td.empty,tr td.empty{color:var(--muted);text-align:center;padding:26px;white-spa
 .ma-picker select:focus{border-color:var(--primary)}
 .ma-toolbar{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:14px}
 .ma-toolbar h3{margin:0!important;font-size:16px!important;color:var(--primary-dark)!important;text-transform:none!important;letter-spacing:0!important}
+.ma-ftoolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:12px;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:9px 11px}
+.ma-ftoolbar input{padding:8px 11px;border:1px solid var(--line);border-radius:8px;outline:none;background:#fff;min-width:200px;flex:1;font-size:13px}
+.ma-ftoolbar select{padding:8px 11px;border:1px solid var(--line);border-radius:8px;background:#fff;font-weight:600;font-size:13px;min-width:180px;outline:none}
+.ma-ftoolbar .ma-fcount{color:var(--muted);font-size:12px;white-space:nowrap}
 .ma-badge{display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:8px;font-size:13px;font-weight:700;letter-spacing:.02em}
 .ma-badge.item{background:var(--accent-tint);color:var(--accent)}
 .ma-badge.doc{background:var(--green-bg);color:var(--green)}
@@ -606,9 +610,19 @@ async function addStockItem(name) {
 }
 
 async function fetchItemsFull() {
-  const { data, error } = await sb.from('items').select('id, name, code, description, category').order('name', { ascending: true });
-  if (error) throw new Error(error.message);
-  return data || [];
+  const all = [];
+  const pageSize = 1000;
+  for (let offset = 0; ; offset += pageSize) {
+    const { data, error } = await sb.from('items')
+      .select('id, name, code, description, category')
+      .order('name', { ascending: true })
+      .range(offset, offset + pageSize - 1);
+    if (error) throw new Error(error.message);
+    if (!data || !data.length) break;
+    all.push(...data);
+    if (data.length < pageSize) break;
+  }
+  return all;
 }
 
 async function createStockItem(fields) {
@@ -2004,6 +2018,11 @@ function renderMastersPage(user) {
           <div><span class="ma-badge item">Item Master</span><p class="ma-sub">Codes auto-generated as ITM-001, ITM-002, ...</p></div>
           <button class="btn primary sm ma-add" id="maAddItem"><span class="icon">+</span> Add Item</button>
         </div>
+        <div class="ma-ftoolbar">
+          <input id="maSearch" type="text" placeholder="Search items by name or code…" autocomplete="off">
+          <select id="maCat"><option value="">All categories</option></select>
+          <span class="ma-fcount" id="maCount"></span>
+        </div>
         <div style="overflow:auto;max-height:56vh"><table class="ma-tbl">
           <thead><tr><th>Code</th><th>Name</th><th>Description</th><th>Category</th><th></th></tr></thead>
           <tbody id="maItemList"></tbody>
@@ -2036,8 +2055,33 @@ function renderMastersPage(user) {
   const itemList = document.getElementById('maItemList');
   let items = [];
   let newEntry = null;
+  let itemSearch = '';
+  let itemCat = '';
+
+  const q = (id) => document.getElementById(id);
+
+  function populateCatOptions() {
+    const cats = Array.from(new Set(items.map((r) => (r.category || '').trim()).filter(Boolean))).sort((a, b) => a.localeCompare(b));
+    const sel = q('maCat');
+    if (!sel) return;
+    const cur = itemCat;
+    sel.innerHTML = '<option value="">All categories</option>' + cats.map((c) => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
+    if (cur && cats.includes(cur)) sel.value = cur;
+  }
+
+  function filteredItems() {
+    const term = itemSearch.trim().toLowerCase();
+    return items.filter((r) => {
+      if (itemCat && (r.category || '').trim() !== itemCat) return false;
+      if (!term) return true;
+      return (r.name || '').toLowerCase().includes(term) || (r.code || '').toLowerCase().includes(term) || (r.description || '').toLowerCase().includes(term);
+    });
+  }
 
   function renderItemRows() {
+    const list = filteredItems();
+    const cnt = q('maCount');
+    if (cnt) cnt.textContent = items.length ? `${list.length} of ${items.length} items` : '';
     const newRow = newEntry ? `
       <tr class="row-flash">
         <td><span class="item-code" style="background:var(--bg);color:var(--muted);font-weight:600">AUTO</span></td>
@@ -2050,7 +2094,11 @@ function renderMastersPage(user) {
       itemList.innerHTML = '<tr><td colspan="5" class="empty">No items yet — click Add Item.</td></tr>';
       return;
     }
-    itemList.innerHTML = newRow + items.map((r) => r.editing ? `
+    if (!list.length && !newEntry) {
+      itemList.innerHTML = '<tr><td colspan="5" class="empty">No items match your search.</td></tr>';
+      return;
+    }
+    itemList.innerHTML = newRow + list.map((r) => r.editing ? `
       <tr>
         <td><span class="item-code" style="background:var(--bg);color:var(--muted)">${esc(r.code || 'AUTO')}</span></td>
         <td><input id="maRowName_${r.id}" value="${esc(r.name)}" maxlength="200" style="width:140px"></td>
@@ -2068,8 +2116,13 @@ function renderMastersPage(user) {
   }
 
   function loadItems() {
-    return fetchItemsFull().then((rows) => { items = rows; renderItemRows(); });
+    return fetchItemsFull().then((rows) => { items = rows; populateCatOptions(); renderItemRows(); });
   }
+
+  const maSearch = q('maSearch');
+  const maCat = q('maCat');
+  if (maSearch) maSearch.addEventListener('input', () => { itemSearch = maSearch.value; renderItemRows(); });
+  if (maCat) maCat.addEventListener('change', () => { itemCat = maCat.value; renderItemRows(); });
 
   document.getElementById('maAddItem').addEventListener('click', () => {
     newEntry = { name: '', description: '', category: '' };
