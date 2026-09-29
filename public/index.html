@@ -1555,16 +1555,6 @@ function renderStockPage(user, routeParams) {
             <button class="btn sm" id="btnExport" title="Download the verification register as CSV">Export</button>
           </div>
         </div>
-        <div class="rt-row">
-          <div class="chips">
-            <button class="reg-filter${diffFilter === 'clean' ? ' active' : ''}" data-df="clean">No difference (${centreScope.filter((en) => Number(en.difference) === 0).length})</button>
-            <!-- DIFFERENCE CHIPS COMMENTED OUT (2026-09-29): dummy stock hidden per request.
-                 Uncomment to restore viewing the 98 difference rows:
-            <button class="reg-filter${diffFilter === null ? ' active' : ''}" data-df="all">All entries (${centreScope.length})</button>
-            <button class="reg-filter${diffFilter === 'diff' ? ' active' : ''}" data-df="diff">Differences (${centreScope.filter((en) => Number(en.difference) !== 0).length})</button>
-            -->
-          </div>
-        </div>
       </div>
       ${(centreSel) ? `<div class="reg-pills">
         ${`<span class="reg-pill">Centre : ${esc(centreSel.name)}<button data-clearf="centre" title="Remove filter">✕</button></span>`}
