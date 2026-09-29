@@ -403,6 +403,17 @@ td.empty,tr td.empty{color:var(--muted);text-align:center;padding:26px;white-spa
 .sci-detail{white-space:pre-wrap;max-width:420px;white-space:normal}
 @media(max-width:900px){.sci-form-grid{grid-template-columns:1fr 1fr}}
 @media(max-width:560px){.sci-form-grid{grid-template-columns:1fr}}
+.sci-paper{border:1.5px solid var(--line);border-radius:12px;background:#fff;box-shadow:0 3px 14px -8px rgba(23,33,29,.2);overflow:hidden}
+.sci-paper-head{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 18px;border-bottom:1.5px solid var(--line);background:var(--bg)}
+.sci-paper-title{flex:1;min-width:0}
+.sci-paper-title h3{margin:0;font-family:'Source Serif 4',serif;color:var(--primary-dark);font-size:17px;text-transform:none;letter-spacing:0}
+.sci-paper-title p{margin:3px 0 0;color:var(--muted);font-size:12px}
+.sci-paper-hdr{display:flex;flex-wrap:wrap;gap:12px 26px;padding:12px 18px;border-bottom:1.5px dashed var(--line);font-size:13px;color:var(--muted)}
+.sci-paper-hdr b{color:var(--ink);font-weight:600}
+.sci-paper-body{padding:18px}
+.sci-paper-body .form-row{margin:0}
+.sci-paper-sign{display:flex;flex-wrap:wrap;justify-content:space-between;gap:18px 26px;margin-top:16px;padding-top:14px;border-top:1.5px dashed var(--line);font-size:12.5px;color:var(--muted)}
+.sci-paper-sign .sig{display:inline-block;min-width:130px;border-bottom:1px solid var(--line);height:24px;margin-left:6px}
 </style>
 </head>
 <body>
@@ -1489,11 +1500,11 @@ function renderStockPage(user, routeParams) {
             <th class="stick-1">Satsang Place</th>
             <th>Name of Item</th>
             <th>Stock Register Page No.</th>
-            <th>Approval No.</th>
+            <th>Approval Number</th>
             <th>Approval Date</th>
-            <th>Qty as per Stock Register (A)</th>
-            <th>Physically Available (B)</th>
-            <th>Difference (A−B)</th>
+            <th>Quantity as per Stock Register (A)</th>
+            <th>Physically Available Quantity (B)</th>
+            <th>Difference (if any) (A−B)</th>
             <th>Reason for Difference</th>
             <th>Remarks</th>
             <th>Actions</th>
@@ -1582,7 +1593,7 @@ function renderStockPage(user, routeParams) {
           <h3 style="margin:0">${entry ? 'Edit Verification Entry' : 'New Verification Entry'}</h3>
           <button class="btn sm" id="rmCancel">Close</button>
         </div>
-        <p class="hint" style="margin:8px 0 0">Rows are appended to the paper style register. Column (A) is filled from the book figure; enter the counted quantity as (B) — the Difference is computed automatically.</p>
+        <p class="hint" style="margin:8px 0 0">Rows are appended to the paper-style register. Quantity (A) is filled from the book figure; enter the counted quantity as (B) and the Difference is computed automatically. When an Approval Number <b>and</b> Approval Date are recorded, the centre's book figure for this item is automatically updated to (B).</p>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px">
           <div class="field">
             <label>Satsang Place (Centre) *</label>
@@ -1595,9 +1606,9 @@ function renderStockPage(user, routeParams) {
           <div class="field"><label>Stock Register Page No.</label><input id="rm_page" placeholder="e.g. 12" value="${esc(entry ? entry.pageNo || '' : '')}"></div>
           <div class="field"><label>Approval Number</label><input id="rm_appr" placeholder="e.g. ARD/2026/001" value="${esc(entry ? entry.approvalNo || '' : '')}"></div>
           <div class="field"><label>Approval Date</label><input type="date" id="rm_adate" value="${esc(entry && entry.approvalDate ? entry.approvalDate.slice(0, 10) : new Date().toISOString().slice(0, 10))}"></div>
-          <div class="field"><label>Qty as per Stock Register (A)</label><input type="number" id="rm_qtyA" min="0" value="${entry ? Number(entry.qtyA) : 0}" readonly></div>
-          <div class="field"><label>Physically Available (B)</label><input type="number" id="rm_qtyB" min="0" value="${entry ? Number(entry.qtyB) : 0}"></div>
-          <div class="field"><label>Difference (A − B)</label><input type="text" id="rm_diff" readonly value="${entry ? diffTxt(Number(entry.difference)) : 0}"></div>
+          <div class="field"><label>Quantity as per Stock Register (A)</label><input type="number" id="rm_qtyA" min="0" value="${entry ? Number(entry.qtyA) : 0}" readonly></div>
+          <div class="field"><label>Physically Available Quantity (B)</label><input type="number" id="rm_qtyB" min="0" value="${entry ? Number(entry.qtyB) : 0}"></div>
+          <div class="field"><label>Difference (if any) (A − B)</label><input type="text" id="rm_diff" readonly value="${entry ? diffTxt(Number(entry.difference)) : 0}"></div>
           <div class="field" style="grid-column:1/-1"><label>Reason for Difference</label><input id="rm_reason" placeholder="Only if there is any difference" value="${esc(entry ? entry.reason || '' : '')}"></div>
           <div class="field" style="grid-column:1/-1"><label>Remarks</label><input id="rm_remarks" placeholder="Any remarks" value="${esc(entry ? entry.remarks || '' : '')}"></div>
         </div>
@@ -1656,7 +1667,14 @@ function renderStockPage(user, routeParams) {
       try {
         if (entry) await updateStockRegisterEntry(entry.id, fields);
         else await createStockRegisterEntry(fields);
-        toast(entry ? 'Entry updated' : 'Verification entry added');
+        let applied = false;
+        if (fields.approvalNo && fields.approvalDate) {
+          try {
+            await updateStock(cid, { [it]: qtyB });
+            applied = true;
+          } catch (err) { toast('Book figure update failed: ' + err.message, true); }
+        }
+        toast(applied ? 'Entry saved and centre book figure updated to ' + qtyB : (entry ? 'Entry updated' : 'Verification entry added'));
         close();
         load();
       } catch (err) { n('rmSave').disabled = false; toast(err.message, true); }
@@ -1697,7 +1715,7 @@ function renderStockPage(user, routeParams) {
           const fmtDate = (s) => { if (!s) return ''; const dt = new Date(s + (s.length === 10 ? 'T00:00:00' : '')); return isNaN(dt) ? s : dt.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }); };
           return [centerName(en.centreId), en.item, en.pageNo || '', en.approvalNo || '', fmtDate(en.approvalDate), Number(en.qtyA), Number(en.qtyB), Number(en.difference), en.reason || '', en.remarks || ''];
         });
-      const header = ['S.No', 'Satsang Place', 'Name of Item', 'Stock Register Page No.', 'Approval No.', 'Approval Date', 'Qty as per Stock Register (A)', 'Physically Available (B)', 'Difference (A−B)', 'Reason for Difference', 'Remarks'];
+      const header = ['S.No', 'Satsang Place', 'Name of Item', 'Stock Register Page No.', 'Approval Number', 'Approval Date', 'Quantity as per Stock Register (A)', 'Physically Available Quantity (B)', 'Difference (if any) (A−B)', 'Reason for Difference', 'Remarks'];
       const csv = [header.map((h) => csvCell(h)).join(',')].concat(rows.map((r, i) => [i + 1].concat(r).map(csvCell).join(','))).join('\r\n');
       const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
       const url = URL.createObjectURL(blob);
@@ -2125,20 +2143,42 @@ function renderSCIFormsPage(user) {
   function renderEditor() {
     const form = SCI_FORM_META.find((item) => item.code === selectedCode) || SCI_FORM_META[0];
     const destinationOptions = state.destinations.map((centre) => `<option value="${esc(centre.id)}">${esc(centre.name)} (${esc(centre.type)})</option>`).join('');
+    const me = getUser();
+    const today = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
     document.getElementById('sciEditor').innerHTML = `
-      <div class="card">
-        <div style="margin-bottom:14px"><div class="sci-code">${form.code}</div><h3>${esc(form.title)}</h3><p class="hint" style="margin:4px 0 0">${esc(form.hint)}</p></div>
-        <form id="sciSubmitForm" class="form-row">
-          <div class="field"><label>Sewadar Name</label><input id="sci_sewadar" type="text" maxlength="200" required placeholder="Full name"></div>
-          <div class="field"><label>Sewadar Badge No.</label><input id="sci_badge" type="text" maxlength="12" minlength="12" pattern="[A-Za-z0-9]{12}" required placeholder="e.g. AB12CD34EF56" autocomplete="off"></div>
-          ${form.code === 'SCI43' ? `<div class="field"><label>Destination Centre</label><select id="sci_destination" required><option value="">— select destination centre —</option>${destinationOptions}</select></div>` : ''}
-          ${form.code === 'SCI34' ? '<div class="field"><label>Sale Proceeds Amount</label><input id="sci_amount" type="number" min="0" step="0.01" required placeholder="0.00"></div>' : ''}
-          <div class="field"><label>Quantity</label><input id="sci_quantity" type="number" min="1" required placeholder="Number of items"></div>
-          <div class="field full"><label>Items / Material Details</label><textarea id="sci_details" required placeholder="Describe the articles, items, material, or transaction details"></textarea></div>
-          <div class="field full"><label>Remarks (optional)</label><textarea id="sci_remarks" placeholder="Additional information"></textarea></div>
-          <div class="field full"><label>Upload ${form.code} PDF</label><input id="sci_document" type="file" accept="application/pdf,.pdf" required><span class="hint">PDF only, maximum 200 KB.</span></div>
-          <div class="field full" style="flex-direction:row;gap:12px;align-items:center"><button type="submit" class="btn primary">Submit ${form.code}</button><span class="hint">The submission will be marked Pending for administrator review.</span></div>
-        </form>
+      <div class="card" style="padding:0">
+        <div class="sci-paper">
+          <div class="sci-paper-head">
+            <div class="sci-paper-title">
+              <h3>Form No. ${form.code} — ${esc(form.title)}</h3>
+              <p>${esc(form.hint)}</p>
+            </div>
+            <span class="badge navy">Fill like the paper form, then upload the signed hardcopy</span>
+          </div>
+          <div class="sci-paper-hdr">
+            <span>Date: <b>${today}</b></span>
+            <span>From Satsang Place / Centre: <b>${esc(me.centreName || '—')}</b></span>
+            <span>Form No.: <b>${form.code}</b></span>
+          </div>
+          <div class="sci-paper-body">
+            <form id="sciSubmitForm" class="form-row">
+              <div class="field"><label>1. Sewadar Name (in block letters)</label><input id="sci_sewadar" type="text" maxlength="200" required placeholder="Full name"></div>
+              <div class="field"><label>2. Sewadar Badge No.</label><input id="sci_badge" type="text" maxlength="12" minlength="12" pattern="[A-Za-z0-9]{12}" required placeholder="e.g. AB12CD34EF56" autocomplete="off"></div>
+              ${form.code === 'SCI43' ? `<div class="field"><label>3. Destination Centre</label><select id="sci_destination" required><option value="">— select destination centre —</option>${destinationOptions}</select></div>` : ''}
+              ${form.code === 'SCI34' ? '<div class="field"><label>' + (form.code === 'SCI34' ? '3.' : '') + ' Sale Proceeds Amount</label><input id="sci_amount" type="number" min="0" step="0.01" required placeholder="0.00"></div>' : ''}
+              <div class="field"><label>Quantity</label><input id="sci_quantity" type="number" min="1" required placeholder="Number of items"></div>
+              <div class="field full"><label>Items / Material Details</label><textarea id="sci_details" required placeholder="Describe the articles, items, material, or transaction details (serial no., description, condition)"></textarea></div>
+              <div class="field full"><label>Remarks (optional)</label><textarea id="sci_remarks" placeholder="Additional information"></textarea></div>
+              <div class="field full"><label>Upload the filled hardcopy (${form.code} PDF)</label><input id="sci_document" type="file" accept="application/pdf,.pdf" required><span class="hint">SCAN the hardcopy you filled in the paper format and upload it here — PDF only, maximum 200 KB.</span></div>
+              <div class="field full" style="flex-direction:row;gap:12px;align-items:center"><button type="submit" class="btn primary">Submit ${form.code}</button><span class="hint">The submission will be marked Pending for administrator review.</span></div>
+            </form>
+            <div class="sci-paper-sign">
+              <span>Prepared by: <span class="sig"></span></span>
+              <span>Verified by: <span class="sig"></span></span>
+              <span>Approved by / Administrator: <span class="sig"></span></span>
+            </div>
+          </div>
+        </div>
       </div>
     `;
     const badgeInput = document.getElementById('sci_badge');
