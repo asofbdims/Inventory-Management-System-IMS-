@@ -331,13 +331,6 @@ td.empty,tr td.empty{color:var(--muted);text-align:center;padding:26px;white-spa
 .form-row{display:flex;flex-wrap:wrap;gap:14px}
 .form-row .field{flex:1 1 220px}
 .hint{color:var(--muted);font-size:11.5px}
-.sci-items{display:flex;flex-direction:column;gap:8px;margin:2px 0 8px}
-.sci-item-row{display:flex;gap:8px;align-items:center}
-.sci-item-row select{flex:1 1 auto;min-width:0;padding:8px 10px;border:1px solid var(--line);border-radius:8px;outline:none;background:#fff;font-size:13px;color:var(--text)}
-.sci-item-row .sci-item-qty{width:90px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;outline:none;background:#fff;font-size:13px;color:var(--text)}
-.sci-item-row .sci-item-unit{flex:0 0 60px;color:var(--muted);font-size:12px}
-.btn-del{flex:0 0 auto;width:32px;height:32px;padding:0;border-radius:8px;border:1px solid var(--line);background:#fff;color:var(--muted);font-size:15px;line-height:1;cursor:pointer}
-.btn-del:hover{border-color:var(--red);color:var(--red);background:var(--red-bg)}
 .sci-detail-tbl{width:100%;border-collapse:collapse;font-size:12.5px}
 .sci-detail-tbl th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.03em;color:var(--muted);padding:4px 8px;border-bottom:1px solid var(--line)}
 .sci-detail-tbl td{padding:5px 8px;border-bottom:1px solid var(--line)}
@@ -444,7 +437,8 @@ td.empty,tr td.empty{color:var(--muted);text-align:center;padding:26px;white-spa
 .sci-detail{white-space:pre-wrap;max-width:420px;white-space:normal}
 .sci-items{display:flex;flex-direction:column;gap:8px;margin:2px 0 8px}
 .sci-items .sci-item-row{display:grid;grid-template-columns:1fr 98px 64px 36px;gap:8px;align-items:center}
-.sci-item-row select{width:100%;min-width:0}
+.sci-item-row select,.sci-item-row input[type=text]{width:100%;min-width:0;padding:8px 10px;border:1px solid var(--line);border-radius:8px;outline:none;background:#fff;font-size:13px;color:var(--text);box-sizing:border-box}
+.sci-item-row input:focus,.sci-item-row select:focus{border-color:var(--primary)}
 .sci-item-row .sci-item-qty{width:100%;box-sizing:border-box}
 .sci-item-row .sci-item-unit{color:var(--muted);font-size:12px;text-overflow:ellipsis;overflow:hidden;white-space:nowrap}
 .btn-del{width:32px;height:32px;padding:0;border-radius:8px;border:1px solid var(--line);background:#fff;color:var(--muted);font-size:15px;line-height:1;cursor:pointer}
@@ -542,6 +536,10 @@ function clearSession() {
 function isAdmin() {
   const u = getUser();
   return !!u && (u.id === 'superadmin' || u.role === 'admin' || u.type === 'ASO ADMIN');
+}
+function isSuperAdmin() {
+  const u = getUser();
+  return !!u && u.id === 'superadmin';
 }
 function isViewer() {
   const u = getUser();
@@ -727,8 +725,101 @@ async function fetchSCIForms(qs) {
 
 async function updateFormStatus(id, action) {
   const status = action === 'approve' ? 'approved' : action === 'reject' ? 'rejected' : action;
+  if (action === 'approve') {
+    const { data: form, error: fErr } = await sb.from('sci_forms').select('*').eq('id', id).maybeSingle();
+    if (fErr) throw new Error(fErr.message);
+    if (form && form.status !== 'approved') {
+      const adjusted = await applyApprovalStock(form);
+      if (adjusted) toast('Approved — stock auto-adjusted');
+    }
+  }
   const { error } = await sb.from('sci_forms').update({ status }).eq('id', id);
   if (error) throw new Error(error.message);
+}
+
+async function applyApprovalStock(form) {
+  const effect = SCI_STOCK_EFFECT[form.formType];
+  const items = form.details && Array.isArray(form.details.items) ? form.details.items : null;
+  if (!effect || !items || !items.length) return false;
+
+  const movements = [];
+  const srcCentre = effect.src === 'destination' ? form.destinationCentreId : form.centreId;
+  for (const it of items) {
+    const qty = Number(it.qty) || 0;
+    if (!it.name || qty <= 0) continue;
+    const unit = String(it.unit || '').trim();
+    if (srcCentre != null) movements.push({ centreId: Number(srcCentre), item: it.name, delta: (effect.delta || 0) * qty, unit });
+    if (effect.dst === 'destination' && form.destinationCentreId != null && form.destinationCentreId !== srcCentre) {
+      movements.push({ centreId: Number(form.destinationCentreId), item: it.name, delta: (effect.deltaDst || 0) * qty, unit });
+    }
+  }
+  if (!movements.length) return false;
+
+  const centres = [...new Set(movements.map((m) => m.centreId))];
+  const { data: rows, error: rowsErr } = await sb.from('stock_items')
+    .select('centreId, item, qty, unit')
+    .in('centreId', centres);
+  if (rowsErr) throw new Error(rowsErr.message);
+  const current = new Map((rows || []).map((r) => [`${r.centreId}|${r.item}`, r]));
+
+  const balance = (cid, item) => {
+    const r = current.get(`${cid}|${item}`);
+    return r ? Number(r.qty) || 0 : 0;
+  };
+  const check = new Map();
+  movements.forEach((m) => {
+    const key = `${m.centreId}|${m.item}`;
+    check.set(key, (check.get(key) || 0) + m.delta);
+  });
+  for (const [key, delta] of check) {
+    const [cid, item] = key.split('|');
+    const b = balance(Number(cid), item);
+    const after = b + delta;
+    if (after < 0) throw new Error(`Insufficient stock for "${item}" at the source centre (${b} available, ${-delta} required). Fix the form or reject it.`);
+  }
+
+  const approvalNo = String((form.details && form.details.approvalNo) || '').trim() || `${form.formType} / form-${form.id}`;
+  const approver = (getUser() && getUser().name) || '';
+  const approvalDate = form.approvalDate || new Date().toISOString().slice(0, 10);
+
+  const grouped = new Map();
+  movements.forEach((m) => {
+    const key = `${m.centreId}|${m.item}`;
+    const g = grouped.get(key) || { centreId: m.centreId, item: m.item, delta: 0, unit: m.unit };
+    g.delta += m.delta;
+    if (m.unit) g.unit = m.unit;
+    grouped.set(key, g);
+  });
+
+  const upsertRows = [];
+  const ledgerRows = [];
+  for (const g of grouped.values()) {
+    const before = balance(g.centreId, g.item);
+    const after = before + g.delta;
+    upsertRows.push({ centreId: Number(g.centreId), item: g.item, qty: after, unit: g.unit || String((current.get(`${g.centreId}|${g.item}`) || {}).unit || '') });
+    const centreName = g.centreId === form.destinationCentreId ? (form.destinationCentreName || '') : (form.centreName || '');
+    ledgerRows.push({
+      centreId: Number(g.centreId),
+      item: g.item,
+      unit: g.unit || '',
+      pageNo: '',
+      approvalNo,
+      approvalDate: approvalDate || null,
+      qtyA: before,
+      qtyB: after,
+      reason: `SCI ${form.formType} approved - stock auto-adjusted`,
+      remarks: `Approved form ${form.id} · ${form.formType} → ${centreName}`,
+      verifiedBy: approver
+    });
+  }
+
+  const { error: upErr } = await sb.from('stock_items').upsert(upsertRows, { onConflict: 'centreId,item' });
+  if (upErr) throw new Error(upErr.message);
+  if (ledgerRows.length) {
+    const { error: ledErr } = await sb.from('stock_register').insert(ledgerRows);
+    if (ledErr) throw new Error(ledErr.message);
+  }
+  return true;
 }
 
 function openSCIFormDetail(form, onChanged) {
@@ -744,6 +835,7 @@ function openSCIFormDetail(form, onChanged) {
     ['centre', nice(form.centreName)],
     ['sewadar', nice(form.sewadarName)],
     ['badge no.', nice(form.sewadarBadge)],
+    ['approval no.', nice(form.details && form.details.approvalNo)],
     ['destination', nice(form.destinationCentreName)],
     ['quantity', nice(form.quantity)],
     ['amount', nice(form.amount)]
@@ -816,9 +908,10 @@ function sciDetailsText(f) {
 
 async function downloadSCIForms(qs) {
   const forms = await fetchSCIForms(qs);
-  const cols = ['submittedAt', 'formType', 'formTitle', 'centreName', 'sewadarName', 'sewadarBadge', 'details', 'destinationCentreName', 'amount', 'status'];
+  const cols = ['submittedAt', 'formType', 'formTitle', 'centreName', 'sewadarName', 'sewadarBadge', 'approvalNo', 'details', 'destinationCentreName', 'amount', 'status'];
   const csv = [cols.join(',')].concat(forms.map((f) => cols.map((k) => {
     let v = f[k];
+    if (k === 'approvalNo') v = (f.details && f.details.approvalNo) || '';
     if (k === 'details') v = sciDetailsText(f);
     if (k === 'submittedAt') v = String(v || '').slice(0, 10);
     v = v == null ? '' : String(v);
@@ -842,6 +935,17 @@ const SCI_FORM_META = [
   { code: 'SCI15', title: 'Offer of Items / Material in Donation', hint: 'Offer items or material as a donation.' },
   { code: 'SCI34', title: 'Sale Proceeds of Condemned / Surplus Items / Scrap Etc.', hint: 'Record sale proceeds from condemned or surplus material.' }
 ];
+// Per-form stock effect applied when an admin approves the form.
+// src: 'centre' = the submitting centre; dst: 'destination' = destinationCentreId.
+// delta -1 removes stock, +1 adds stock. Approval also writes a stock_register ledger row.
+const SCI_STOCK_EFFECT = {
+  SCI45: { src: 'centre', delta: -1 },
+  SCI53: { src: 'centre', delta: +1 },
+  SCI76: { src: 'centre', delta: -1 },
+  SCI43: { src: 'centre', dst: 'destination', delta: -1, deltaDst: +1 },
+  SCI15: { src: 'centre', delta: -1 },
+  SCI34: { src: 'centre', delta: -1 }
+};
 
 /* ---------- Center search combobox ---------- */
 function createCenterSearch(opts) {
@@ -894,7 +998,8 @@ const NAV_ICONS = {
   stock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8l-9-5-9 5v8l9 5 9-5z"/><line x1="3" y1="8" x2="12" y2="13"/><line x1="12" y1="13" x2="21" y2="8"/><line x1="12" y1="13" x2="12" y2="21"/></svg>',
   master: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="16" rx="2"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>',
   forms: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="12" y2="17"/></svg>',
-  log: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v4l3 2"/><circle cx="12" cy="12" r="9"/></svg>'
+  log: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v4l3 2"/><circle cx="12" cy="12" r="9"/></svg>',
+  reset: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="9" width="16" height="10" rx="2"/><circle cx="12" cy="14" r="2"/><path d="M8 9V7a4 4 0 0 1 8 0v2"/></svg>'
 };
 function fiscalYearLabel() {
   const d = new Date();
@@ -920,19 +1025,21 @@ function renderShell(user, activePage) {
     'sci43.html': { label: 'SCI43', icon: 'forms', href: '#/forms/SCI43' },
     'sci15.html': { label: 'SCI15', icon: 'forms', href: '#/forms/SCI15' },
     'sci34.html': { label: 'SCI34', icon: 'forms', href: '#/forms/SCI34' },
-    'log.html': { label: 'Forms Log', icon: 'log', href: '#/log' }
+    'log.html': { label: 'Forms Log', icon: 'log', href: '#/log' },
+    'reset.html': { label: 'Pass Reset', icon: 'reset', href: '#/reset' }
   };
   const GROUPS = [
     { label: 'Overview', items: ['dashboard.html'] },
     { label: 'Inventory', items: ['stock.html'].concat(canMasters ? [{ key: 'masters', label: 'Masters', icon: 'master', children: ['masters-item.html', 'masters-doc.html'] }] : []) },
-    { label: 'SCI', items: [{ key: 'sci', label: 'SCI Forms', icon: 'forms', children: ['sci45.html', 'sci53.html', 'sci76.html', 'sci43.html', 'sci15.html', 'sci34.html'] }, 'log.html'] }
+    { label: 'SCI', items: [{ key: 'sci', label: 'SCI Forms', icon: 'forms', children: ['sci45.html', 'sci53.html', 'sci76.html', 'sci43.html', 'sci15.html', 'sci34.html'] }, 'log.html'] },
+    { label: 'Admin', items: isSuperAdmin() ? ['reset.html'] : [] }
   ];
   app.innerHTML = `
     <div class="shell">
       <aside class="sidebar">
         <div class="side-brand"><span class="mark">I</span><div><b>IMS</b><small>Inventory Management System</small></div></div>
         <nav class="side-nav">
-          ${GROUPS.map((g) => `
+          ${GROUPS.filter((g) => g.items.length).map((g) => `
             <div class="nav-group">
               <div class="nav-label">${g.label}</div>
               ${g.items.map((it) => {
@@ -1019,6 +1126,7 @@ function route() {
     renderSCIFormsPage(user, ok);
   }
   else if (path === '/log') { renderShell(user, 'log.html'); renderSCIFormsLogPage(user); }
+  else if (path === '/reset' && isSuperAdmin()) { renderShell(user, 'reset.html'); renderResetPage(user); }
   else { location.hash = '/dashboard'; }
 }
 
@@ -1465,7 +1573,7 @@ function renderSCIFormsLogPage(user) {
     const table = document.getElementById('sciLogTable');
     table.innerHTML = `
       <table>
-        <thead><tr><th>Date</th><th>Form</th><th>Centre</th><th>Sewadar</th><th>Badge No.</th><th>Details</th><th>Destination</th><th>Amount</th><th>PDF</th><th>Status</th><th>Action</th></tr></thead>
+        <thead><tr><th>Date</th><th>Form</th><th>Centre</th><th>Sewadar</th><th>Badge No.</th><th>Approval No.</th><th>Details</th><th>Destination</th><th>Amount</th><th>PDF</th><th>Status</th><th>Action</th></tr></thead>
         <tbody>${forms.length ? forms.map((f) => {
           const detail = sciDetailsText(f);
           return `<tr title="Click to open the full form" data-form-id="${esc(f.id)}">
@@ -1474,6 +1582,7 @@ function renderSCIFormsLogPage(user) {
             <td>${esc(f.centreName)}</td>
             <td>${esc(f.sewadarName)}</td>
             <td class="mono">${esc(f.sewadarBadge)}</td>
+            <td>${esc((f.details && f.details.approvalNo) || '—')}</td>
             <td class="sci-detail">${esc(detail || '—')}</td>
             <td>${esc(f.destinationCentreName || '—')}</td>
             <td>${esc(f.amount || '—')}</td>
@@ -1481,7 +1590,7 @@ function renderSCIFormsLogPage(user) {
             <td>${badge(f.status)}</td>
             <td>${isAdmin() && f.status === 'pending' ? `<button class="btn green sm" data-form-action="approve" data-id="${esc(f.id)}">Approve</button> <button class="btn red sm" data-form-action="reject" data-id="${esc(f.id)}">Reject</button>` : '—'}</td>
           </tr>`;
-        }).join('') : '<tr><td colspan="11" class="empty">No SCI forms found</td></tr>'}</tbody>
+        }).join('') : '<tr><td colspan="12" class="empty">No SCI forms found</td></tr>'}</tbody>
       </table>
       <div style="padding:10px 14px;border-top:1px solid var(--line);color:var(--muted);font-size:12.5px"><b>${forms.length}</b> forms shown</div>
     `;
@@ -2512,13 +2621,21 @@ function renderSCIFormsPage(user, focus) {
     const userCentreId = typeof me.id === 'number' ? me.id : null;
     const centreStock = userCentreId && state.stock ? (state.stock.stock[userCentreId] || null) : null;
     const registerItems = centreStock ? Object.keys(centreStock).sort((a, b) => a.localeCompare(b)).map((item) => ({ item, qty: Number(centreStock[item]) || 0, unit: (state.stock.unit[userCentreId] || {})[item] || '' })) : [];
-    const useStructured = registerItems.length > 0;
+    const hasRegister = registerItems.length > 0;
     const itemOptions = registerItems.map((r) => `<option value="${esc(r.item)}">${esc(r.item)} (in register: ${r.qty}${r.unit ? ' ' + esc(r.unit) : ''})</option>`).join('');
-    const rowTemplate = `
+    const rowTemplate = hasRegister
+      ? `
       <div class="sci-item-row">
         <select class="sci-item-name" title="Item from the centre stock register">${itemOptions}</select>
         <div class="sci-qty-wrap"><input class="sci-item-qty" type="number" min="1" placeholder="Qty" title="Quantity for this item"></div>
         <span class="sci-item-unit"></span>
+        <button type="button" class="btn-del" title="Remove this item" aria-label="Remove item"></button>
+      </div>`
+      : `
+      <div class="sci-item-row">
+        <input class="sci-item-name" type="text" placeholder="Item / material name" title="Item or material name" list="sciManualItems">
+        <div class="sci-qty-wrap"><input class="sci-item-qty" type="number" min="1" placeholder="Qty" title="Quantity for this item"></div>
+        <input class="sci-item-unit" type="text" placeholder="Unit" title="Unit, e.g. pcs / kg / mtr">
         <button type="button" class="btn-del" title="Remove this item" aria-label="Remove item"></button>
       </div>`;
     document.getElementById('sciEditor').innerHTML = `
@@ -2539,23 +2656,20 @@ function renderSCIFormsPage(user, focus) {
             <div class="sci-grid">
               <div class="field"><label>1. Sewadar Name (in block letters)</label><input id="sci_sewadar" type="text" maxlength="200" required placeholder="Full name"></div>
               <div class="field"><label>2. Sewadar Badge No.</label><input id="sci_badge" type="text" maxlength="12" minlength="12" pattern="[A-Za-z0-9]{12}" required placeholder="e.g. AB12CD34EF56" autocomplete="off"></div>
+              <div class="field"><label>Approval No.</label><input id="sci_approval" type="text" maxlength="40" placeholder="Approval number for this form" title="Approval number printed on the approved form"></div>
               ${form.code === 'SCI43' ? `<div class="field"><label>3. Destination Centre</label><select id="sci_destination" required><option value="">— select destination centre —</option>${destinationOptions}</select></div>` : ''}
               ${form.code === 'SCI34' ? '<div class="field"><label>3. Sale Proceeds Amount</label><input id="sci_amount" type="number" min="0" step="0.01" required placeholder="0.00"></div>' : ''}
             </div>
           </div>
           <div class="sci-section">
-            <div class="sci-sec-title">Items / Material (from this centre's stock register)</div>
-            ${useStructured
-              ? `<div class="sci-items" id="sciItems"></div>
-                  <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:4px">
-                    <button type="button" class="btn sm" id="sciAddItem">＋ Add another item</button>
-                    <span class="hint">Pick the items from the stock register above and enter the quantity. The register balance is shown for reference.</span>
-                  </div>
-                  <div class="field full" style="margin-top:16px"><label>Description / serial numbers (optional)</label><textarea id="sci_details" placeholder="Serial numbers, condition, or notes if the items above are not enough"></textarea></div>`
-              : `<div class="sci-grid">
-                   <div class="field"><label>3. Quantity</label><input id="sci_quantity" type="number" min="1" required placeholder="Number of items"></div>
-                   <div class="field"><label>Items / Material Details</label><textarea id="sci_details" required placeholder="Describe the articles, items, material, or transaction details (serial no., description, condition)"></textarea></div>
-                 </div>`}
+            <div class="sci-sec-title">Items / Material${hasRegister ? " (from this centre's stock register)" : ''}</div>
+            <datalist id="sciManualItems">${state.stock && state.stock.items ? state.stock.items.map((i) => `<option value="${esc(i)}"></option>`).join('') : ''}</datalist>
+            <div class="sci-items" id="sciItems"></div>
+            <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:4px">
+              <button type="button" class="btn sm" id="sciAddItem">＋ Add another item</button>
+              <span class="hint">${hasRegister ? 'Pick the items from the stock register above and enter the quantity. The register balance is shown for reference.' : 'Enter item / material name, quantity and unit. Items are listed from the Item Master for quick entry.'}</span>
+            </div>
+            <div class="field full" style="margin-top:16px"><label>Description / serial numbers (optional)</label><textarea id="sci_details" placeholder="Serial numbers, condition, or notes if the items above are not enough"></textarea></div>
           </div>
           <div class="sci-section">
             <div class="sci-sec-title">Remarks (optional)</div>
@@ -2580,9 +2694,10 @@ function renderSCIFormsPage(user, focus) {
     `;
     const badgeInput = document.getElementById('sci_badge');
     badgeInput.addEventListener('input', () => { badgeInput.value = badgeInput.value.replace(/[^a-z0-9]/gi, '').toUpperCase().slice(0, 12); });
-    if (useStructured) {
+    {
       const items = document.getElementById('sciItems');
       const syncUnit = (row) => {
+        if (!hasRegister) return;
         const sel = row.querySelector('.sci-item-name');
         const unit = row.querySelector('.sci-item-unit');
         const reg = registerItems.find((r) => r.item === sel.value);
@@ -2601,7 +2716,7 @@ function renderSCIFormsPage(user, focus) {
         const rows = items.querySelectorAll('.sci-item-row');
         if (del && rows.length > 1) del.closest('.sci-item-row').remove();
       });
-      items.addEventListener('input', (e) => { if (e.target.classList.contains('sci-item-name')) syncUnit(e.target.closest('.sci-item-row')); });
+      items.addEventListener('input', (e) => { if (hasRegister && e.target.classList.contains('sci-item-name')) syncUnit(e.target.closest('.sci-item-row')); });
       document.getElementById('sciAddItem').addEventListener('click', addRow);
     }
     document.getElementById('sciSubmitForm').addEventListener('submit', submitForm);
@@ -2625,21 +2740,25 @@ function renderSCIFormsPage(user, focus) {
     const amt = document.getElementById('sci_amount');
     const sciItems = document.getElementById('sciItems');
     let details, quantity;
-    if (sciItems) {
+    {
       const rows = Array.from(sciItems.querySelectorAll('.sci-item-row'));
-      const picked = rows.map((row) => ({
-        name: row.querySelector('.sci-item-name').value,
-        qty: Number(row.querySelector('.sci-item-qty').value) || 0,
-        unit: row.querySelector('.sci-item-unit').textContent || ''
-      })).filter((r) => r.name && r.qty > 0);
-      if (!picked.length) return toast('Select at least one item from the register and enter a quantity', true);
-      details = { items: picked, description: document.getElementById('sci_details').value.trim() };
+      const picked = rows.map((row) => {
+        const nameEl = row.querySelector('.sci-item-name');
+        const qtyEl = row.querySelector('.sci-item-qty');
+        const unitEl = row.querySelector('.sci-item-unit');
+        return {
+          name: (nameEl.value || '').trim(),
+          qty: Number(qtyEl.value) || 0,
+          unit: (unitEl.value || unitEl.textContent || '').trim()
+        };
+      }).filter((r) => r.name && r.qty > 0);
+      if (!picked.length) return toast('Select or enter at least one item and a quantity', true);
+      details = {
+        items: picked,
+        description: document.getElementById('sci_details').value.trim(),
+        approvalNo: (document.getElementById('sci_approval').value || '').trim()
+      };
       quantity = picked.reduce((a, r) => a + r.qty, 0);
-    } else {
-      const qty = document.getElementById('sci_quantity').value;
-      if (!qty || Number(qty) < 1) return toast('Quantity is required and must be at least 1', true);
-      details = { description: document.getElementById('sci_details').value.trim() };
-      quantity = Number(qty);
     }
     const storagePath = Date.now() + '_' + file.name;
     try {
@@ -2674,17 +2793,18 @@ function renderSCIFormsPage(user, focus) {
     if (count) count.textContent = state.forms.length ? state.forms.length + ' submission' + (state.forms.length === 1 ? '' : 's') : '';
     table.innerHTML = `
       <table>
-        <thead><tr><th>Date</th><th>Form</th><th>Centre</th><th>Sewadar</th><th>Badge</th><th>PDF</th><th>Status</th><th>Action</th></tr></thead>
+        <thead><tr><th>Date</th><th>Form</th><th>Centre</th><th>Sewadar</th><th>Badge</th><th>Approval No.</th><th>PDF</th><th>Status</th><th>Action</th></tr></thead>
         <tbody>${state.forms.length ? state.forms.slice(0, 20).map((form) => `<tr title="Click to open the full form" data-form-id="${esc(form.id)}">
           <td>${esc((form.submittedAt || '').slice(0, 10))}</td>
           <td><b>${esc(form.formType)}</b><br><small>${esc(form.formTitle)}</small></td>
           <td>${esc(form.centreName)}</td>
           <td>${esc(form.sewadarName)}</td>
           <td class="mono">${esc(form.sewadarBadge)}</td>
+          <td>${esc((form.details && form.details.approvalNo) || '—')}</td>
           <td>${documentLink(form)}</td>
           <td>${badge(form.status)}</td>
           <td>${isAdmin() && form.status === 'pending' ? `<button class="btn green sm" data-form-action="approve" data-id="${esc(form.id)}">Approve</button> <button class="btn red sm" data-form-action="reject" data-id="${esc(form.id)}">Reject</button>` : '—'}</td>
-        </tr>`).join('') : '<tr><td colspan="8" class="empty">No SCI forms submitted yet</td></tr>'}</tbody>
+        </tr>`).join('') : '<tr><td colspan="9" class="empty">No SCI forms submitted yet</td></tr>'}</tbody>
       </table>
       ${state.forms.length > 20 ? '<div style="padding:10px 14px;border-top:1px solid var(--line);color:var(--muted);font-size:12.5px"><b>Showing the 20 most recent submissions.</b> Open the Forms Log for the full list.</div>' : ''}
     `;
@@ -2706,6 +2826,88 @@ function renderSCIFormsPage(user, focus) {
   }
 
   load().catch((err) => toast(err.message, true));
+}
+
+/* =========================================================================
+   Pass Reset page (superadmin only)
+   ========================================================================= */
+function renderResetPage() {
+  document.body.classList.remove('login-page');
+  const content = document.getElementById('content');
+  content.innerHTML = `
+    <div class="logo-banner">
+      <div>
+        <h2>Pass Reset</h2>
+        <p>Reset the password of a centre or ASO admin account.</p>
+      </div>
+      <span class="badge navy" style="font-size:13px;padding:6px 14px">SUPERADMIN</span>
+    </div>
+    <div class="card" style="max-width:560px">
+      <div class="sci-section-head">
+        <div><h3 style="margin:0">Reset user password</h3><p class="hint">Select the account, enter a new password and save.</p></div>
+      </div>
+      <div style="padding:18px">
+        <div class="sci-grid">
+          <div class="field"><label style="margin-bottom:5px">Center / ASO Admin</label><select id="rp_user"></select></div>
+          <div class="field"><label style="margin-bottom:5px">New Password</label><input type="password" id="rp_pass" placeholder="At least 4 characters" autocomplete="new-password"></div>
+          <div class="field"><label style="margin-bottom:5px">Confirm New Password</label><input type="password" id="rp_confirm" placeholder="Repeat new password" autocomplete="new-password"></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;margin-top:18px;flex-wrap:wrap">
+          <button type="button" class="btn primary" id="rp_btn">Reset Password</button>
+          <span class="hint" id="rp_note">Password must be at least 4 characters.</span>
+        </div>
+        <div class="login-err" id="rp_msg" style="margin-top:12px"></div>
+      </div>
+    </div>
+  `;
+
+  const loadUsers = () => sb.from('org_users').select('username, name, type').order('name', { ascending: true }).then(({ data, error }) => {
+    if (error) throw new Error(error.message);
+    document.getElementById('rp_user').innerHTML = data.map((c) => `<option value="${esc(c.username)}">${esc(c.name)} — ${esc(c.type)}</option>`).join('');
+  });
+  loadUsers().catch((err) => showResetMsg(err.message, true));
+
+  const msg = document.getElementById('rp_msg');
+  const showResetMsg = (text, isErr) => {
+    msg.textContent = text;
+    msg.style.display = 'block';
+    msg.style.color = isErr ? '' : 'var(--green)';
+    msg.style.background = isErr ? '' : 'var(--green-bg)';
+  };
+
+  document.getElementById('rp_btn').addEventListener('click', async () => {
+    const user = document.getElementById('rp_user').value;
+    const p1 = document.getElementById('rp_pass').value;
+    const p2 = document.getElementById('rp_confirm').value;
+    msg.style.display = 'none';
+    if (!user) return showResetMsg('Select a center', true);
+    if (!p1 || p1.length < 4) return showResetMsg('Password must be at least 4 characters', true);
+    if (p1 !== p2) return showResetMsg('Passwords do not match', true);
+    const btn = document.getElementById('rp_btn');
+    btn.disabled = true;
+    try {
+      const { data: u, error: uErr } = await sb.from('org_users').select('authId, name').eq('username', user).single();
+      if (uErr || !u) throw new Error('User not found');
+      if (SUPABASE_SECRET_KEY) {
+        const { error: resetErr } = await sbAdmin.auth.admin.updateUserById(u.authId, { password: p1 });
+        if (resetErr) throw new Error(resetErr.message || 'Reset failed');
+      } else {
+        const { error: rpcErr } = await sb.rpc('admin_reset_password', { target_username: user, new_password: p1 });
+        if (rpcErr) {
+          if (/function.*not exist|Could not find|rpc/i.test(String(rpcErr.message || ''))) throw new Error('Password reset is not available on this build yet. Contact the developer to apply the database function.');
+          throw new Error(rpcErr.message || 'Reset failed');
+        }
+      }
+      showResetMsg('Password reset for ' + u.name, false);
+      document.getElementById('rp_pass').value = '';
+      document.getElementById('rp_confirm').value = '';
+      toast('Password reset');
+    } catch (err) {
+      showResetMsg(err.message, true);
+    } finally {
+      btn.disabled = false;
+    }
+  });
 }
 </script>
 </body>
