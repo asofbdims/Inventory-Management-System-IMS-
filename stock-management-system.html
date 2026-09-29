@@ -441,6 +441,11 @@ td.empty,tr td.empty{color:var(--muted);text-align:center;padding:26px;white-spa
 .sci-item-row input:focus,.sci-item-row select:focus{border-color:var(--primary)}
 .sci-item-row .sci-item-qty{width:100%;box-sizing:border-box}
 .sci-item-row .sci-item-unit{color:var(--muted);font-size:12px;text-overflow:ellipsis;overflow:hidden;white-space:nowrap}
+/*
+  SCI OFFICIAL-FORM EDITOR STYLES (commit 9720880) — COMMENTED OUT for now.
+  The register-style 4-column item row grid above stays active.
+  Remove the outer marker to re-enable the official paper-format editor.
+
 .sci-items{display:flex;flex-direction:column;gap:8px;margin:2px 0 8px}
 .sci-items .sci-item-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px;border:1px solid var(--line);border-radius:10px;background:#fbfcfd}
 .sci-items .sci-item-row .cell{flex:1 1 96px;min-width:0}
@@ -464,6 +469,7 @@ td.empty,tr td.empty{color:var(--muted);text-align:center;padding:26px;white-spa
 .off-tick{display:flex;flex-wrap:wrap;gap:14px;align-items:center;padding:10px 0;font-size:13px}
 .off-tick label{display:inline-flex;align-items:center;gap:6px;font-weight:600;font-size:13px;text-transform:none;letter-spacing:0}
 .off-quote{font-style:italic;color:var(--muted);margin:8px 0}
+*/
 .btn-del{width:32px;height:32px;padding:0;border-radius:8px;border:1px solid var(--line);background:#fff;color:var(--muted);font-size:15px;line-height:1;cursor:pointer}
 .btn-del:hover{border-color:var(--red);color:var(--red);background:var(--red-bg)}
 .sci-submit-bar{display:flex;flex-wrap:wrap;align-items:center;gap:14px;justify-content:space-between;padding-top:16px}
@@ -875,6 +881,8 @@ function openSCIFormDetail(form, onChanged) {
         .filter(([, v]) => v !== null && v !== '')
         .map(([k, v]) => `<div class="f-d"><span>${k.replace(/([A-Z])/g, (m) => ' ' + m.toLowerCase())}</span><b>${escH(String(v))}</b></div>`).join('');
     }
+    /*
+    // SCI OFFICIAL-FORM DETAIL BLOCKS (9720880) — COMMENTED OUT for now.
     if (Array.isArray(form.details.replacement) && form.details.replacement.length) {
       detailsHtml += `<div class="off-note" style="margin-top:10px">Replacement items against condemnation:</div><table class="sci-detail-tbl"><thead><tr><th>Item</th><th>Qty</th><th>Unit</th></tr></thead><tbody>${form.details.replacement.map((it) => `<tr><td>${escH(it.name || '')}</td><td>${escH(it.qty)}</td><td>${escH(it.unit || '—')}</td></tr>`).join('')}</tbody></table>`;
     }
@@ -892,6 +900,7 @@ function openSCIFormDetail(form, onChanged) {
       const rows = Object.entries(official).filter(([, v]) => v !== null && v !== '' && v !== undefined).map(([k, v]) => `<div class="f-d"><span>${escH(labels[k] || k.replace(/([A-Z])/g, (m) => ' ' + m.toLowerCase()))}</span><b>${escH(Array.isArray(v) ? v.map((x) => String(x == null ? '' : x).replace(/"/g, '""')).join(', ') : String(v))}</b></div>`).join('');
       if (rows) detailsHtml += `<div class="off-note" style="margin-top:10px">Official fields</div><div class="fd-grid">${rows}</div>`;
     }
+    */
   }
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay';
@@ -987,9 +996,16 @@ const SCI_STOCK_EFFECT = {
   SCI34: { src: 'centre', delta: -1 }
 };
 
-/* ---------- SCI official paper-format builder ---------- */
+// ---------- SCI official paper-format builder ----------
 // Column config for each SCI item grid. 'name' is the article; 'qty' is always
 // the quantity used for the stock effect; 'unit' shows register sync.
+/*
+  SCI OFFICIAL PAPER-FORMAT BUILDER (commit 9720880) — COMMENTED OUT for now.
+  ITEM_COLS, offFld/offSel/offCentreSel/offTick/offPara/offSign/offSec/offLetterhead,
+  officialSections, itemRowHtml and tableHead below are inert.
+  Re-enable together with the matching CSS + renderEditor/submitForm/modal code.
+  See "END SCI OFFICIAL BUILDER" marker.
+
 const ITEM_COLS = {
   SCI34: [
     { key: 'name', label: 'NAME OF ARTICLE / MATERIAL', type: 'name' },
@@ -1209,6 +1225,8 @@ function itemRowHtml(cols, hasRegister, itemOptions) {
 }
 
 const tableHead = (cols) => `<div class="off-tbl-head"><div class="cell cell-name">Item</div>${cols.filter((c) => c.type !== 'name').map((c) => `<div class="cell">${c.label}</div>`).join('')}<div class="cell cell-del"></div></div>`;
+
+END SCI OFFICIAL BUILDER */
 
 /* ---------- Center search combobox ---------- */
 function createCenterSearch(opts) {
@@ -2828,6 +2846,9 @@ function renderSCIFormsPage(user, focus) {
       : '—';
   }
 
+  /*
+  SCI OFFICIAL-FORM PAGE HELPERS (9720880) — tableTitle / initItemsGrid / collectGrid COMMENTED OUT for now.
+
   function tableTitle(code) {
     return {
       SCI34: 'Items disposed of / sold',
@@ -2897,6 +2918,8 @@ function renderSCIFormsPage(user, focus) {
     }).filter((r) => (r.name || '').trim() && (r.qty == null || Number(r.qty) > 0));
   }
 
+END SCI PAGE HELPERS */
+
   async function load() {
     [state.forms, state.destinations, state.stock] = await Promise.all([fetchSCIForms(), fetchDestinations(), fetchStock()]);
     render();
@@ -2945,14 +2968,31 @@ function renderSCIFormsPage(user, focus) {
     const registerItems = centreStock ? Object.keys(centreStock).sort((a, b) => a.localeCompare(b)).map((item) => ({ item, qty: Number(centreStock[item]) || 0, unit: (state.stock.unit[userCentreId] || {})[item] || '' })) : [];
     const hasRegister = registerItems.length > 0;
     const itemOptions = registerItems.map((r) => `<option value="${esc(r.item)}">${esc(r.item)} (in register: ${r.qty}${r.unit ? ' ' + esc(r.unit) : ''})</option>`).join('');
-    const cols = form.code === 'SCI45' ? ITEM_COLS.SCI45c : (ITEM_COLS[form.code] || ITEM_COLS.SCI43);
-    const destOptions = state.destinations.map((centre) => `<option value="${esc(centre.id)}">${esc(centre.name)} (${esc(centre.type)})</option>`).join('');
-    const oreq = { me, today, centres: state.destinations };
+    const rowTemplate = hasRegister
+      ? `
+      <div class="sci-item-row">
+        <select class="sci-item-name" title="Item from the centre stock register">${itemOptions}</select>
+        <div class="sci-qty-wrap"><input class="sci-item-qty" type="number" min="1" placeholder="Qty" title="Quantity for this item"></div>
+        <span class="sci-item-unit"></span>
+        <button type="button" class="btn-del" title="Remove this item" aria-label="Remove item"></button>
+      </div>`
+      : `
+      <div class="sci-item-row">
+        <input class="sci-item-name" type="text" placeholder="Item / material name" title="Item or material name" list="sciManualItems">
+        <div class="sci-qty-wrap"><input class="sci-item-qty" type="number" min="1" placeholder="Qty" title="Quantity for this item"></div>
+        <input class="sci-item-unit" type="text" placeholder="Unit" title="Unit, e.g. pcs / kg / mtr">
+        <button type="button" class="btn-del" title="Remove this item" aria-label="Remove item"></button>
+      </div>`;
+    // SCI official-format builder (9720880) — commented out:
+    // const cols = form.code === 'SCI45' ? ITEM_COLS.SCI45c : (ITEM_COLS[form.code] || ITEM_COLS.SCI43);
+    // const destOptions = state.destinations.map((centre) => `<option value="${esc(centre.id)}">${esc(centre.name)} (${esc(centre.type)})</option>`).join('');
+    // const oreq = { me, today, centres: state.destinations };
+    const destinationOptions = state.destinations.map((centre) => `<option value="${esc(centre.id)}">${esc(centre.name)} (${esc(centre.type)})</option>`).join('');
 
     document.getElementById('sciEditor').innerHTML = `
       <div class="sci-meta-bar reg-toolbar" style="margin-bottom:14px">
         <div class="sci-meta"><span>Date: <b>${today}</b></span><span>Satsang Place / Centre: <b>${esc(me.centreName || '—')}</b></span><span>Form No.: <b>${form.code}</b></span></div>
-        <span class="rt-right"><span class="badge navy">Fill exactly like the paper ${form.code}, then upload the signed hardcopy</span></span>
+        <span class="rt-right"><span class="badge navy">Fill like the paper form, then upload the signed hardcopy</span></span>
       </div>
       <div class="card" style="padding:0">
         <div class="sci-section-head">
@@ -2962,37 +3002,26 @@ function renderSCIFormsPage(user, focus) {
           </div>
         </div>
         <form id="sciSubmitForm" class="sci-form-body">
-          ${officialSections(form.code, oreq)}
-          <div class="sci-section">
+            <div class="sci-section">
             <div class="sci-sec-title">Sewadar Details</div>
             <div class="sci-grid">
               <div class="field"><label>1. Sewadar Name (in block letters)</label><input id="sci_sewadar" type="text" maxlength="200" required placeholder="Full name"></div>
               <div class="field"><label>2. Sewadar Badge No.</label><input id="sci_badge" type="text" maxlength="12" minlength="12" pattern="[A-Za-z0-9]{12}" required placeholder="e.g. AB12CD34EF56" autocomplete="off"></div>
               <div class="field"><label>Approval No.</label><input id="sci_approval" type="text" maxlength="40" placeholder="Approval number for this form" title="Approval number printed on the approved form"></div>
-              ${form.code === 'SCI43' ? `<div class="field"><label>3. Destination Centre</label><select id="sci_destination" required><option value="">— select destination centre —</option>${destOptions}</select></div>` : ''}
+              ${form.code === 'SCI43' ? `<div class="field"><label>3. Destination Centre</label><select id="sci_destination" required><option value="">— select destination centre —</option>${destinationOptions}</select></div>` : ''}
+              ${form.code === 'SCI34' ? '<div class="field"><label>3. Sale Proceeds Amount</label><input id="sci_amount" type="number" min="0" step="0.01" required placeholder="0.00"></div>' : ''}
             </div>
           </div>
           <div class="sci-section">
-            <div class="sci-sec-title">${tableTitle(form.code)} ${hasRegister ? "(from this centre's stock register)" : ''}</div>
+            <div class="sci-sec-title">Items / Material${hasRegister ? " (from this centre's stock register)" : ''}</div>
             <datalist id="sciManualItems">${state.stock && state.stock.items ? state.stock.items.map((i) => `<option value="${esc(i)}"></option>`).join('') : ''}</datalist>
-            ${tableHead(cols)}
             <div class="sci-items" id="sciItems"></div>
             <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:4px">
-              <button type="button" class="btn sm" id="sciAddItem">＋ Add another row</button>
-              <span class="hint">${hasRegister ? 'Pick the items from the stock register above and enter the quantity.' : 'Enter the item / material, quantity and other details as on the paper form.'}</span>
+              <button type="button" class="btn sm" id="sciAddItem">＋ Add another item</button>
+              <span class="hint">${hasRegister ? 'Pick the items from the stock register above and enter the quantity. The register balance is shown for reference.' : 'Enter item / material name, quantity and unit. Items are listed from the Item Master for quick entry.'}</span>
             </div>
             <div class="field full" style="margin-top:16px"><label>Description / serial numbers</label><textarea id="sci_details" placeholder="Serial numbers, condition, or notes if the items above are not enough"></textarea></div>
           </div>
-          ${form.code === 'SCI45' ? `
-          <div class="sci-section">
-            <div class="sci-sec-title">Replacement Items Against Condemnation</div>
-            ${tableHead(ITEM_COLS.SCI45r)}
-            <div class="sci-items" id="sciItemsRepl"></div>
-            <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:4px">
-              <button type="button" class="btn sm" id="sciAddItemRepl">＋ Add replacement item</button>
-              <span class="hint">Leave empty when no replacement is required.</span>
-            </div>
-          </div>` : ''}
           <div class="sci-section">
             <div class="sci-sec-title">Remarks</div>
             <textarea id="sci_remarks" placeholder="Additional information"></textarea>
@@ -3014,24 +3043,49 @@ function renderSCIFormsPage(user, focus) {
         </form>
       </div>
     `;
-    document.querySelectorAll('#sciSubmitForm [data-official]').forEach((el) => {
-      if (el.dataset.official === 'date' && !el.value) el.value = today;
-      if (el.dataset.official === 'placeName' && !el.value && me.centreName) el.value = me.centreName;
-    });
+    // SCI official-format priming loop (9720880) — commented out:
+    // document.querySelectorAll('#sciSubmitForm [data-official]').forEach((el) => {
+    //   if (el.dataset.official === 'date' && !el.value) el.value = today;
+    //   if (el.dataset.official === 'placeName' && !el.value && me.centreName) el.value = me.centreName;
+    // });
     const badgeInput = document.getElementById('sci_badge');
     badgeInput.addEventListener('input', () => { badgeInput.value = badgeInput.value.replace(/[^a-z0-9]/gi, '').toUpperCase().slice(0, 12); });
-
-    initItemsGrid('sciItems', cols, hasRegister, registerItems, itemOptions);
-    if (form.code === 'SCI45') initItemsGrid('sciItemsRepl', ITEM_COLS.SCI45r, hasRegister, registerItems, itemOptions);
-
-    const destSel = document.getElementById('sci_destination');
-    if (destSel) destSel.addEventListener('change', () => {
-      const name = (state.destinations.find((c) => Number(c.id) === Number(destSel.value)) || {}).name || '';
-      ['reqPlace', 'reqPlace2', 'toPlace'].forEach((k) => {
-        const el = document.querySelector('[data-official="' + k + '"]');
-        if (el && !el.value && name) el.value = name;
+    {
+      const items = document.getElementById('sciItems');
+      const syncUnit = (row) => {
+        if (!hasRegister) return;
+        const sel = row.querySelector('.sci-item-name');
+        const unit = row.querySelector('.sci-item-unit');
+        const reg = registerItems.find((r) => r.item === sel.value);
+        unit.textContent = reg && reg.unit ? reg.unit : '';
+      };
+      const addRow = () => {
+        const wrap = document.createElement('div');
+        wrap.innerHTML = rowTemplate;
+        const row = wrap.firstElementChild;
+        items.appendChild(row);
+        syncUnit(row);
+      };
+      addRow();
+      items.addEventListener('click', (e) => {
+        const del = e.target.closest('.btn-del');
+        const rows = items.querySelectorAll('.sci-item-row');
+        if (del && rows.length > 1) del.closest('.sci-item-row').remove();
       });
-    });
+      items.addEventListener('input', (e) => { if (hasRegister && e.target.classList.contains('sci-item-name')) syncUnit(e.target.closest('.sci-item-row')); });
+      document.getElementById('sciAddItem').addEventListener('click', addRow);
+    }
+    // SCI official-format grid wiring + destination prefill (9720880) — commented out:
+    // initItemsGrid('sciItems', cols, hasRegister, registerItems, itemOptions);
+    // if (form.code === 'SCI45') initItemsGrid('sciItemsRepl', ITEM_COLS.SCI45r, hasRegister, registerItems, itemOptions);
+    // const destSel = document.getElementById('sci_destination');
+    // if (destSel) destSel.addEventListener('change', () => {
+    //   const name = (state.destinations.find((c) => Number(c.id) === Number(destSel.value)) || {}).name || '';
+    //   ['reqPlace', 'reqPlace2', 'toPlace'].forEach((k) => {
+    //     const el = document.querySelector('[data-official="' + k + '"]');
+    //     if (el && !el.value && name) el.value = name;
+    //   });
+    // });
     document.getElementById('sciSubmitForm').addEventListener('submit', submitForm);
   }
 
@@ -3050,26 +3104,50 @@ function renderSCIFormsPage(user, focus) {
     const destEl = document.getElementById('sci_destination');
     const destId = destEl && destEl.value ? Number(destEl.value) : null;
     const destName = destId ? (state.destinations.find((c) => Number(c.id) === destId) || {}).name || '' : '';
-    const cols = selectedCode === 'SCI45' ? ITEM_COLS.SCI45c : (ITEM_COLS[selectedCode] || ITEM_COLS.SCI43);
-    const official = {};
-    document.querySelectorAll('#sciSubmitForm [data-official]').forEach((el) => {
-      const k = el.dataset.official;
-      if (el.type === 'radio') { if (el.checked) official[k] = el.value; return; }
-      if (/amount|Rcpt/.test(k)) official[k] = (el.value || '') === '' ? null : Number(el.value);
-      else official[k] = el.value.trim();
-    });
-    const items = collectGrid('sciItems', cols);
-    if (!items.length) { button.disabled = false; return toast('Enter at least one item and its quantity', true); }
-    const quantity = items.reduce((a, r) => a + (Number(r.qty) || 0), 0);
-    const replacement = selectedCode === 'SCI45' ? collectGrid('sciItemsRepl', ITEM_COLS.SCI45r) : [];
-    const details = {
-      items,
-      replacement,
-      description: document.getElementById('sci_details').value.trim(),
-      approvalNo: (document.getElementById('sci_approval').value || '').trim(),
-      form: official
-    };
-    const amount = official.amount == null ? (official.amountCc == null ? null : Number(official.amountCc)) : Number(official.amount);
+    // SCI official-format collection (9720880) — commented out:
+    // const cols = selectedCode === 'SCI45' ? ITEM_COLS.SCI45c : (ITEM_COLS[selectedCode] || ITEM_COLS.SCI43);
+    // const official = {};
+    // document.querySelectorAll('#sciSubmitForm [data-official]').forEach((el) => {
+    //   const k = el.dataset.official;
+    //   if (el.type === 'radio') { if (el.checked) official[k] = el.value; return; }
+    //   if (/amount|Rcpt/.test(k)) official[k] = (el.value || '') === '' ? null : Number(el.value);
+    //   else official[k] = el.value.trim();
+    // });
+    // const items = collectGrid('sciItems', cols);
+    // if (!items.length) { button.disabled = false; return toast('Enter at least one item and its quantity', true); }
+    // const quantity = items.reduce((a, r) => a + (Number(r.qty) || 0), 0);
+    // const replacement = selectedCode === 'SCI45' ? collectGrid('sciItemsRepl', ITEM_COLS.SCI45r) : [];
+    // const details = {
+    //   items,
+    //   replacement,
+    //   description: document.getElementById('sci_details').value.trim(),
+    //   approvalNo: (document.getElementById('sci_approval').value || '').trim(),
+    //   form: official
+    // };
+    // const amount = official.amount == null ? (official.amountCc == null ? null : Number(official.amountCc)) : Number(official.amount);
+    const amt = document.getElementById('sci_amount');
+    const sciItems = document.getElementById('sciItems');
+    let details, quantity;
+    {
+      const rows = Array.from(sciItems.querySelectorAll('.sci-item-row'));
+      const picked = rows.map((row) => {
+        const nameEl = row.querySelector('.sci-item-name');
+        const qtyEl = row.querySelector('.sci-item-qty');
+        const unitEl = row.querySelector('.sci-item-unit');
+        return {
+          name: (nameEl.value || '').trim(),
+          qty: Number(qtyEl.value) || 0,
+          unit: (unitEl.value || unitEl.textContent || '').trim()
+        };
+      }).filter((r) => r.name && r.qty > 0);
+      if (!picked.length) return toast('Select or enter at least one item and a quantity', true);
+      details = {
+        items: picked,
+        description: document.getElementById('sci_details').value.trim(),
+        approvalNo: (document.getElementById('sci_approval').value || '').trim()
+      };
+      quantity = picked.reduce((a, r) => a + r.qty, 0);
+    }
     const storagePath = Date.now() + '_' + file.name;
     try {
       const { error: upErr } = await sb.storage.from('uploads').upload(storagePath, file, { contentType: 'application/pdf', cacheControl: '3600', upsert: false });
@@ -3084,7 +3162,7 @@ function renderSCIFormsPage(user, focus) {
         details: details,
         remarks: document.getElementById('sci_remarks').value.trim(),
         quantity: quantity,
-        amount: amount,
+        amount: amt && amt.value ? Number(amt.value) : null,
         destinationCentreId: destId,
         destinationCentreName: destName,
         document: storagePath,
