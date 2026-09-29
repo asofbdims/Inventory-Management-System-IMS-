@@ -359,28 +359,19 @@ td.empty,tr td.empty{color:var(--muted);text-align:center;padding:26px;white-spa
 .fd-box{border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:10px}
 .fd-title{font-weight:700;font-size:12px;color:var(--primary-dark);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px}
 .fd-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
-.masters-grid{display:grid;grid-template-columns:1.1fr 1fr;gap:18px;align-items:start}
+.masters-grid{display:grid;grid-template-columns:1fr;gap:14px;align-items:start}
 .masters-grid.single{grid-template-columns:1fr}
 @media (max-width:980px){.masters-grid{grid-template-columns:1fr}}
-.ma-picker{display:flex;align-items:center;gap:14px;padding:12px 16px;margin-bottom:18px}
 .ma-picker label{font-size:12.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
-.ma-picker select{padding:9px 12px;border:1px solid var(--line);border-radius:8px;background:#fff;font-weight:600;font-size:13.5px;min-width:240px;outline:none}
-.ma-picker select:focus{border-color:var(--primary)}
-.ma-toolbar{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:14px}
-.ma-toolbar h3{margin:0!important;font-size:16px!important;color:var(--primary-dark)!important;text-transform:none!important;letter-spacing:0!important}
-.ma-ftoolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:12px;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:9px 11px}
-.ma-ftoolbar input{padding:8px 11px;border:1px solid var(--line);border-radius:8px;outline:none;background:#fff;min-width:200px;flex:1;font-size:13px}
-.ma-ftoolbar select{padding:8px 11px;border:1px solid var(--line);border-radius:8px;background:#fff;font-weight:600;font-size:13px;min-width:180px;outline:none}
-.ma-ftoolbar .ma-fcount{color:var(--muted);font-size:12px;white-space:nowrap}
+.reg-toolbar input[type=text]{padding:8px 12px;border:1px solid var(--line);border-radius:8px;background:#fff;outline:none;font-size:13px;color:var(--text);flex:1;min-width:220px}
+.reg-toolbar input[type=text]:focus{border-color:var(--primary)}
 .ma-badge{display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:8px;font-size:13px;font-weight:700;letter-spacing:.02em}
 .ma-badge.item{background:var(--accent-tint);color:var(--accent)}
 .ma-badge.doc{background:var(--green-bg);color:var(--green)}
-.ma-sub{color:var(--muted);font-size:12px;margin:0 0 0 2px}
-.ma-add{display:inline-flex;align-items:center;gap:5px;font-size:13px}
-.ma-add .icon{font-size:15px;font-weight:700;line-height:1}
+.ma-sub{color:var(--muted);font-size:12px;margin:0 14px 0 2px}
 .ma-tbl{width:100%;border-collapse:collapse;font-size:13px}
-.ma-tbl th{text-align:left;padding:9px 10px;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);border-bottom:2px solid var(--line);white-space:nowrap}
-.ma-tbl td{padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:middle}
+.ma-tbl th{position:sticky;top:0;background:var(--primary-tint);color:var(--primary-dark);text-align:left;padding:10px 12px;font-weight:600;font-size:11.5px;text-transform:uppercase;letter-spacing:.03em;border-bottom:1px solid var(--line);white-space:nowrap;z-index:5}
+.ma-tbl td{padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:middle}
 .ma-tbl tr:last-child td{border-bottom:none}
 .ma-tbl tr:hover td{background:var(--primary-tint)}
 .ma-tbl .item-name{font-weight:600;color:var(--text)}
@@ -1999,54 +1990,68 @@ function renderMastersPage(user) {
   const content = document.getElementById('content');
   content.innerHTML = `
     <div class="logo-banner">
-      <div class="mark">M</div>
       <div>
         <h2>Inventory Masters</h2>
-        <p style="margin:4px 0 0;color:rgba(255,255,255,.82);font-size:13px">Item catalogue with auto-generated codes, and document master for GRN &amp; SCI form PDFs.</p>
+        <p>Item catalogue with auto-generated codes, and document master for GRN &amp; SCI form PDFs.</p>
+      </div>
+      <div class="sr-actions">
+        <button class="btn sm" id="maExport" title="Download the item catalogue as CSV">Export</button>
+        <button class="btn primary" id="maAddItem" title="Add a new stock item">＋ Add Item</button>
       </div>
     </div>
-    <div class="card ma-picker">
-      <label for="maSelect">Master</label>
-      <select id="maSelect">
-        <option value="item">Item Master</option>
-        <option value="doc">Document Master</option>
-      </select>
+    <div class="reg-toolbar ma-picker">
+      <div class="rt-row">
+        <label for="maSelect">Master</label>
+        <select id="maSelect">
+          <option value="item">Item Master</option>
+          <option value="doc">Document Master</option>
+        </select>
+      </div>
     </div>
     <div class="masters-grid single" id="maGrid">
-      <div class="card" id="maPanel-item">
-        <div class="ma-toolbar">
-          <div><span class="ma-badge item">Item Master</span><p class="ma-sub">Codes auto-generated as ITM-001, ITM-002, ...</p></div>
-          <button class="btn primary sm ma-add" id="maAddItem"><span class="icon">+</span> Add Item</button>
+      <div id="maPanel-item">
+        <div class="reg-toolbar">
+          <div class="rt-row">
+            <input id="maSearch" type="text" placeholder="Search items by name, code or description…" autocomplete="off">
+            <select id="maCat"><option value="">All categories</option></select>
+            <button class="btn sm" id="maClear" title="Clear all filters">Clear All</button>
+            <div class="rt-right">
+              <span class="rt-size"><span>Show</span><select id="maPgSize" title="Rows per page"><option value="25">25</option><option value="50" selected>50</option><option value="100">100</option></select><span>Entries</span></span>
+              <span class="rt-count" id="maCount"></span>
+            </div>
+          </div>
         </div>
-        <div class="ma-ftoolbar">
-          <input id="maSearch" type="text" placeholder="Search items by name or code…" autocomplete="off">
-          <select id="maCat"><option value="">All categories</option></select>
-          <span class="ma-fcount" id="maCount"></span>
+        <div class="table-wrap">
+          <table class="ma-tbl">
+            <thead><tr><th>Code</th><th>Name</th><th>Description</th><th>Category</th><th></th></tr></thead>
+            <tbody id="maItemList"></tbody>
+          </table>
         </div>
-        <div style="overflow:auto;max-height:56vh"><table class="ma-tbl">
-          <thead><tr><th>Code</th><th>Name</th><th>Description</th><th>Category</th><th></th></tr></thead>
-          <tbody id="maItemList"></tbody>
-        </table></div>
+        <div class="reg-pagination" id="maPagination"></div>
       </div>
-      <div class="card" id="maPanel-doc" style="display:none">
-        <div class="ma-toolbar">
-          <div><span class="ma-badge doc">Document Master</span><p class="ma-sub">Upload SCI form PDFs &amp; manage GRN number</p></div>
+      <div id="maPanel-doc" style="display:none">
+        <div class="reg-toolbar">
+          <div class="rt-row">
+            <span class="ma-badge doc">Document Master</span>
+            <span class="ma-sub">Upload SCI form PDFs &amp; manage GRN number</span>
+            <div class="rt-right"><span class="rt-count" id="maDocCount"></span></div>
+          </div>
         </div>
-        <div style="overflow:auto;max-height:56vh"><table class="ma-tbl">
-          <thead><tr><th>Document</th><th>Doc No.</th><th>PDF</th>${isAdmin() ? '<th></th>' : ''}</tr></thead>
-          <tbody id="maDocList"></tbody>
-        </table></div>
+        <div class="table-wrap">
+          <table class="ma-tbl">
+            <thead><tr><th>Document</th><th>Doc No.</th><th>PDF</th>${isAdmin() ? '<th></th>' : ''}</tr></thead>
+            <tbody id="maDocList"></tbody>
+          </table>
+        </div>
       </div>
     </div>
   `;
 
   const maSelect = document.getElementById('maSelect');
-  const maGrid = document.getElementById('maGrid');
   function showMaster(v) {
     const showItem = v !== 'doc';
     document.getElementById('maPanel-item').style.display = showItem ? '' : 'none';
     document.getElementById('maPanel-doc').style.display = showItem ? 'none' : '';
-    maGrid.classList.toggle('single', showItem);
   }
   maSelect.addEventListener('change', () => showMaster(maSelect.value));
   showMaster('item');
@@ -2057,6 +2062,8 @@ function renderMastersPage(user) {
   let newEntry = null;
   let itemSearch = '';
   let itemCat = '';
+  let itemPage = 0;
+  let itemPageSize = 50;
 
   const q = (id) => document.getElementById(id);
 
@@ -2078,8 +2085,34 @@ function renderMastersPage(user) {
     });
   }
 
+  function renderItemPagination(totalPages, n) {
+    const pg = q('maPagination');
+    if (!pg) return;
+    if (!n) { pg.innerHTML = ''; return; }
+    const win = [];
+    for (let p = 0; p < totalPages; p++) {
+      if (totalPages <= 7 || p === 0 || p === totalPages - 1 || Math.abs(p - itemPage) <= 1) win.push(p);
+      else if (win[win.length - 1] !== -1) win.push(-1);
+    }
+    pg.innerHTML = `
+      <span class="pg-info">${itemPage * itemPageSize + 1}–${Math.min(n, (itemPage + 1) * itemPageSize)} of ${n}</span>
+      <button class="pg-btn" data-mpg="prev"${itemPage === 0 ? ' disabled' : ''}>‹ Prev</button>
+      ${win.map((p) => p === -1 ? '<span class="pg-btn" style="border:none;background:none;cursor:default">…</span>' : `<button class="pg-btn${p === itemPage ? ' active' : ''}" data-mpg="${p}">${p + 1}</button>`).join('')}
+      <button class="pg-btn" data-mpg="next"${itemPage >= totalPages - 1 ? ' disabled' : ''}>Next ›</button>`;
+    pg.querySelectorAll('.pg-btn').forEach((b) => b.addEventListener('click', () => {
+      if (b.disabled) return;
+      if (b.dataset.mpg === 'prev') itemPage = Math.max(0, itemPage - 1);
+      else if (b.dataset.mpg === 'next') itemPage = Math.min(totalPages - 1, itemPage + 1);
+      else itemPage = Number(b.dataset.mpg);
+      renderItemRows();
+    }));
+  }
+
   function renderItemRows() {
     const list = filteredItems();
+    const totalPages = Math.max(1, Math.ceil(list.length / itemPageSize));
+    if (newEntry) itemPage = 0;
+    if (itemPage >= totalPages) itemPage = totalPages - 1;
     const cnt = q('maCount');
     if (cnt) cnt.textContent = items.length ? `${list.length} of ${items.length} items` : '';
     const newRow = newEntry ? `
@@ -2092,13 +2125,16 @@ function renderMastersPage(user) {
       </tr>` : '';
     if (!items.length && !newEntry) {
       itemList.innerHTML = '<tr><td colspan="5" class="empty">No items yet — click Add Item.</td></tr>';
+      renderItemPagination(totalPages, 0);
       return;
     }
     if (!list.length && !newEntry) {
       itemList.innerHTML = '<tr><td colspan="5" class="empty">No items match your search.</td></tr>';
+      renderItemPagination(totalPages, 0);
       return;
     }
-    itemList.innerHTML = newRow + list.map((r) => r.editing ? `
+    const pageRows = list.slice(itemPage * itemPageSize, (itemPage + 1) * itemPageSize);
+    itemList.innerHTML = newRow + pageRows.map((r) => r.editing ? `
       <tr>
         <td><span class="item-code" style="background:var(--bg);color:var(--muted)">${esc(r.code || 'AUTO')}</span></td>
         <td><input id="maRowName_${r.id}" value="${esc(r.name)}" maxlength="200" style="width:140px"></td>
@@ -2113,6 +2149,31 @@ function renderMastersPage(user) {
         <td>${esc(r.category || '—')}</td>
         <td><div class="doc-row-actions"><button class="btn sm" data-act="edit" data-id="${r.id}">Edit</button><button class="btn red sm" data-act="del" data-id="${r.id}">Delete</button></div></td>
       </tr>`).join('');
+    renderItemPagination(totalPages, list.length);
+  }
+
+  function exportItems() {
+    try {
+      const csvCell = (v) => {
+        const s = v == null ? '' : String(v);
+        return /[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+      };
+      const rows = filteredItems().map((r) => [r.code || 'ITM-###', r.name || '', r.description || '', r.category || '']);
+      const header = ['Code', 'Name', 'Description', 'Category'];
+      const csv = [header.map(csvCell).join(',')].concat(rows.map((r) => r.map(csvCell).join(','))).join('\r\n');
+      const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'items-master.csv';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
+      toast('Items exported as CSV');
+    } catch (err) {
+      toast('Export failed: ' + (err.message || err), true);
+    }
   }
 
   function loadItems() {
@@ -2121,14 +2182,26 @@ function renderMastersPage(user) {
 
   const maSearch = q('maSearch');
   const maCat = q('maCat');
-  if (maSearch) maSearch.addEventListener('input', () => { itemSearch = maSearch.value; renderItemRows(); });
-  if (maCat) maCat.addEventListener('change', () => { itemCat = maCat.value; renderItemRows(); });
-
-  document.getElementById('maAddItem').addEventListener('click', () => {
+  const maClear = q('maClear');
+  const maPgSize = q('maPgSize');
+  const maAddItem = q('maAddItem');
+  const maExport = q('maExport');
+  if (maSearch) maSearch.addEventListener('input', () => { itemSearch = maSearch.value; itemPage = 0; renderItemRows(); });
+  if (maCat) maCat.addEventListener('change', () => { itemCat = maCat.value; itemPage = 0; renderItemRows(); });
+  if (maClear) maClear.addEventListener('click', () => {
+    itemSearch = ''; itemCat = ''; itemPage = 0;
+    if (maSearch) maSearch.value = '';
+    if (maCat) maCat.value = '';
+    renderItemRows();
+  });
+  if (maPgSize) maPgSize.addEventListener('change', () => { itemPageSize = Number(maPgSize.value) || 50; itemPage = 0; renderItemRows(); });
+  if (maAddItem) maAddItem.addEventListener('click', () => {
+    itemPage = 0;
     newEntry = { name: '', description: '', category: '' };
     renderItemRows();
     setTimeout(() => { const el = document.getElementById('maRowName_new'); if (el) el.focus(); }, 60);
   });
+  if (maExport) maExport.addEventListener('click', exportItems);
 
   itemList.addEventListener('click', (e) => {
     const btn = e.target.closest('[data-act]');
@@ -2181,6 +2254,8 @@ function renderMastersPage(user) {
   let docs = [];
 
   function renderDocRows() {
+    const cnt = q('maDocCount');
+    if (cnt) cnt.textContent = docs.length ? `${docs.length} documents` : '';
     if (!docs.length) {
       docList.innerHTML = '<tr><td colspan="4" class="empty">No documents yet.</td></tr>';
       return;
