@@ -422,20 +422,12 @@ td.empty,tr td.empty{color:var(--muted);text-align:center;padding:26px;white-spa
 @keyframes toastIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
 
 /* ---------- SCI forms ---------- */
-.sci-form-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px}
-.sci-form-card{display:flex;flex-direction:column;gap:10px;min-height:170px;cursor:pointer;transition:transform .12s,box-shadow .12s,border-color .12s}
-.sci-form-card:hover{transform:translateY(-1px);box-shadow:0 4px 16px -6px rgba(23,33,29,.22);border-color:var(--primary)}
-.sci-form-card .sci-code{font-family:'JetBrains Mono',monospace;color:var(--accent);font-size:12px;font-weight:700}
-.sci-form-card h3{font-family:'Source Serif 4',serif;color:var(--primary-dark);font-size:16px;text-transform:none;letter-spacing:0;margin:0}
-.sci-form-card p{color:var(--muted);font-size:12.5px;margin:0;flex:1}
 .sci-editor{margin-bottom:20px}
 .sci-editor h3{font-family:'Source Serif 4',serif;color:var(--primary-dark);font-size:18px;text-transform:none;letter-spacing:0}
 .field textarea{padding:9px 11px;border:1px solid var(--line);border-radius:8px;outline:none;background:#fff;min-height:92px;resize:vertical}
 .field textarea:focus{border-color:var(--primary)}
 .sci-meta{display:flex;flex-wrap:wrap;gap:8px 18px;color:var(--muted);font-size:12px}
 .sci-detail{white-space:pre-wrap;max-width:420px;white-space:normal}
-@media(max-width:900px){.sci-form-grid{grid-template-columns:1fr 1fr}}
-@media(max-width:560px){.sci-form-grid{grid-template-columns:1fr}}
 .sci-paper{border:1.5px solid var(--line);border-radius:12px;background:#fff;box-shadow:0 3px 14px -8px rgba(23,33,29,.2);overflow:hidden}
 .sci-paper-head{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 18px;border-bottom:1.5px solid var(--line);background:var(--bg)}
 .sci-paper-title{flex:1;min-width:0}
@@ -907,13 +899,18 @@ function renderShell(user, activePage) {
     'stock.html': { label: 'Stock Register', icon: 'stock', href: '#/stock' },
     'masters-item.html': { label: 'Item Master', icon: 'master', href: '#/masters/item' },
     'masters-doc.html': { label: 'Document Master', icon: 'master', href: '#/masters/doc' },
-    'forms.html': { label: 'SCI Forms', icon: 'forms', href: '#/forms' },
+    'sci45.html': { label: 'SCI45', icon: 'forms', href: '#/forms/SCI45' },
+    'sci53.html': { label: 'SCI53', icon: 'forms', href: '#/forms/SCI53' },
+    'sci76.html': { label: 'SCI76', icon: 'forms', href: '#/forms/SCI76' },
+    'sci43.html': { label: 'SCI43', icon: 'forms', href: '#/forms/SCI43' },
+    'sci15.html': { label: 'SCI15', icon: 'forms', href: '#/forms/SCI15' },
+    'sci34.html': { label: 'SCI34', icon: 'forms', href: '#/forms/SCI34' },
     'log.html': { label: 'Forms Log', icon: 'log', href: '#/log' }
   };
   const GROUPS = [
     { label: 'Overview', items: ['dashboard.html'] },
     { label: 'Inventory', items: ['stock.html', { key: 'masters', label: 'Masters', icon: 'master', children: ['masters-item.html', 'masters-doc.html'] }] },
-    { label: 'SCI', items: ['forms.html', 'log.html'] }
+    { label: 'SCI', items: [{ key: 'sci', label: 'SCI Forms', icon: 'forms', children: ['sci45.html', 'sci53.html', 'sci76.html', 'sci43.html', 'sci15.html', 'sci34.html'] }, 'log.html'] }
   ];
   app.innerHTML = `
     <div class="shell">
@@ -998,7 +995,12 @@ function route() {
   else if (path === '/stock') { renderShell(user, 'stock.html'); renderStockPage(user, params); }
   else if (path === '/masters/item' || path === '/masters') { renderShell(user, 'masters-item.html'); renderMastersPage(user, 'item'); }
   else if (path === '/masters/doc') { renderShell(user, 'masters-doc.html'); renderMastersPage(user, 'doc'); }
-  else if (path === '/forms') { renderShell(user, 'forms.html'); renderSCIFormsPage(user); }
+  else if (path === '/forms' || /^\/forms\/SCI\d+$/.test(path)) {
+    const code = /^\/forms\/(SCI\d+)$/.test(path) ? path.match(/^\/forms\/(SCI\d+)$/)[1] : 'SCI45';
+    const ok = SCI_FORM_META.some((m) => m.code === code) ? code : 'SCI45';
+    renderShell(user, 'sci' + ok.replace('SCI', '') + '.html');
+    renderSCIFormsPage(user, ok);
+  }
   else if (path === '/log') { renderShell(user, 'log.html'); renderSCIFormsLogPage(user); }
   else { location.hash = '/dashboard'; }
 }
@@ -2426,11 +2428,11 @@ function renderMastersPage(user, focus) {
 /* =========================================================================
    SCI forms page
    ========================================================================= */
-function renderSCIFormsPage(user) {
+function renderSCIFormsPage(user, focus) {
   document.body.classList.remove('login-page');
   const content = document.getElementById('content');
   const state = { forms: [], destinations: [], stock: null };
-  let selectedCode = SCI_FORM_META[0].code;
+  let selectedCode = SCI_FORM_META.some((m) => m.code === focus) ? focus : SCI_FORM_META[0].code;
 
   function badge(status) {
     if (status === 'approved') return '<span class="badge green">Approved</span>';
@@ -2458,15 +2460,6 @@ function renderSCIFormsPage(user) {
         </div>
         <span class="badge ${isAdmin() ? 'green' : 'navy'}" style="font-size:13px;padding:6px 14px">${esc(isAdmin() ? 'ADMIN REVIEW' : 'FORM SUBMISSION')}</span>
       </div>
-      <div class="sci-form-grid" id="sciFormGrid">
-        ${SCI_FORM_META.map((form) => `
-          <div class="card sci-form-card${form.code === selectedCode ? ' card-found' : ''}" data-sci-code="${form.code}">
-            <div class="sci-code">${form.code}</div>
-            <h3>${esc(form.title)}</h3>
-            <p>${esc(form.hint)}</p>
-            <button class="btn primary sm" type="button">Open Form</button>
-          </div>`).join('')}
-      </div>
       <div class="sci-editor" id="sciEditor"></div>
       <div class="card">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
@@ -2476,10 +2469,6 @@ function renderSCIFormsPage(user) {
         <div class="table-wrap" style="margin-top:14px;box-shadow:none" id="sciMyTable"></div>
       </div>
     `;
-    content.querySelectorAll('[data-sci-code]').forEach((card) => card.addEventListener('click', () => {
-      selectedCode = card.dataset.sciCode;
-      render();
-    }));
     document.getElementById('sci_export_recent').addEventListener('click', async (event) => {
       event.target.disabled = true;
       try { await downloadSCIForms(); toast('SCI forms exported to Excel'); }
