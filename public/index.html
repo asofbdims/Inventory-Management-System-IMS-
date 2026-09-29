@@ -502,28 +502,41 @@ async function fetchCenters() {
   return data || [];
 }
 
-async function fetchStock() {
-  const [itemsRes, stockRes] = await Promise.all([
-    sb.from('items').select('name').order('name', { ascending: true }),
-    sb.from('stock_items').select('centreId, item, qty')
-  ]);
-  if (itemsRes.error) throw new Error(itemsRes.error.message);
-  if (stockRes.error) throw new Error(stockRes.error.message);
-  const stock = {};
-  (stockRes.data || []).forEach((s) => { (stock[s.centreId] = stock[s.centreId] || {})[s.item] = Number(s.qty); });
-  return { items: (itemsRes.data || []).map((i) => i.name), stock };
+async function fetchAllPages(builder) {
+  const all = [];
+  const PAGE = 1000;
+  for (let start = 0; start < 100000; start += PAGE) {
+    const { data, error } = await builder(start, start + PAGE - 1);
+    if (error) throw new Error(error.message);
+    if (!data || !data.length) break;
+    all.push(...data);
+    if (data.length < PAGE) break;
+  }
+  return all;
 }
 
-async function updateStock(centerId, updates) {
-  const rows = Object.keys(updates).map((item) => ({ centreId: Number(centerId), item, qty: Number(updates[item]) }));
+async function fetchStock() {
+  const [itemsArr, stockArr] = await Promise.all([
+    fetchAllPages((a, b) => sb.from('items').select('name').order('name', { ascending: true }).range(a, b)),
+    fetchAllPages((a, b) => sb.from('stock_items').select('centreId, item, qty, unit').range(a, b))
+  ]);
+  const stock = {}, unit = {};
+  stockArr.forEach((s) => {
+    (stock[s.centreId] = stock[s.centreId] || {})[s.item] = Number(s.qty);
+    (unit[s.centreId] = unit[s.centreId] || {})[s.item] = s.unit || '';
+  });
+  return { items: itemsArr.map((i) => i.name), stock, unit };
+}
+
+async function updateStock(centerId, updates, units = {}) {
+  const rows = Object.keys(updates).map((item) => ({ centreId: Number(centerId), item, qty: Number(updates[item]), unit: units[item] != null ? String(units[item]) : '' }));
   if (!rows.length) return;
   const { error } = await sb.from('stock_items').upsert(rows, { onConflict: 'centreId,item' });
   if (error) throw new Error(error.message);
 }
 
 async function fetchStockRegister() {
-  const { data, error } = await sb.from('stock_register').select('*').order('verifiedAt', { ascending: false });
-  if (error) throw new Error(error.message);
+  const data = await fetchAllPages((a, b) => sb.from('stock_register').select('*').order('verifiedAt', { ascending: false }).range(a, b));
   return data || [];
 }
 
@@ -536,6 +549,7 @@ async function createStockRegisterEntry(f) {
     approvalDate: f.approvalDate || null,
     qtyA: Math.max(0, Number(f.qtyA) || 0),
     qtyB: Math.max(0, Number(f.qtyB) || 0),
+    unit: String(f.unit || '').trim(),
     reason: String(f.reason || '').trim(),
     remarks: String(f.remarks || '').trim(),
     verifiedBy: (getUser() && getUser().name) || ''
@@ -550,6 +564,7 @@ async function updateStockRegisterEntry(id, f) {
     approvalDate: f.approvalDate || null,
     qtyA: Math.max(0, Number(f.qtyA) || 0),
     qtyB: Math.max(0, Number(f.qtyB) || 0),
+    unit: String(f.unit || '').trim(),
     reason: String(f.reason || '').trim(),
     remarks: String(f.remarks || '').trim()
   };
@@ -1377,7 +1392,7 @@ function renderSCIFormsLogPage(user) {
 function renderStockPage(user, routeParams) {
   document.body.classList.remove('login-page');
   const content = document.getElementById('content');
-  const state = { centers: [], items: [], stock: {}, entries: [] };
+  const state = { centers: [], items: [], stock: {}, units: {}, entries: [] };
   let anchorId = null;
   let selectedCenter = null;
   let diffFilter = null;
@@ -1428,6 +1443,7 @@ function renderStockPage(user, routeParams) {
     state.centers = centers;
     state.items = stockData.items;
     state.stock = stockData.stock;
+    state.units = stockData.unit;
     state.entries = entries;
     render();
   }
@@ -1552,10 +1568,15 @@ function renderStockPage(user, routeParams) {
     sessionStorage.setItem(SCROLL_KEY, JSON.stringify({ top: wrap.scrollTop, left: wrap.scrollLeft }));
   }, true);
 
+  function unitOf(cid, item) {
+    return (state.units[cid] && state.units[cid][item]) || '';
+  }
+
   function renderRegRow(en, sno) {
     const d = Number(en.difference);
     const fmtDate = (s) => { if (!s) return '—'; const dt = new Date(s + (s.length === 10 ? 'T00:00:00' : '')); if (isNaN(dt)) return s; return dt.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }); };
     const centre = centerName(en.centreId);
+    const unit = esc(en.unit || unitOf(en.centreId, en.item));
     return `<tr data-id="${en.id}">
       <td class="sno">${sno}</td>
       <td class="centre stick-1"><b>${esc(centre)}</b></td>
@@ -1563,8 +1584,8 @@ function renderStockPage(user, routeParams) {
       <td>${esc(en.pageNo || '—')}</td>
       <td>${esc(en.approvalNo || '—')}</td>
       <td>${fmtDate(en.approvalDate)}</td>
-      <td>${Number(en.qtyA)}</td>
-      <td>${Number(en.qtyB)}</td>
+      <td>${Number(en.qtyA)}${unit ? ' ' + unit : ''}</td>
+      <td>${Number(en.qtyB)}${unit ? ' ' + unit : ''}</td>
       <td class="diff ${diffCls(d)}">${diffTxt(d)}</td>
       <td class="wrap">${esc(en.reason || '—')}</td>
       <td class="wrap">${esc(en.remarks || '—')}</td>
@@ -1608,6 +1629,7 @@ function renderStockPage(user, routeParams) {
           <div class="field"><label>Approval Date</label><input type="date" id="rm_adate" value="${esc(entry && entry.approvalDate ? entry.approvalDate.slice(0, 10) : new Date().toISOString().slice(0, 10))}"></div>
           <div class="field"><label>Quantity as per Stock Register (A)</label><input type="number" id="rm_qtyA" min="0" value="${entry ? Number(entry.qtyA) : 0}" readonly></div>
           <div class="field"><label>Physically Available Quantity (B)</label><input type="number" id="rm_qtyB" min="0" value="${entry ? Number(entry.qtyB) : 0}"></div>
+          <div class="field"><label>Unit</label><input id="rm_unit" placeholder="e.g. mtr, nos, KG" value="${esc(entry ? entry.unit || unitOf(entry.centreId, entry.item) : '')}"></div>
           <div class="field"><label>Difference (if any) (A − B)</label><input type="text" id="rm_diff" readonly value="${entry ? diffTxt(Number(entry.difference)) : 0}"></div>
           <div class="field" style="grid-column:1/-1"><label>Reason for Difference</label><input id="rm_reason" placeholder="Only if there is any difference" value="${esc(entry ? entry.reason || '' : '')}"></div>
           <div class="field" style="grid-column:1/-1"><label>Remarks</label><input id="rm_remarks" placeholder="Any remarks" value="${esc(entry ? entry.remarks || '' : '')}"></div>
@@ -1630,6 +1652,7 @@ function renderStockPage(user, routeParams) {
       const cid = n('rm_centre').value; const it = n('rm_item').value;
       const cur = Number(state.stock[cid] ? state.stock[cid][it] || 0 : 0);
       n('rm_qtyA').value = entry ? Number(entry.qtyA) : cur;
+      n('rm_unit').value = entry ? (entry.unit || unitOf(entry.centreId, entry.item)) : unitOf(cid, it);
       syncDiff();
     };
     const syncDiff = () => {
@@ -1660,6 +1683,7 @@ function renderStockPage(user, routeParams) {
         approvalDate: n('rm_adate').value || null,
         qtyA,
         qtyB,
+        unit: escTe('rm_unit')(),
         reason: escTe('rm_reason')(),
         remarks: escTe('rm_remarks')()
       };
@@ -1670,7 +1694,7 @@ function renderStockPage(user, routeParams) {
         let applied = false;
         if (fields.approvalNo && fields.approvalDate) {
           try {
-            await updateStock(cid, { [it]: qtyB });
+            await updateStock(cid, { [it]: qtyB }, { [it]: fields.unit });
             applied = true;
           } catch (err) { toast('Book figure update failed: ' + err.message, true); }
         }
@@ -1698,7 +1722,7 @@ function renderStockPage(user, routeParams) {
     if (btn.dataset.reg === 'apply') {
       if (!confirm('Set the book figure for ' + centerName(en.centreId) + ' — ' + en.item + ' to the physically counted quantity ' + en.qtyB + '?')) return;
       btn.disabled = true;
-      updateStock(en.centreId, { [en.item]: Number(en.qtyB) }).then(() => { toast('Book figure updated to ' + en.qtyB); load(); }).catch((err) => { btn.disabled = false; toast(err.message, true); });
+      updateStock(en.centreId, { [en.item]: Number(en.qtyB) }, { [en.item]: en.unit || unitOf(en.centreId, en.item) }).then(() => { toast('Book figure updated to ' + en.qtyB); load(); }).catch((err) => { btn.disabled = false; toast(err.message, true); });
     }
   });
 
@@ -1713,9 +1737,9 @@ function renderStockPage(user, routeParams) {
         .filter((en) => ids.has(String(en.centreId)))
         .map((en) => {
           const fmtDate = (s) => { if (!s) return ''; const dt = new Date(s + (s.length === 10 ? 'T00:00:00' : '')); return isNaN(dt) ? s : dt.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }); };
-          return [centerName(en.centreId), en.item, en.pageNo || '', en.approvalNo || '', fmtDate(en.approvalDate), Number(en.qtyA), Number(en.qtyB), Number(en.difference), en.reason || '', en.remarks || ''];
+          return [centerName(en.centreId), en.item, en.pageNo || '', en.approvalNo || '', fmtDate(en.approvalDate), Number(en.qtyA), Number(en.qtyB), en.unit || unitOf(en.centreId, en.item), Number(en.difference), en.reason || '', en.remarks || ''];
         });
-      const header = ['S.No', 'Satsang Place', 'Name of Item', 'Stock Register Page No.', 'Approval Number', 'Approval Date', 'Quantity as per Stock Register (A)', 'Physically Available Quantity (B)', 'Difference (if any) (A−B)', 'Reason for Difference', 'Remarks'];
+      const header = ['S.No', 'Satsang Place', 'Name of Item', 'Stock Register Page No.', 'Approval Number', 'Approval Date', 'Quantity as per Stock Register (A)', 'Physically Available Quantity (B)', 'Unit', 'Difference (if any) (A−B)', 'Reason for Difference', 'Remarks'];
       const csv = [header.map((h) => csvCell(h)).join(',')].concat(rows.map((r, i) => [i + 1].concat(r).map(csvCell).join(','))).join('\r\n');
       const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
       const url = URL.createObjectURL(blob);
