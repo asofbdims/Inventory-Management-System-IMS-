@@ -257,18 +257,27 @@ td.empty,tr td.empty{color:var(--muted);text-align:center;padding:26px;white-spa
 .t-chip.alert b{color:var(--red)}
 
 /* ---------- Stock register (verification ledger) ---------- */
-.sum-bar{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:20px}
-@media (max-width:980px){.sum-bar{grid-template-columns:repeat(2,1fr)}}
-@media (max-width:560px){.sum-bar{grid-template-columns:1fr}}
-.sum-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:13px 15px}
-.sum-card .k{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:5px}
-.sum-card .v{font-family:'Source Serif 4',serif;font-size:24px;font-weight:700;color:var(--primary-dark);line-height:1}
-.sum-card .v.warn{color:var(--red)}
-.reg-toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px}
+.reg-toolbar{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:12px 14px;margin-bottom:14px;display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;width:100%}
+.reg-toolbar .rt-row{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;flex:1 1 100%}
+.reg-toolbar .rt-right{margin-left:auto;display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center}
 .reg-toolbar .chips{display:flex;gap:8px;flex-wrap:wrap}
-.reg-toolbar select{padding:8px 12px;border:1px solid var(--line);border-radius:8px;background:#fff;font-weight:600;font-size:13px;min-width:230px;max-width:340px;outline:none;cursor:pointer;color:var(--muted)}
+.reg-toolbar select{padding:8px 12px;border:1px solid var(--line);border-radius:8px;background:#fff;font-weight:600;font-size:13px;min-width:230px;max-width:340px;outline:none;cursor:pointer;color:var(--text)}
 .reg-filter{display:inline-flex;align-items:center;gap:6px;padding:7px 13px;border:1px solid var(--line);border-radius:100px;background:#fff;cursor:pointer;font-weight:600;font-size:12.5px;color:var(--muted)}
 .reg-filter.active{background:var(--primary);border-color:var(--primary);color:#fff}
+.rt-size{display:inline-flex;align-items:center;gap:8px;color:var(--muted);font-size:13px}
+.rt-size select{min-width:76px;max-width:96px;padding:6px 8px}
+.rt-count{color:var(--muted);font-size:13px;white-space:nowrap}
+.reg-pills{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+.reg-pill{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border:1px solid var(--line);border-radius:100px;background:var(--bg);font-size:12.5px;font-weight:600;color:var(--text);white-space:nowrap}
+.reg-pill button{border:none;background:none;cursor:pointer;color:var(--muted);font-size:14px;line-height:1;padding:0 2px;border-radius:50%}
+.reg-pill button:hover{color:var(--red)}
+.reg-pagination{display:flex;flex-wrap:wrap;gap:6px;align-items:center;justify-content:flex-end;margin-top:14px;font-size:13px;color:var(--muted)}
+.reg-pagination .pg-info{margin-right:auto;white-space:nowrap}
+.reg-pagination .pg-btn{min-width:32px;height:32px;padding:0 10px;display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--line);border-radius:8px;background:#fff;cursor:pointer;font-weight:600;font-size:12.5px;color:var(--primary-dark)}
+.reg-pagination .pg-btn:hover:not(:disabled){border-color:var(--primary);color:var(--primary)}
+.reg-pagination .pg-btn.active{background:var(--primary);border-color:var(--primary);color:#fff}
+.reg-pagination .pg-btn:disabled{opacity:.4;cursor:not-allowed}
+@media(max-width:720px){.reg-toolbar .rt-right{margin-left:0}.reg-pagination{justify-content:flex-start}.reg-pagination .pg-info{margin-right:0;flex:1 1 100%}}
 .reg-table th{white-space:nowrap}
 .reg-table td{vertical-align:top;white-space:nowrap}
 .reg-table td.wrap{white-space:normal;min-width:160px}
@@ -415,6 +424,19 @@ td.empty,tr td.empty{color:var(--muted);text-align:center;padding:26px;white-spa
 .sci-paper-body .form-row{margin:0}
 .sci-paper-sign{display:flex;flex-wrap:wrap;justify-content:space-between;gap:18px 26px;margin-top:16px;padding-top:14px;border-top:1.5px dashed var(--line);font-size:12.5px;color:var(--muted)}
 .sci-paper-sign .sig{display:inline-block;min-width:130px;border-bottom:1px solid var(--line);height:24px;margin-left:6px}
+
+/* ---------- Print ---------- */
+@media print{
+  .sidebar,.topbar,.logo-banner,.reg-toolbar,.reg-pills,.reg-pagination,.m-actions,.toast-wrap{display:none !important}
+  body{background:#fff}
+  .shell,.app-main,#content{padding:0 !important;margin:0 !important}
+  .content-area{padding:0 !important}
+  .table-wrap{max-height:none;box-shadow:none;border:none;overflow:visible}
+  .stock-table th{background:#fff !important;color:#000 !important;position:static}
+  .row-actions{display:none}
+  th.actions-cell,td.actions-cell{display:none}
+  .reg-table th:last-child,.reg-table td:last-child{display:none}
+}
 </style>
 </head>
 <body>
@@ -1398,6 +1420,8 @@ function renderStockPage(user, routeParams) {
   let selectedCenter = null;
   let diffFilter = null;
   let skipCurrentCentre = null;
+  let page = 0;
+  let pageSize = 50;
   const canDeleteReg = function () { return isAdmin(); }();
   const SCROLL_KEY = 'stock-register-scroll';
   const paramC = routeParams.get('c');
@@ -1475,13 +1499,34 @@ function renderStockPage(user, routeParams) {
 
   function render() {
     const ids = scopeIds();
-    const sum = summary(ids);
     const scopedEntries = state.entries.filter((en) => ids.has(String(en.centreId)));
     const centreScope = skipCurrentCentre ? scopedEntries.filter((en) => String(en.centreId) === String(skipCurrentCentre)) : scopedEntries;
     const diffMode = diffFilter === 'diff' ? true : (diffFilter === 'clean' ? false : null);
     const shown = diffMode == null ? centreScope : centreScope.filter((en) => diffMode ? Number(en.difference) !== 0 : Number(en.difference) === 0);
+    const totalPages = Math.max(1, Math.ceil(shown.length / pageSize));
+    if (page >= totalPages) page = totalPages - 1;
+    const pageRows = [...shown].reverse().slice(page * pageSize, (page + 1) * pageSize);
+    const centreSel = skipCurrentCentre ? scopeCenters().find((x) => String(x.id) === String(skipCurrentCentre)) : null;
 
-    const fmt = (n) => Number(n || 0).toLocaleString('en-IN');
+    function pgNumbers() {
+      const win = [];
+      for (let p = 0; p < totalPages; p++) {
+        if (totalPages <= 7 || p === 0 || p === totalPages - 1 || Math.abs(p - page) <= 1) win.push(p);
+        else if (win[win.length - 1] !== -1) win.push(-1);
+      }
+      return win;
+    }
+    const pgLinks = pgNumbers();
+    let pgHtml = '';
+    if (shown.length) {
+      pgHtml = `
+        <div class="reg-pagination">
+          <span class="pg-info">${page * pageSize + 1}–${Math.min(shown.length, (page + 1) * pageSize)} of ${shown.length}</span>
+          <button class="pg-btn" data-pg="prev"${page === 0 ? ' disabled' : ''}>‹ Prev</button>
+          ${pgLinks.map((n) => n === -1 ? '<span class="pg-btn" style="border:none;background:none;cursor:default">…</span>' : `<button class="pg-btn${n === page ? ' active' : ''}" data-pg="${n}">${n + 1}</button>`).join('')}
+          <button class="pg-btn" data-pg="next"${page >= totalPages - 1 ? ' disabled' : ''}>Next ›</button>
+        </div>`;
+    }
 
     content.innerHTML = `
       <div class="logo-banner">
@@ -1491,25 +1536,32 @@ function renderStockPage(user, routeParams) {
         </div>
         <div class="sr-actions">
           <button class="btn sm" id="btnManage" title="Add, edit or delete stock items">Manage Items</button>
-          <button class="btn sm" id="btnExport" title="Download the verification register as CSV">Export</button>
           <button class="btn primary" id="btnNew" title="Enter a new physical verification entry">＋ New Verification Entry</button>
         </div>
       </div>
-      <div class="sum-bar">
-        <div class="sum-card"><div class="k">Items</div><div class="v">${sum.items}</div></div>
-        <div class="sum-card"><div class="k">Qty on hand (book)</div><div class="v">${fmt(sum.qty)}</div></div>
-        <div class="sum-card"><div class="k">Centres with no stock</div><div class="v${sum.noStock ? ' warn' : ''}">${sum.noStock}</div></div>
-        <div class="sum-card"><div class="k">Verification entries</div><div class="v">${scopedEntries.length}</div></div>
-        <div class="sum-card"><div class="k">Entries with difference</div><div class="v${sum.diff ? ' warn' : ''}">${sum.diff}</div></div>
-      </div>
       <div class="reg-toolbar">
-        <select id="regCentre" title="Filter the register to one centre"></select>
-        <div class="chips">
-          <button class="reg-filter${diffFilter === null ? ' active' : ''}" data-df="all">All entries (${centreScope.length})</button>
-          <button class="reg-filter${diffFilter === 'diff' ? ' active' : ''}" data-df="diff">Differences (${centreScope.filter((en) => Number(en.difference) !== 0).length})</button>
-          <button class="reg-filter${diffFilter === 'clean' ? ' active' : ''}" data-df="clean">No difference (${centreScope.filter((en) => Number(en.difference) === 0).length})</button>
+        <div class="rt-row">
+          <select id="regCentre" title="Filter the register to one centre"></select>
+          <button class="btn sm" id="btnClear" title="Clear all filters">Clear All</button>
+          <div class="rt-right">
+            <span class="rt-size"><span>Show</span><select id="pgSize" title="Rows per page"><option value="25">25</option><option value="50" selected>50</option><option value="100">100</option></select><span>Entries</span></span>
+            <span class="rt-count">${shown.length} records</span>
+            <button class="btn sm" id="btnPrint" title="Print the register">Print</button>
+            <button class="btn sm" id="btnExport" title="Download the verification register as CSV">Export</button>
+          </div>
+        </div>
+        <div class="rt-row">
+          <div class="chips">
+            <button class="reg-filter${diffFilter === null ? ' active' : ''}" data-df="all">All entries (${centreScope.length})</button>
+            <button class="reg-filter${diffFilter === 'diff' ? ' active' : ''}" data-df="diff">Differences (${centreScope.filter((en) => Number(en.difference) !== 0).length})</button>
+            <button class="reg-filter${diffFilter === 'clean' ? ' active' : ''}" data-df="clean">No difference (${centreScope.filter((en) => Number(en.difference) === 0).length})</button>
+          </div>
         </div>
       </div>
+      ${(centreSel || diffFilter != null) ? `<div class="reg-pills">
+        ${centreSel ? `<span class="reg-pill">Centre : ${esc(centreSel.name)}<button data-clearf="centre" title="Remove filter">✕</button></span>` : ''}
+        ${diffFilter != null ? `<span class="reg-pill">Filter : ${diffFilter === 'diff' ? 'With difference' : 'No difference'}<button data-clearf="diff" title="Remove filter">✕</button></span>` : ''}
+      </div>` : ''}
       <div class="table-wrap">
         <table class="stock-table reg-table">
           <thead><tr>
@@ -1526,9 +1578,10 @@ function renderStockPage(user, routeParams) {
             <th>Remarks</th>
             <th>Actions</th>
           </tr></thead>
-          <tbody>${[...shown].reverse().map((en, i) => renderRegRow(en, i + 1)).join('') || '<tr><td class="empty" colspan="12">No verification entries yet — click "＋ New Verification Entry" to log the first physical count.</td></tr>'}</tbody>
+          <tbody>${pageRows.map((en, i) => renderRegRow(en, page * pageSize + i + 1)).join('') || '<tr><td class="empty" colspan="12">No verification entries yet — click "＋ New Verification Entry" to log the first physical count.</td></tr>'}</tbody>
         </table>
       </div>
+      ${pgHtml}
       <p style="margin-top:12px;color:var(--muted);font-size:12px">${shown.length} of ${centreScope.length} entries in scope${skipCurrentCentre ? ' · filtered to one centre' : ''}${diffFilter ? ' · filtered by difference' : ''}. The Difference column is computed automatically as (A − B); use <b>Apply</b> to write the physically counted quantity back into the book figure.</p>
     `;
 
@@ -1538,8 +1591,28 @@ function renderStockPage(user, routeParams) {
     if (btnManage) btnManage.addEventListener('click', () => openItemsManager('list'));
     const btnExport = content.querySelector('#btnExport');
     if (btnExport) btnExport.addEventListener('click', exportStock);
+    const btnPrint = content.querySelector('#btnPrint');
+    if (btnPrint) btnPrint.addEventListener('click', printStock);
     content.querySelectorAll('.reg-filter').forEach((b) => b.addEventListener('click', () => {
       diffFilter = b.dataset.df === 'all' ? null : b.dataset.df;
+      page = 0;
+      render();
+    }));
+    content.querySelectorAll('[data-clearf]').forEach((b) => b.addEventListener('click', () => {
+      if (b.dataset.clearf === 'centre') skipCurrentCentre = null;
+      if (b.dataset.clearf === 'diff') diffFilter = null;
+      page = 0;
+      render();
+    }));
+    const btnClear = content.querySelector('#btnClear');
+    if (btnClear) btnClear.addEventListener('click', () => { skipCurrentCentre = null; diffFilter = null; page = 0; render(); });
+    const pgSize = content.querySelector('#pgSize');
+    if (pgSize) pgSize.addEventListener('change', () => { pageSize = Number(pgSize.value) || 50; page = 0; render(); });
+    content.querySelectorAll('.pg-btn').forEach((b) => b.addEventListener('click', () => {
+      if (b.disabled) return;
+      if (b.dataset.pg === 'prev') page = Math.max(0, page - 1);
+      else if (b.dataset.pg === 'next') page = Math.min(totalPages - 1, page + 1);
+      else page = Number(b.dataset.pg);
       render();
     }));
     const wrap = content.querySelector('.table-wrap');
@@ -1563,6 +1636,7 @@ function renderStockPage(user, routeParams) {
     if (skipCurrentCentre) sel.value = String(skipCurrentCentre);
     sel.addEventListener('change', () => {
       skipCurrentCentre = sel.value ? sel.value : null;
+      page = 0;
       render();
     });
   }
@@ -1758,6 +1832,24 @@ function renderStockPage(user, routeParams) {
       toast('Register exported as CSV');
     } catch (err) {
       toast('Export failed: ' + (err.message || err), true);
+    }
+  }
+
+  function printStock() {
+    try {
+      const ids = scopeIds();
+      const allShown = state.entries
+        .filter((en) => ids.has(String(en.centreId)))
+        .filter((en) => (skipCurrentCentre ? String(en.centreId) === String(skipCurrentCentre) : true))
+        .filter((en) => (diffFilter === 'diff' ? Number(en.difference) !== 0 : (diffFilter === 'clean' ? Number(en.difference) === 0 : true)));
+      const tbody = content.querySelector('.reg-table tbody');
+      if (tbody && allShown.length) {
+        const rows = [...allShown].reverse().map((en, i) => renderRegRow(en, i + 1)).join('');
+        tbody.innerHTML = rows;
+      }
+      window.print();
+    } catch (err) {
+      toast('Print failed: ' + (err.message || err), true);
     }
   }
 
