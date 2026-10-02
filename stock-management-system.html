@@ -133,6 +133,11 @@ main#content{max-width:1280px;margin:0 auto;padding:26px 26px 60px;width:100%}
 .mod-stat b{color:var(--primary-dark)}
 .mod-stat.warn b{color:var(--red)}
 .mod-go{display:flex;align-items:center;justify-content:space-between;margin-top:14px;font-size:12.5px;font-weight:600;color:var(--primary)}
+.dash-tabs{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.dash-tab{padding:8px 18px;border:1px solid var(--line);background:#fff;border-radius:20px;cursor:pointer;font-size:13px;font-weight:600;color:var(--muted)}
+.dash-tab:hover{border-color:var(--primary);color:var(--primary)}
+.dash-tab.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+.dash-tab-count{margin-left:auto;color:var(--muted);font-size:12.5px;white-space:nowrap}
 
 /* ---------- Login ---------- */
 body.login-page{
@@ -398,6 +403,20 @@ td.empty,tr td.empty{color:var(--muted);text-align:center;padding:26px;white-spa
 .ma-tbl .item-name{font-weight:600;color:var(--text)}
 .ma-tbl .item-code{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:var(--accent);background:var(--accent-tint);padding:2px 7px;border-radius:5px;display:inline-block}
 .ma-tbl .empty{color:var(--muted);text-align:center;padding:28px 10px;font-style:italic}
+.ma-tbl .item-sub{color:var(--muted);font-size:12px;line-height:1.35;max-width:200px}
+.ma-tbl .item-plain{max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ma-status{font-size:11.5px;font-weight:700;padding:3px 10px;border-radius:20px;display:inline-block;white-space:nowrap}
+.ma-status.on{background:var(--green-bg);color:var(--green)}
+.ma-status.off{background:var(--red-bg);color:var(--red)}
+.ma-created{color:var(--muted);font-size:12px;white-space:nowrap}
+.im-sim{margin:2px 0 14px;border:1px solid var(--line);border-radius:10px;background:var(--bg);padding:10px 12px}
+.im-sim-note{font-size:11.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;margin-bottom:8px}
+.im-sim-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:7px 4px;font-size:13px}
+.im-sim-row + .im-sim-row{border-top:1px solid var(--line)}
+.im-sim-row b{color:var(--ink)}
+.im-sim-row .sim-meta{color:var(--muted);font-size:12px}
+.im-sim-hi{margin:0 0 8px;font-size:12.5px;color:var(--amber-dark,var(--amber));background:var(--amber-bg);padding:8px 10px;border-radius:8px}
+.im-selected{margin:0 0 12px;font-size:12.5px;font-weight:600;color:var(--green);background:var(--green-bg);padding:8px 10px;border-radius:8px}
 .doc-no{width:130px;padding:7px 10px;border:1px solid var(--line);border-radius:8px;font-size:13px}
 .doc-no:focus{border-color:var(--primary);outline:none}
 .doc-row-actions{display:flex;gap:6px;align-items:center}
@@ -666,7 +685,7 @@ async function fetchItemsFull() {
   const pageSize = 1000;
   for (let offset = 0; ; offset += pageSize) {
     const { data, error } = await sb.from('items')
-      .select('id, name, code, description, category')
+      .select('id, name, code, standardName, description, category, subcategory, unit, brand, model, status, createdAt')
       .order('name', { ascending: true })
       .range(offset, offset + pageSize - 1);
     if (error) throw new Error(error.message);
@@ -680,8 +699,14 @@ async function fetchItemsFull() {
 async function createStockItem(fields) {
   const { error } = await sb.from('items').insert({
     name: (fields.name || '').trim(),
+    standardName: (fields.standardName || '').trim(),
     description: (fields.description || '').trim(),
-    category: (fields.category || '').trim()
+    category: (fields.category || '').trim(),
+    subcategory: (fields.subcategory || '').trim(),
+    unit: (fields.unit || '').trim(),
+    brand: (fields.brand || '').trim(),
+    model: (fields.model || '').trim(),
+    status: fields.status || 'Active'
   });
   if (error) throw new Error(error.message);
 }
@@ -690,8 +715,14 @@ async function updateItemRecord(id, fields, previousName) {
   const name = (fields.name || '').trim();
   const { error } = await sb.from('items').update({
     name,
+    standardName: (fields.standardName || '').trim(),
     description: (fields.description || '').trim(),
-    category: (fields.category || '').trim()
+    category: (fields.category || '').trim(),
+    subcategory: (fields.subcategory || '').trim(),
+    unit: (fields.unit || '').trim(),
+    brand: (fields.brand || '').trim(),
+    model: (fields.model || '').trim(),
+    status: fields.status || 'Active'
   }).eq('id', Number(id));
   if (error) throw new Error(error.message);
   if (name && previousName && name !== previousName) {
@@ -705,6 +736,50 @@ async function deleteStockItem(id, name) {
   if (s) throw new Error(s.message);
   const { error: i } = await sb.from('items').delete().eq('id', Number(id));
   if (i) throw new Error(i.message);
+}
+
+/*
+  Duplicate / similar-item detection for the Item Master.
+  Normalises a name (lowercase, "&" -> "and", any punctuation to a single
+  space) then scores candidates: exact match, containment, or token overlap
+  (where "80w" ~ "80", "w" ~ "watts" etc. via prefix matching).
+*/
+function normItemName(s) {
+  return String(s || '').toLowerCase()
+    .replace(/&/g, ' and ')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function itemTokenMatches(a, b) {
+  if (a === b) return true;
+  return a.length >= 2 && b.length >= 2 && (a.startsWith(b) || b.startsWith(a));
+}
+
+function findSimilarItems(all, name, omitId) {
+  const n = normItemName(name);
+  if (!n) return [];
+  return all
+    .filter((r) => r && r.name && String(r.id) !== String(omitId))
+    .map((item) => {
+      const rn = normItemName(item.name);
+      let score;
+      if (rn === n) score = 1;
+      else if (rn.includes(n) || n.includes(rn)) score = 0.9;
+      else {
+        const ta = n.split(' ').filter(Boolean);
+        const tb = rn.split(' ').filter(Boolean);
+        const bset = new Set(tb);
+        let shared = 0;
+        ta.forEach((t) => { if ([...bset].some((b) => itemTokenMatches(t, b))) shared++; });
+        score = ta.length && tb.length ? shared / Math.min(ta.length, tb.length) : 0;
+      }
+      return { item, score: Math.min(score, 1) };
+    })
+    .filter((m) => m.score >= 0.55)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 5);
 }
 
 async function fetchDocuments() {
@@ -1518,224 +1593,103 @@ function renderLoginPage() {
 function renderDashboardPage(user, routeParams) {
   document.body.classList.remove('login-page');
   const content = document.getElementById('content');
-  const canMasters = isAdmin() || isViewer();
-  let selectedId = routeParams.get('c') || null;
+  let centers = [];
+  let allForms = [];
+  let dashFilter = 'all';
 
-  function typeBadge(t) {
-    if (t === 'CENTRE') return '<span class="badge navy">CENTRE</span>';
-    if (t === 'SUB CENTRE') return '<span class="badge azure">SUB CENTRE</span>';
-    if (t === 'POINT') return '<span class="badge sky">POINT</span>';
-    return '<span class="badge green">ASO ADMIN</span>';
+  function badge(status) {
+    if (status === 'approved') return '<span class="badge green">Approved</span>';
+    if (status === 'rejected') return '<span class="badge red">Rejected</span>';
+    return '<span class="badge amber">Pending</span>';
   }
 
-  function groupByParent(centers) {
-    const byParent = {};
-    centers.forEach((c) => {
-      const key = c.parentId || '';
-      (byParent[key] = byParent[key] || []).push(c);
-    });
-    Object.keys(byParent).forEach((k) => {
-      byParent[k].sort((a, b) => {
-        const prio = (t) => (t === 'SUB CENTRE' ? 0 : t === 'POINT' ? 1 : 2);
-        return (prio(a.type) - prio(b.type)) || a.name.localeCompare(b.name);
-      });
-    });
-    return byParent;
+  function documentLink(form) {
+    return form.document
+      ? `<a class="file-link" href="${storageFileUrl(form.document)}" target="_blank">${esc(form.documentName || 'View PDF')}</a>`
+      : '—';
   }
 
-  function walkNode(c, depth, byParent) {
-    const children = byParent[c.id] || [];
-    const indented = depth ? ` style="margin-left:${Math.min(depth, 6) * 14}px"` : '';
-    const cardCls = 'card card-link card-compact ' + (c.type === 'CENTRE' ? 't-centre' : c.type === 'SUB CENTRE' ? 't-sub' : c.type === 'POINT' ? 't-point' : 't-admin');
-    return `
-      <div class="${cardCls}"${indented} data-id="${c.id}" data-name="${esc(c.name)}" title="Click to open stock of ${esc(c.name)}">
-        <div style="display:flex;justify-content:space-between;align-items:center;gap:6px">
-          <div class="center-name">${esc(c.name)}</div>
-          ${typeBadge(c.type)}
-        </div>
-        ${children.length ? `<div style="margin-top:6px"><span class="mini-meta">${children.length} children</span></div>` : ''}
-        ${children.map((ch) => walkNode(ch, depth + 1, byParent)).join('')}
-      </div>`;
+  function scopedIds() {
+    if (isAdmin() || isViewer()) return new Set(centers.map((c) => String(c.id)));
+    const byP = {};
+    centers.forEach((c) => { (byP[c.parentId || ''] = byP[c.parentId || ''] || []).push(c); });
+    const me = centers.find((c) => String(c.id) === String(user.id));
+    const out = [];
+    const w = (n) => { out.push(n); (byP[n.id] || []).forEach(w); };
+    if (me) w(me);
+    return new Set(out.map((c) => String(c.id)));
   }
 
-  function renderTree(centers, startId) {
-    const byParent = groupByParent(centers);
-    if (startId) {
-      const me = centers.find((c) => c.id === startId);
-      return me ? walkNode(me, 0, byParent) : '';
-    }
-    const roots = (byParent[''] || []).filter((c) => c.type === 'CENTRE');
-    const singles = roots.filter((r) => (byParent[r.id] || []).length === 0);
-    const fathers = roots.filter((r) => (byParent[r.id] || []).length > 0);
-    return {
-      singles: singles.map((r) => walkNode(r, 0, byParent)).join(''),
-      fathers: fathers.map((r) => walkNode(r, 0, byParent)).join('')
+  function renderFormList() {
+    const ids = scopedIds();
+    let forms = allForms.filter((f) => ids.has(String(f.centreId)));
+    if (dashFilter !== 'all') forms = forms.filter((f) => f.status === dashFilter);
+    const cnt = document.getElementById('dashCount');
+    if (cnt) cnt.textContent = `${forms.length} form${forms.length === 1 ? '' : 's'}`;
+    const table = document.getElementById('dashTable');
+    table.innerHTML = `
+      <table>
+        <thead><tr><th>Date</th><th>Form</th><th>Centre</th><th>Sewadar</th><th>Badge No.</th><th>Approval No.</th><th>Destination</th><th>Amount</th><th>PDF</th><th>Status</th><th>Action</th></tr></thead>
+        <tbody>${forms.length ? forms.map((f) => `
+          <tr title="Click to open the full form" data-form-id="${esc(f.id)}">
+            <td>${esc((f.submittedAt || '').slice(0, 10))}</td>
+            <td><b>${esc(f.formType)}</b><br><small>${esc(f.formTitle || '')}</small></td>
+            <td>${esc(f.centreName)}</td>
+            <td>${esc(f.sewadarName)}</td>
+            <td class="mono">${esc(f.sewadarBadge)}</td>
+            <td>${esc((f.details && f.details.approvalNo) || '—')}</td>
+            <td>${esc(f.destinationCentreName || '—')}</td>
+            <td>${esc(f.amount || '—')}</td>
+            <td>${documentLink(f)}</td>
+            <td>${badge(f.status)}</td>
+            <td>${isAdmin() && f.status === 'pending' ? `<button class="btn green sm" data-form-action="approve" data-id="${esc(f.id)}">Approve</button> <button class="btn red sm" data-form-action="reject" data-id="${esc(f.id)}">Reject</button>` : '—'}</td>
+          </tr>`).join('') : '<tr><td colspan="11" class="empty">No SCI forms found</td></tr>'}</tbody>
+      </table>
+      <div style="padding:10px 14px;border-top:1px solid var(--line);color:var(--muted);font-size:12.5px"><b>${forms.length}</b> forms shown</div>`;
+    table.onclick = (e) => {
+      if (e.target.closest('[data-form-action], a, button')) return;
+      const tr = e.target.closest('tr[data-form-id]');
+      if (!tr) return;
+      const form = allForms.find((f) => String(f.id) === String(tr.dataset.formId));
+      if (form) openSCIFormDetail(form, renderFormList);
     };
+    table.querySelectorAll('[data-form-action]').forEach((b) => b.addEventListener('click', async () => {
+      b.disabled = true;
+      try {
+        await updateFormStatus(b.dataset.id, b.dataset.formAction);
+        toast(b.dataset.formAction === 'approve' ? 'SCI form approved' : 'SCI form rejected');
+        renderFormList();
+      } catch (err) { b.disabled = false; toast(err.message, true); }
+    }));
   }
 
-  function bindClicks() {
-    content.addEventListener('click', (e) => {
-      const card = e.target.closest('.card-link');
-      if (card && card.dataset.id) {
-        location.hash = '/stock?c=' + encodeURIComponent(card.dataset.id);
-      }
-    });
-  }
-
-  const searchBox = createCenterSearch({
-    placeholder: 'Search center name…',
-    onSelect: (c) => { selectedId = c ? c.id : null; load(); }
-  });
-
-  function bindSearch(centers) {
-    searchBox.setItems(centers);
-    const box = content.querySelector('#csBox');
-    if (!box) return;
-    box.innerHTML = '';
-    box.appendChild(searchBox.el);
-    const sel = selectedId ? centers.find((x) => x.id === selectedId) : null;
-    searchBox.setValue(sel ? sel.name : '');
-  }
-
-  function highlightSel() {
-    if (!selectedId) return;
-    const card = content.querySelector('.card[data-id="' + selectedId.replace(/["\\]/g, '\\$&') + '"]');
-    if (card) {
-      card.classList.add('card-found');
-      card.scrollIntoView({ block: 'center', behavior: 'smooth' });
-    }
-  }
-
-  function buildModules(s) {
-    const fmt = (n) => Number(n || 0).toLocaleString('en-IN');
-    const stat = (label, val, warn) => `<span class="mod-stat${warn ? ' warn' : ''}"><b>${val}</b> ${label}</span>`;
-    return `
-  <div class="mod-grid">
-    <a class="mod-card" href="#/stock">
-      <div class="mod-head"><div class="mod-icon a"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8l-9-5-9 5v8l9 5 9-5z"/><line x1="3" y1="8" x2="12" y2="13"/><line x1="12" y1="13" x2="21" y2="8"/><line x1="12" y1="13" x2="12" y2="21"/></svg></div><h3 class="mod-title">Stock Register</h3></div>
-      <p class="mod-desc">${s.scoped} centres &middot; book stock &amp; physical verification ledger</p>
-      <div class="mod-stats">
-        ${stat('qty on hand', fmt(s.qty))}
-        ${stat('verification entries', s.entries)}
-        ${stat('centres no stock', s.noStock, s.noStock > 0)}
+  function render() {
+    const title = isAdmin() ? 'Main ASO Admin Dashboard' : isViewer() ? 'ASO Viewer Dashboard' : ((user && user.name) || 'Dashboard');
+    content.innerHTML = `
+      <div class="logo-banner">
+        <div>
+          <h2>${esc(title)}</h2>
+          <p>Recent SCI forms: pending, approved, or all submissions.</p>
+        </div>
       </div>
-      <div class="mod-go"><span>Open register</span><span>&#8250;</span></div>
-    </a>
-${canMasters ? `
-    <a class="mod-card" href="#/masters">
-      <div class="mod-head"><div class="mod-icon b"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="16" rx="2"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg></div><h3 class="mod-title">Masters</h3></div>
-      <p class="mod-desc">Item catalogue &amp; document master for the register</p>
-      <div class="mod-stats">
-        ${stat('items', s.items)}
-        ${stat('documents', s.docs)}
+      <div class="card" style="margin-bottom:18px">
+        <div class="dash-tabs">
+          ${['all', 'pending', 'approved'].map((k) => `<button class="dash-tab${dashFilter === k ? ' active' : ''}" data-dash-filter="${k}">${k === 'all' ? 'All' : k.charAt(0).toUpperCase() + k.slice(1)}</button>`).join('')}
+          <span class="dash-tab-count" id="dashCount"></span>
+        </div>
       </div>
-      <div class="mod-go"><span>Manage masters</span><span>&#8250;</span></div>
-    </a>` : ''}
-    <a class="mod-card" href="#/forms">
-      <div class="mod-head"><div class="mod-icon c"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="12" y2="17"/></svg></div><h3 class="mod-title">SCI Forms</h3></div>
-      <p class="mod-desc">Submit and manage SCI forms with PDF attachments</p>
-      <div class="mod-stats">
-        ${stat('submitted', s.submitted)}
-        ${stat('pending', s.pending, s.pending > 0)}
-        ${stat('approved', s.approved)}
-      </div>
-      <div class="mod-go"><span>Open forms</span><span>&#8250;</span></div>
-    </a>
-    <a class="mod-card" href="#/log">
-      <div class="mod-head"><div class="mod-icon d"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v4l3 2"/><circle cx="12" cy="12" r="9"/></svg></div><h3 class="mod-title">Forms Log</h3></div>
-      <p class="mod-desc">Search, filter &amp; export all submitted SCI forms</p>
-      <div class="mod-stats">
-        ${stat('total in log', s.log)}
-        ${stat('pending review', s.pendingRev, s.pendingRev > 0)}
-      </div>
-      <div class="mod-go"><span>Open log</span><span>&#8250;</span></div>
-    </a>
-  </div>`;
+      <div class="table-wrap"><div id="dashTable"></div></div>
+    `;
+    content.querySelectorAll('[data-dash-filter]').forEach((b) => b.addEventListener('click', () => {
+      dashFilter = b.dataset.dashFilter;
+      render();
+    }));
+    renderFormList();
   }
 
   async function load() {
-    const [centers, forms, stockData, docs, entries] = await Promise.all([fetchCenters(), fetchSCIForms(), fetchStock(), fetchDocuments(), fetchStockRegister()]);
-    const pending = forms.filter((f) => f.status === 'pending').length;
-    const approved = forms.filter((f) => f.status === 'approved').length;
-
-    if (isAdmin() || isViewer()) {
-      const tree = renderTree(centers);
-      const selected = selectedId ? centers.find((c) => c.id === selectedId) : null;
-      let totalQty = 0, centresNoStock = 0;
-      centers.forEach((c) => {
-        const s = stockData.stock[c.id] || {};
-        const t = Object.keys(s).reduce((a, k) => a + (Number(s[k]) || 0), 0);
-        totalQty += t;
-        if (t === 0) centresNoStock++;
-      });
-      const modRow = buildModules({ scoped: centers.length, qty: totalQty, noStock: centresNoStock, entries: entries.length, items: stockData.items.length, docs: docs.length, submitted: forms.length, pending, approved, log: forms.length, pendingRev: pending });
-      content.innerHTML = `
-        <div class="logo-banner">
-          <div>
-            <h2>${isAdmin() ? 'Main ASO Admin Dashboard' : 'ASO Viewer Dashboard'}</h2>
-            <p></p>
-          </div>
-          <div class="stat" style="background:rgba(255,255,255,.12);color:#fff;min-width:180px">
-            <b>${centers.length}</b>
-            <span style="color:rgba(255,255,255,.8)">Centres + ASO Admin</span>
-          </div>
-        </div>
-        ${modRow}
-        <h3 style="margin:0 0 12px">Forms &amp; Centres</h3>
-        <div class="grid cols-3" style="margin-bottom:22px">
-          <a href="#/log" class="stat-link"><div class="card"><h3>Total SCI Forms → Log</h3><div class="big-num">${forms.length}</div><small style="color:var(--muted)">Click to open the Forms Log</small></div></a>
-          <div class="card"><h3>Pending Forms</h3><div class="big-num" style="color:var(--amber)">${pending}</div></div>
-          <div class="card"><h3>Approved Forms</h3><div class="big-num" style="color:var(--green)">${approved}</div></div>
-        </div>
-        <!-- Centre list hidden per request (was: center-search box + Single Centres / Centres with Sub Centres tree) -->
-      `;
-      bindClicks();
-      bindSearch(centers);
-      highlightSel();
-    } else {
-      const me = centers.find((c) => c.id === user.id);
-      const myTree = (() => {
-        const byP = {};
-        centers.forEach((c) => { (byP[c.parentId || ''] = byP[c.parentId || ''] || []).push(c); });
-        const out = [];
-        const w = (n) => { out.push(n); (byP[n.id] || []).forEach(w); };
-        if (me) w(me);
-        return out;
-      })();
-      const scopeIds = new Set(myTree.map((c) => String(c.id)));
-      const scopedForms = forms.filter((f) => scopeIds.has(String(f.centreId)));
-      const scopedEntry = entries.filter((en) => scopeIds.has(String(en.centreId)));
-      const myPending = scopedForms.filter((f) => f.status === 'pending').length;
-      const myApproved = scopedForms.filter((f) => f.status === 'approved').length;
-      let totalQty = 0, centresNoStock = 0;
-      centers.forEach((c) => {
-        if (!scopeIds.has(String(c.id))) return;
-        const s = stockData.stock[c.id] || {};
-        const t = Object.keys(s).reduce((a, k) => a + (Number(s[k]) || 0), 0);
-        totalQty += t;
-        if (t === 0) centresNoStock++;
-      });
-      const modRow = buildModules({ scoped: myTree.length, qty: totalQty, noStock: centresNoStock, entries: scopedEntry.length, items: stockData.items.length, docs: docs.length, submitted: scopedForms.length, pending: myPending, approved: myApproved, log: scopedForms.length, pendingRev: myPending });
-      const selected = selectedId ? centers.find((c) => c.id === selectedId) : null;
-      content.innerHTML = `
-        <div class="logo-banner">
-          <div>
-            <h2>${esc(user.name)}</h2>
-          </div>
-        </div>
-        ${modRow}
-        <h3 style="margin:0 0 12px">My Forms &amp; Centres</h3>
-        <div class="grid cols-3" style="margin-bottom:22px">
-          <a href="#/log" class="stat-link"><div class="card"><h3>My SCI Forms → Log</h3><div class="big-num">${scopedForms.length}</div><small style="color:var(--muted)">Click to open the Forms Log</small></div></a>
-          <div class="card"><h3>Pending Forms</h3><div class="big-num" style="color:var(--primary)">${myPending}</div></div>
-          <div class="card"><h3>Approved Forms</h3><div class="big-num" style="color:var(--green)">${myApproved}</div></div>
-        </div>
-        <!-- Centre list hidden per request (was: My Area heading + tree) -->
-      `;
-      bindClicks();
-      bindSearch(myTree);
-      highlightSel();
-    }
+    [centers, allForms] = await Promise.all([fetchCenters(), fetchSCIForms()]);
+    render();
   }
 
   load().catch((err) => toast(err.message, true));
@@ -2483,7 +2437,7 @@ function renderMastersPage(user, focus) {
       <div id="maPanel-item">
         <div class="reg-toolbar">
           <div class="rt-row">
-            <input id="maSearch" type="text" placeholder="Search items by name, code or description…" autocomplete="off">
+            <input id="maSearch" type="text" placeholder="Search items by name, code, category, brand or model…" autocomplete="off">
             <select id="maLetter" class="ma-letter" title="Filter items by the first letter of their name"><option value="">All letters</option></select>
             <button class="btn sm" id="maClear" title="Clear all filters">Clear All</button>
             <div class="rt-right">
@@ -2494,7 +2448,7 @@ function renderMastersPage(user, focus) {
         </div>
         <div class="table-wrap">
           <table class="ma-tbl">
-            <thead><tr><th>Code</th><th>Name</th><th>Description</th><th>Category</th><th></th></tr></thead>
+            <thead><tr><th>Code</th><th>Item Name</th><th>Standard Name</th><th>Description</th><th>Category</th><th>Subcategory</th><th>Unit</th><th>Brand</th><th>Model</th><th>Status</th><th>Created Date</th><th></th></tr></thead>
             <tbody id="maItemList"></tbody>
           </table>
         </div>
@@ -2527,7 +2481,6 @@ function renderMastersPage(user, focus) {
   /* -------- Item master -------- */
   const itemList = document.getElementById('maItemList');
   let items = [];
-  let newEntry = null;
   let itemSearch = '';
   let itemLetter = '';
   let itemPage = 0;
@@ -2552,7 +2505,7 @@ function renderMastersPage(user, focus) {
         if (first !== itemLetter) return false;
       }
       if (!term) return true;
-      return (r.name || '').toLowerCase().includes(term) || (r.code || '').toLowerCase().includes(term) || (r.description || '').toLowerCase().includes(term);
+      return (r.name || '').toLowerCase().includes(term) || (r.standardName || '').toLowerCase().includes(term) || (r.code || '').toLowerCase().includes(term) || (r.description || '').toLowerCase().includes(term) || (r.category || '').toLowerCase().includes(term) || (r.subcategory || '').toLowerCase().includes(term) || (r.unit || '').toLowerCase().includes(term) || (r.brand || '').toLowerCase().includes(term) || (r.model || '').toLowerCase().includes(term);
     });
   }
 
@@ -2582,42 +2535,33 @@ function renderMastersPage(user, focus) {
   function renderItemRows() {
     const list = filteredItems();
     const totalPages = Math.max(1, Math.ceil(list.length / itemPageSize));
-    if (newEntry) itemPage = 0;
     if (itemPage >= totalPages) itemPage = totalPages - 1;
     const cnt = q('maCount');
     if (cnt) cnt.textContent = items.length ? `${list.length} of ${items.length} items` : '';
-    const newRow = newEntry ? `
-      <tr class="row-flash">
-        <td><span class="item-code" style="background:var(--bg);color:var(--muted);font-weight:600">AUTO</span></td>
-        <td><input id="maRowName_new" placeholder="Item name" maxlength="200" style="width:140px"></td>
-        <td><input id="maRowDesc_new" placeholder="Description" style="width:160px"></td>
-        <td><input id="maRowCat_new" placeholder="Category" style="width:110px"></td>
-        <td><div class="doc-row-actions"><button class="btn green sm" data-act="savenew">Save</button><button class="btn sm" data-act="cancelnew">Cancel</button></div></td>
-      </tr>` : '';
-    if (!items.length && !newEntry) {
-      itemList.innerHTML = '<tr><td colspan="5" class="empty">No items yet — click Add Item.</td></tr>';
+    if (!items.length) {
+      itemList.innerHTML = '<tr><td colspan="12" class="empty">No items yet — click Add Item.</td></tr>';
       renderItemPagination(totalPages, 0);
       return;
     }
-    if (!list.length && !newEntry) {
-      itemList.innerHTML = '<tr><td colspan="5" class="empty">No items match your search.</td></tr>';
+    if (!list.length) {
+      itemList.innerHTML = '<tr><td colspan="12" class="empty">No items match your search.</td></tr>';
       renderItemPagination(totalPages, 0);
       return;
     }
     const pageRows = list.slice(itemPage * itemPageSize, (itemPage + 1) * itemPageSize);
-    itemList.innerHTML = newRow + pageRows.map((r) => r.editing ? `
-      <tr>
-        <td><span class="item-code" style="background:var(--bg);color:var(--muted)">${esc(r.code || 'AUTO')}</span></td>
-        <td><input id="maRowName_${r.id}" value="${esc(r.name)}" maxlength="200" style="width:140px"></td>
-        <td><input id="maRowDesc_${r.id}" value="${esc(r.description || '')}" placeholder="Description" style="width:160px"></td>
-        <td><input id="maRowCat_${r.id}" value="${esc(r.category || '')}" placeholder="Category" style="width:110px"></td>
-        <td><div class="doc-row-actions"><button class="btn green sm" data-act="save" data-id="${r.id}">Save</button><button class="btn sm" data-act="cancel">Cancel</button></div></td>
-      </tr>` : `
+    itemList.innerHTML = pageRows.map((r) => `
       <tr>
         <td><span class="item-code">${esc(r.code || 'ITM-###')}</span></td>
         <td><span class="item-name">${esc(r.name)}</span></td>
-        <td>${esc(r.description || '—')}</td>
-        <td>${esc(r.category || '—')}</td>
+        <td><span class="item-plain">${esc(r.standardName || '—')}</span></td>
+        <td><span class="item-sub">${esc(r.description || '—')}</span></td>
+        <td><span class="item-plain">${esc(r.category || '—')}</span></td>
+        <td><span class="item-plain">${esc(r.subcategory || '—')}</span></td>
+        <td><span class="item-plain">${esc(r.unit || '—')}</span></td>
+        <td><span class="item-plain">${esc(r.brand || '—')}</span></td>
+        <td><span class="item-plain">${esc(r.model || '—')}</span></td>
+        <td><span class="ma-status ${(r.status || 'Active') === 'Inactive' ? 'off' : 'on'}">${esc(r.status || 'Active')}</span></td>
+        <td><span class="ma-created">${r.createdAt ? esc(String(r.createdAt).slice(0, 10)) : '—'}</span></td>
         <td><div class="doc-row-actions"><button class="btn sm" data-act="edit" data-id="${r.id}">Edit</button><button class="btn red sm" data-act="del" data-id="${r.id}">Delete</button></div></td>
       </tr>`).join('');
     renderItemPagination(totalPages, list.length);
@@ -2629,8 +2573,8 @@ function renderMastersPage(user, focus) {
         const s = v == null ? '' : String(v);
         return /[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
       };
-      const rows = filteredItems().map((r) => [r.code || 'ITM-###', r.name || '', r.description || '', r.category || '']);
-      const header = ['Code', 'Name', 'Description', 'Category'];
+      const rows = filteredItems().map((r) => [r.code || 'ITM-###', r.name || '', r.standardName || '', r.description || '', r.category || '', r.subcategory || '', r.unit || '', r.brand || '', r.model || '', r.status || 'Active', r.createdAt ? String(r.createdAt).slice(0, 10) : '']);
+      const header = ['Code', 'Item Name', 'Standard Name', 'Description', 'Category', 'Subcategory', 'Unit', 'Brand', 'Model', 'Status', 'Created Date'];
       const csv = [header.map(csvCell).join(',')].concat(rows.map((r) => r.map(csvCell).join(','))).join('\r\n');
       const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
       const url = URL.createObjectURL(blob);
@@ -2666,12 +2610,7 @@ function renderMastersPage(user, focus) {
     renderItemRows();
   });
   if (maPgSize) maPgSize.addEventListener('change', () => { itemPageSize = Number(maPgSize.value) || 50; itemPage = 0; renderItemRows(); });
-  if (maAddItem) maAddItem.addEventListener('click', () => {
-    itemPage = 0;
-    newEntry = { name: '', description: '', category: '' };
-    renderItemRows();
-    setTimeout(() => { const el = document.getElementById('maRowName_new'); if (el) el.focus(); }, 60);
-  });
+  if (maAddItem) maAddItem.addEventListener('click', () => openItemModal('create'));
   if (maExport) maExport.addEventListener('click', exportItems);
 
   itemList.addEventListener('click', (e) => {
@@ -2679,36 +2618,9 @@ function renderMastersPage(user, focus) {
     if (!btn) return;
     const id = btn.dataset.id;
     const act = btn.dataset.act;
-    if (act === 'savenew') {
-      const name = document.getElementById('maRowName_new').value;
-      if (!name.trim()) return toast('Item name is required', true);
-      createStockItem({
-        name,
-        description: document.getElementById('maRowDesc_new').value,
-        category: document.getElementById('maRowCat_new').value
-      })
-        .then(() => { newEntry = null; toast('Item added with auto-generated code'); loadItems(); })
-        .catch((err) => toast(err.message, true));
-    } else if (act === 'cancelnew') {
-      newEntry = null; renderItemRows();
-    } else if (act === 'edit') {
+    if (act === 'edit') {
       const r = items.find((x) => String(x.id) === id);
-      if (r) { r.editing = true; renderItemRows(); }
-    } else if (act === 'cancel') {
-      const r = items.find((x) => String(x.id) === id);
-      if (r) { delete r.editing; renderItemRows(); }
-    } else if (act === 'save') {
-      const r = items.find((x) => String(x.id) === id);
-      if (!r) return;
-      const fields = {
-        name: document.getElementById('maRowName_' + id).value,
-        description: document.getElementById('maRowDesc_' + id).value,
-        category: document.getElementById('maRowCat_' + id).value
-      };
-      if (!fields.name.trim()) return toast('Item name is required', true);
-      updateItemRecord(id, fields, r.name)
-        .then(() => { toast('Item updated'); loadItems(); })
-        .catch((err) => toast(err.message, true));
+      if (r) openItemModal('edit', r);
     } else if (act === 'del') {
       const r = items.find((x) => String(x.id) === id);
       if (!r || !confirm('Delete "' + r.name + '" and remove its stock rows from every centre?')) return;
@@ -2717,6 +2629,146 @@ function renderMastersPage(user, focus) {
         .catch((err) => toast(err.message, true));
     }
   });
+
+  function itemVal(r, k) { return r && r[k] != null ? r[k] : ''; }
+
+  function openItemModal(mode, record) {
+    const isEdit = mode === 'edit';
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    overlay.innerHTML = `
+      <div class="modal" style="width:min(760px,96vw);max-width:none">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+          <h3 style="margin:0">${isEdit ? 'Edit Item' : 'Add New Item'}</h3>
+          <button class="btn sm" id="imClose">Close</button>
+        </div>
+        <p class="m-sub" style="margin-bottom:12px">${isEdit
+          ? `Editing <b>${esc(record.name)}</b>${record.code ? ' (' + esc(record.code) + ')' : ''} · created ${record.createdAt ? esc(String(record.createdAt).slice(0, 10)) : 'unknown'}`
+          : 'New catalogue entry gets an auto-generated item code (ITM-###).'}</p>
+        <div id="imSim"></div>
+        <div class="sci-grid">
+          <div class="field" style="grid-column:1/-1">
+            <label for="imName">Item Name *</label>
+            <input id="imName" type="text" maxlength="200" placeholder="e.g. Amplifier 80 W" autocomplete="off" value="${esc(itemVal(record, 'name'))}">
+          </div>
+          <div class="field"><label for="imStandard">Standard Name</label><input id="imStandard" type="text" maxlength="200" placeholder="e.g. Amplifier" autocomplete="off" value="${esc(itemVal(record, 'standardName'))}"></div>
+          <div class="field"><label for="imCategory">Category</label><input id="imCategory" type="text" maxlength="100" placeholder="e.g. Electronics" value="${esc(itemVal(record, 'category'))}"></div>
+          <div class="field"><label for="imSub">Subcategory</label><input id="imSub" type="text" maxlength="100" placeholder="e.g. Audio" value="${esc(itemVal(record, 'subcategory'))}"></div>
+          <div class="field"><label for="imUnit">Unit</label><input id="imUnit" type="text" maxlength="40" placeholder="e.g. Nos" value="${esc(itemVal(record, 'unit'))}"></div>
+          <div class="field"><label for="imBrand">Brand</label><input id="imBrand" type="text" maxlength="100" placeholder="e.g. Sony" value="${esc(itemVal(record, 'brand'))}"></div>
+          <div class="field"><label for="imModel">Model</label><input id="imModel" type="text" maxlength="100" placeholder="Model / capacity / rating" value="${esc(itemVal(record, 'model'))}"></div>
+          <div class="field"><label for="imStatus">Status</label><select id="imStatus">${['Active', 'Inactive'].map((st) => `<option${(itemVal(record, 'status') || (isEdit ? '' : 'Active')) === st ? ' selected' : ''}>${st}</option>`).join('')}</select></div>
+          <div class="field"><label for="imDesc">Description</label><input id="imDesc" type="text" maxlength="255" placeholder="Short description" value="${esc(itemVal(record, 'description'))}"></div>
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:18px">
+          <button class="btn sm" id="imCancel">Cancel</button>
+          <button class="btn primary" id="imSave">${isEdit ? 'Save Changes' : 'Create New Item'}</button>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+
+    const close = () => overlay.remove();
+    const nameEl = overlay.querySelector('#imName');
+    const saveBtn = overlay.querySelector('#imSave');
+    const simBox = overlay.querySelector('#imSim');
+    const field = (id) => overlay.querySelector(id);
+    let existingId = null;
+
+    const collect = () => ({
+      name: field('#imName').value.trim(),
+      standardName: field('#imStandard').value.trim(),
+      description: field('#imDesc').value.trim(),
+      category: field('#imCategory').value.trim(),
+      subcategory: field('#imSub').value.trim(),
+      unit: field('#imUnit').value.trim(),
+      brand: field('#imBrand').value.trim(),
+      model: field('#imModel').value.trim(),
+      status: field('#imStatus').value || 'Active'
+    });
+
+    function useExisting(m) {
+      existingId = m.id;
+      nameEl.value = m.name || '';
+      nameEl.readOnly = true;
+      field('#imStandard').value = m.standardName || '';
+      field('#imDesc').value = m.description || '';
+      field('#imCategory').value = m.category || '';
+      field('#imSub').value = m.subcategory || '';
+      field('#imUnit').value = m.unit || '';
+      field('#imBrand').value = m.brand || '';
+      field('#imModel').value = m.model || '';
+      field('#imStatus').value = m.status || 'Active';
+      simBox.innerHTML = `<div class="im-selected">✓ Using existing item <b>${esc(m.name)}</b>${m.code ? ' (' + esc(m.code) + ')' : ''}. No new record will be created.</div>`;
+      saveBtn.textContent = 'Done — Using Existing Item';
+      nameEl.focus();
+    }
+
+    function renderSimilar() {
+      const val = nameEl.value.trim();
+      const n = normItemName(val);
+      const exact = n ? items.find((r) => normItemName(r.name) === n) : null;
+      const sims = exact ? [] : (n ? findSimilarItems(items, val) : []);
+      if (!exact && !sims.length) { simBox.innerHTML = ''; return; }
+      simBox.innerHTML = `<div class="im-sim">
+        ${exact ? `
+          <div class="im-sim-hi">ⓘ This item already exists as <b>${esc(exact.name)}</b> <span class="sim-meta">${esc(exact.code || 'ITM-###')} • ${esc(exact.category || 'no category')}</span></div>
+          <div class="im-sim-row"><span>Join the existing record instead of creating a duplicate.</span><button class="btn primary sm" data-use-exact="1">Use Existing Item</button></div>
+          <div class="im-sim-row"><span>You can still create a separate record.</span><button class="btn sm" data-new-any="1">Create New Item</button></div>` : ''}
+        ${sims.length ? `
+          <div class="im-sim-note">Similar existing items</div>
+          ${sims.map((m) => `
+            <div class="im-sim-row">
+              <span><b>${esc(m.item.name)}</b> <span class="sim-meta">${esc(m.item.code || 'ITM-###')} • ${esc(m.item.category || 'no category')}</span></span>
+              <button class="btn primary sm" data-use-idx="${m.item.id}">Use Existing Item</button>
+            </div>`).join('')}
+          <div class="im-sim-row"><span>None of these match? Create a new record.</span><button class="btn sm" data-new-any="1">Create New Item</button></div>` : ''}
+      </div>`;
+      const useExact = simBox.querySelector('[data-use-exact]');
+      if (useExact) useExact.addEventListener('click', () => useExisting(exact));
+      simBox.querySelectorAll('[data-use-idx]').forEach((b) => b.addEventListener('click', () => {
+        const m = items.find((x) => String(x.id) === String(b.dataset.useIdx));
+        if (m) useExisting(m);
+      }));
+      simBox.querySelectorAll('[data-new-any]').forEach((b) => b.addEventListener('click', () => {
+        existingId = null;
+        nameEl.readOnly = false;
+        saveBtn.textContent = 'Create New Item';
+        simBox.innerHTML = '';
+        nameEl.focus();
+      }));
+    }
+
+    if (!isEdit) {
+      let simTimer = null;
+      nameEl.addEventListener('input', () => {
+        clearTimeout(simTimer);
+        simTimer = setTimeout(renderSimilar, 350);
+      });
+    }
+
+    function save() {
+      const f = collect();
+      if (!f.name) return toast('Item name is required', true);
+      if (existingId) {
+        const m = items.find((x) => String(x.id) === String(existingId));
+        if (m) toast('Using existing item "' + m.name + '" — no new record created');
+        close();
+        return;
+      }
+      const clash = items.find((x) => String(x.id) !== String(isEdit ? record.id : '') && normItemName(x.name) === normItemName(f.name));
+      if (clash) return toast('Item name already exists as "' + clash.name + '"', true);
+      saveBtn.disabled = true;
+      const op = isEdit ? updateItemRecord(record.id, f, record.name) : createStockItem(f);
+      op.then(() => { toast(isEdit ? 'Item updated' : 'Item added with auto-generated code'); close(); loadItems(); })
+        .catch((err) => { saveBtn.disabled = false; toast(err.message, true); });
+    }
+
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+    overlay.querySelector('#imClose').addEventListener('click', close);
+    overlay.querySelector('#imCancel').addEventListener('click', close);
+    saveBtn.addEventListener('click', save);
+    setTimeout(() => nameEl.focus(), 60);
+  }
 
   loadItems().catch((err) => toast(err.message, true));
 
