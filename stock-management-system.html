@@ -1680,9 +1680,6 @@ function renderDashboardPage(user, routeParams) {
       </div>
       ${kpi ? `
       <div class="kpi-grid">
-        <div class="kpi"><p class="kpi-label">Centres</p><p class="kpi-value">${kpi.centres}</p></div>
-        <div class="kpi"><p class="kpi-label">Items</p><p class="kpi-value">${kpi.items.toLocaleString()}</p></div>
-        <div class="kpi"><p class="kpi-label">Stock On Hand</p><p class="kpi-value">${kpi.stockQty.toLocaleString()}</p></div>
         <div class="kpi"><p class="kpi-label">SCI Forms</p><p class="kpi-value">${kpi.submitted}</p></div>
         <div class="kpi"><p class="kpi-label">Pending Approval</p><p class="kpi-value">${kpi.pending}</p></div>
         <div class="kpi"><p class="kpi-label">Approved</p><p class="kpi-value">${kpi.approved}</p></div>
@@ -1707,12 +1704,7 @@ function renderDashboardPage(user, routeParams) {
     [centers, allForms] = await Promise.all([fetchCenters(), fetchSCIForms()]);
     const sold = isAdmin() || isViewer() ? null : scopedIds();
     const formsInScope = isAdmin() || isViewer() ? allForms : allForms.filter((f) => sold.has(String(f.centreId)));
-    const stockData = await fetchStock();
-    const stockQty = Object.values(stockData.stock).reduce((sum, byItem) => sum + Object.values(byItem).reduce((a, q) => a + (Number(q) || 0), 0), 0);
     kpi = {
-      centres: centers.length,
-      items: stockData.items.length,
-      stockQty,
       submitted: formsInScope.length,
       pending: formsInScope.filter((f) => f.status === 'pending').length,
       approved: formsInScope.filter((f) => f.status === 'approved').length,
