@@ -138,6 +138,11 @@ main#content{max-width:1280px;margin:0 auto;padding:26px 26px 60px;width:100%}
 .dash-tab:hover{border-color:var(--primary);color:var(--primary)}
 .dash-tab.active{background:var(--primary);color:#fff;border-color:var(--primary)}
 .dash-tab-count{margin-left:auto;color:var(--muted);font-size:12.5px;white-space:nowrap}
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin-bottom:18px}
+.kpi{background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 1px 2px rgba(16,24,40,.06);padding:16px 18px;min-width:0}
+.kpi-label{margin:0 0 6px;font-size:12.5px;font-weight:500;color:#6b7280}
+.kpi-value{margin:0;font-size:26px;font-weight:700;line-height:1.2;color:#1f2937}
+.kpi-value small{font-size:13px;font-weight:600;color:var(--muted)}
 
 /* ---------- Login ---------- */
 body.login-page{
@@ -1596,6 +1601,7 @@ function renderDashboardPage(user, routeParams) {
   let centers = [];
   let allForms = [];
   let dashFilter = 'all';
+  let kpi = null;
 
   function badge(status) {
     if (status === 'approved') return '<span class="badge green">Approved</span>';
@@ -1672,6 +1678,16 @@ function renderDashboardPage(user, routeParams) {
           <p>Recent SCI forms: pending, approved, or all submissions.</p>
         </div>
       </div>
+      ${kpi ? `
+      <div class="kpi-grid">
+        <div class="kpi"><p class="kpi-label">Centres</p><p class="kpi-value">${kpi.centres}</p></div>
+        <div class="kpi"><p class="kpi-label">Items</p><p class="kpi-value">${kpi.items.toLocaleString()}</p></div>
+        <div class="kpi"><p class="kpi-label">Stock On Hand</p><p class="kpi-value">${kpi.stockQty.toLocaleString()}</p></div>
+        <div class="kpi"><p class="kpi-label">SCI Forms</p><p class="kpi-value">${kpi.submitted}</p></div>
+        <div class="kpi"><p class="kpi-label">Pending Approval</p><p class="kpi-value">${kpi.pending}</p></div>
+        <div class="kpi"><p class="kpi-label">Approved</p><p class="kpi-value">${kpi.approved}</p></div>
+        <div class="kpi"><p class="kpi-label">Rejected</p><p class="kpi-value">${kpi.rejected}</p></div>
+      </div>` : ''}
       <div class="card" style="margin-bottom:18px">
         <div class="dash-tabs">
           ${['all', 'pending', 'approved'].map((k) => `<button class="dash-tab${dashFilter === k ? ' active' : ''}" data-dash-filter="${k}">${k === 'all' ? 'All' : k.charAt(0).toUpperCase() + k.slice(1)}</button>`).join('')}
@@ -1689,6 +1705,19 @@ function renderDashboardPage(user, routeParams) {
 
   async function load() {
     [centers, allForms] = await Promise.all([fetchCenters(), fetchSCIForms()]);
+    const sold = isAdmin() || isViewer() ? null : scopedIds();
+    const formsInScope = isAdmin() || isViewer() ? allForms : allForms.filter((f) => sold.has(String(f.centreId)));
+    const stockData = await fetchStock();
+    const stockQty = Object.values(stockData.stock).reduce((sum, byItem) => sum + Object.values(byItem).reduce((a, q) => a + (Number(q) || 0), 0), 0);
+    kpi = {
+      centres: centers.length,
+      items: stockData.items.length,
+      stockQty,
+      submitted: formsInScope.length,
+      pending: formsInScope.filter((f) => f.status === 'pending').length,
+      approved: formsInScope.filter((f) => f.status === 'approved').length,
+      rejected: formsInScope.filter((f) => f.status === 'rejected').length
+    };
     render();
   }
 
