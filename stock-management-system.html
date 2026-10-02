@@ -2057,7 +2057,6 @@ function renderStockPage(user, routeParams) {
             <th>S. No.</th>
             <th class="stick-1">Satsang Place</th>
             <th>Name of Item</th>
-            <th>Stock Register Page No.</th>
             <th>Approval Number</th>
             <th>Approval Date</th>
             <th>Quantity as per Stock Register (A)</th>
@@ -2065,6 +2064,7 @@ function renderStockPage(user, routeParams) {
             <th>Difference (if any) (A−B)</th>
             <th>Reason for Difference</th>
             <th>Remarks</th>
+            <th>Stock Register Page No.</th>
             <th>Actions</th>
           </tr></thead>
           <tbody>${pageRows.map((en, i) => renderRegRow(en, page * pageSize + i + 1)).join('') || '<tr><td class="empty" colspan="12">No verification entries yet — click "＋ New Verification Entry" to log the first physical count.</td></tr>'}</tbody>
@@ -2148,7 +2148,6 @@ function renderStockPage(user, routeParams) {
       <td class="sno">${sno}</td>
       <td class="centre stick-1"><b>${esc(centre)}</b></td>
       <td>${esc(en.item)}</td>
-      <td>${esc(en.pageNo || '—')}</td>
       <td>${esc(en.approvalNo || '—')}</td>
       <td>${fmtDate(en.approvalDate)}</td>
       <td>${Number(en.qtyA)}${unit ? ' ' + unit : ''}</td>
@@ -2156,6 +2155,7 @@ function renderStockPage(user, routeParams) {
       <td class="diff ${diffCls(d)}">${diffTxt(d)}</td>
       <td class="wrap">${esc(en.reason || '—')}</td>
       <td class="wrap">${esc(en.remarks || '—')}</td>
+      <td>${esc(en.pageNo || '—')}</td>
       <td>
         <div class="row-actions">
           <button class="btn sm" data-reg="edit" data-id="${en.id}" title="Edit this entry">Edit</button>
@@ -2306,9 +2306,9 @@ function renderStockPage(user, routeParams) {
         .filter((en) => (diffFilter === 'diff' ? Number(en.difference) !== 0 : (diffFilter === 'clean' ? Number(en.difference) === 0 : true)))
         .map((en) => {
           const fmtDate = (s) => { if (!s) return ''; const dt = new Date(s + (s.length === 10 ? 'T00:00:00' : '')); return isNaN(dt) ? s : dt.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }); };
-          return [centerName(en.centreId), en.item, en.pageNo || '', en.approvalNo || '', fmtDate(en.approvalDate), Number(en.qtyA), Number(en.qtyB), en.unit || unitOf(en.centreId, en.item), Number(en.difference), en.reason || '', en.remarks || ''];
+          return [centerName(en.centreId), en.item, en.approvalNo || '', fmtDate(en.approvalDate), Number(en.qtyA), Number(en.qtyB), en.unit || unitOf(en.centreId, en.item), Number(en.difference), en.reason || '', en.remarks || '', en.pageNo || ''];
         });
-      const header = ['S.No', 'Satsang Place', 'Name of Item', 'Stock Register Page No.', 'Approval Number', 'Approval Date', 'Quantity as per Stock Register (A)', 'Physically Available Quantity (B)', 'Unit', 'Difference (if any) (A−B)', 'Reason for Difference', 'Remarks'];
+      const header = ['S.No', 'Satsang Place', 'Name of Item', 'Approval Number', 'Approval Date', 'Quantity as per Stock Register (A)', 'Physically Available Quantity (B)', 'Unit', 'Difference (if any) (A−B)', 'Reason for Difference', 'Remarks', 'Stock Register Page No.'];
       const csv = [header.map((h) => csvCell(h)).join(',')].concat(rows.map((r, i) => [i + 1].concat(r).map(csvCell).join(','))).join('\r\n');
       const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
       const url = URL.createObjectURL(blob);
