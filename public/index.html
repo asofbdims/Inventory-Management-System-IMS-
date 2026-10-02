@@ -74,6 +74,12 @@ input,select,button{font-family:inherit;font-size:13.5px}
 .nav-sub-item svg{width:16px;height:16px;flex:0 0 auto}
 .nav-sub-item:hover{background:rgba(255,255,255,.08);color:#fff}
 .nav-sub-item.active{background:rgba(255,255,255,.16);color:#fff}
+.nav-drop2{margin-bottom:1px}
+.nav-drop2 .nav-parent{padding:8px 11px 8px 20px;font-size:12.5px}
+.nav-drop2 .nav-parent .nav-chev{width:13px;height:13px}
+.nav-drop2 .nav-sub-item{padding-left:38px;font-size:12px}
+.nav-sub2{max-height:0;overflow:hidden;transition:max-height .2s ease}
+.nav-sub2.open{max-height:200px}
 .side-foot{border-top:1px solid rgba(255,255,255,.08);padding:12px 14px}
 .side-foot .who{display:flex;align-items:center;gap:10px;color:rgba(255,255,255,.85);font-size:12.5px;margin-bottom:10px}
 .side-foot .avatar{width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.14);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;color:#fff;flex:0 0 auto}
@@ -1377,7 +1383,6 @@ function initials(name) {
 function renderShell(user, activePage) {
   const app = document.getElementById('app');
   const admin = isAdmin();
-  const canMasters = isAdmin() || isViewer();
   const PAGES = {
     'dashboard.html': { label: 'Dashboard', icon: 'dash', href: '#/dashboard' },
     'stock.html': { label: 'Stock Register', icon: 'stock', href: '#/stock' },
@@ -1394,8 +1399,13 @@ function renderShell(user, activePage) {
   };
   const GROUPS = [
     { label: 'Overview', items: ['dashboard.html'] },
-    { label: 'Inventory', items: ['stock.html'].concat(canMasters ? [{ key: 'masters', label: 'Masters', icon: 'master', children: ['masters-item.html', 'masters-doc.html'] }] : []) },
-    { label: 'SCI', items: [{ key: 'sci', label: 'SCI Forms', icon: 'forms', children: ['sci45.html', 'sci53.html', 'sci76.html', 'sci43.html', 'sci15.html', 'sci34.html'] }, 'log.html'] },
+    { label: 'Masters', items: [{ key: 'master', label: 'Masters', icon: 'master', children: [
+      'masters-item.html',
+      'masters-doc.html',
+      { key: 'sci', label: 'SCI Forms', icon: 'forms', children: ['sci45.html', 'sci53.html', 'sci76.html', 'sci43.html', 'sci15.html', 'sci34.html'] },
+      'log.html'
+    ]}]},
+    { label: 'Inventory', items: ['stock.html'] },
     { label: 'Admin', items: isSuperAdmin() ? ['reset.html'] : [] }
   ];
   app.innerHTML = `
@@ -1410,7 +1420,9 @@ function renderShell(user, activePage) {
                 if (typeof it === 'string') {
                   return `<a class="nav-item${it === activePage ? ' active' : ''}" href="${PAGES[it].href}">${NAV_ICONS[PAGES[it].icon]}<span>${PAGES[it].label}</span></a>`;
                 }
-                const open = it.children.includes(activePage);
+                const match = (key) => key === activePage;
+                const inChildren = (list) => list.some((c) => typeof c === 'string' ? match(c) : c.children.some(match));
+                const open = inChildren(it.children);
                 return `
                 <div class="nav-drop">
                   <button class="nav-parent${open ? ' open active' : ''}" type="button" aria-expanded="${open}">
@@ -1418,7 +1430,22 @@ function renderShell(user, activePage) {
                     <svg class="nav-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
                   </button>
                   <div class="nav-sub${open ? ' open' : ''}">
-                    ${it.children.map((child) => `<a class="nav-sub-item${child === activePage ? ' active' : ''}" href="${PAGES[child].href}">${NAV_ICONS[PAGES[child].icon]}<span>${PAGES[child].label}</span></a>`).join('')}
+                    ${it.children.map((child) => {
+                      if (typeof child === 'string') {
+                        return `<a class="nav-sub-item${child === activePage ? ' active' : ''}" href="${PAGES[child].href}">${NAV_ICONS[PAGES[child].icon]}<span>${PAGES[child].label}</span></a>`;
+                      }
+                      const open2 = child.children.some(match);
+                      return `
+                    <div class="nav-drop2">
+                      <button class="nav-parent${open2 ? ' open active' : ''}" type="button" aria-expanded="${open2}">
+                        ${NAV_ICONS[child.icon]}<span>${child.label}</span>
+                        <svg class="nav-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+                      </button>
+                      <div class="nav-sub nav-sub2${open2 ? ' open' : ''}">
+                        ${child.children.map((cc) => `<a class="nav-sub-item${cc === activePage ? ' active' : ''}" href="${PAGES[cc].href}">${NAV_ICONS[PAGES[cc].icon]}<span>${PAGES[cc].label}</span></a>`).join('')}
+                      </div>
+                    </div>`;
+                    }).join('')}
                   </div>
                 </div>`;
               }).join('')}
