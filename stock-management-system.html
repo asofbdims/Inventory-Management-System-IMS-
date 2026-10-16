@@ -509,9 +509,15 @@ td.empty,tr td.empty{color:var(--muted);text-align:center;padding:26px;white-spa
 .sci-items{display:flex;flex-direction:column;gap:8px;margin:2px 0 8px}
 .sci-items .sci-item-row{display:grid;grid-template-columns:1fr 98px 64px 36px;gap:8px;align-items:center}
 .sci-item-row select,.sci-item-row input[type=text]{width:100%;min-width:0;padding:8px 10px;border:1px solid var(--line);border-radius:8px;outline:none;background:#fff;font-size:13px;color:var(--text);box-sizing:border-box}
+.sci-item-row input[type=number]{width:100%;min-width:0;padding:8px 10px;border:1px solid var(--line);border-radius:8px;outline:none;background:#fff;font-size:13px;color:var(--text);box-sizing:border-box}
 .sci-item-row input:focus,.sci-item-row select:focus{border-color:var(--primary)}
 .sci-item-row .sci-item-qty{width:100%;box-sizing:border-box}
 .sci-item-row .sci-item-unit{color:var(--muted);font-size:12px;text-overflow:ellipsis;overflow:hidden;white-space:nowrap}
+.sci-item-row .cell{min-width:0}
+.sci-item-row .su-hint{display:block;color:var(--green);font-size:11px;font-weight:600;margin-top:3px}
+.modal-grid .field.full{grid-column:1/-1}
+.sci-up-card{max-width:560px;margin:14px auto 0;text-align:center;padding:24px 26px}
+.sci-up-file{display:block;margin:14px auto 0;max-width:340px;font-size:13px}
 /*
   SCI OFFICIAL-FORM EDITOR STYLES (commit 9720880) — COMMENTED OUT for now.
   The register-style 4-column item row grid above stays active.
@@ -1040,7 +1046,7 @@ function openSCIFormDetail(form, onChanged) {
       <div class="fd-grid">${base}</div>
       ${detailsHtml ? `<div class="fd-box"><div class="fd-title">Items / Material Details</div>${detailsHtml}</div>` : ''}
       ${form.remarks ? `<div class="fd-box"><div class="fd-title">Remarks</div><div class="f-d"><b>${escH(String(form.remarks))}</b></div></div>` : ''}
-      <div class="fd-box"><div class="fd-title">Document</div><div class="f-d"><b>${form.document ? `<a class="file-link" href="${storageFileUrl(form.document)}" target="_blank">${escH(form.documentName || 'View PDF')}</a>` : '—'}</b></div></div>
+      <div class="fd-box"><div class="fd-title">Document</div><div class="f-d"><b>${form.document ? `<a class="file-link" href="${storageFileUrl(form.document)}" target="_blank">${escH(form.documentName || 'View File')}</a>` : '—'}</b></div></div>
       <div class="fd-actions">${isAdmin() && form.status === 'pending' ? '<button class="btn green" id="fdApprove">Approve</button><button class="btn red" id="fdReject">Reject</button>' : ''}</div>
     </div>`;
   document.body.appendChild(overlay);
@@ -1692,7 +1698,7 @@ function renderDashboardPage(user, routeParams) {
 
   function documentLink(form) {
     return form.document
-      ? `<a class="file-link" href="${storageFileUrl(form.document)}" target="_blank">${esc(form.documentName || 'View PDF')}</a>`
+      ? `<a class="file-link" href="${storageFileUrl(form.document)}" target="_blank">${esc(form.documentName || 'View File')}</a>`
       : '—';
   }
 
@@ -1716,7 +1722,7 @@ function renderDashboardPage(user, routeParams) {
     const table = document.getElementById('dashTable');
     table.innerHTML = `
       <table>
-        <thead><tr><th>Date</th><th>Form</th><th>Centre</th><th>Sewadar</th><th>Badge No.</th><th>Approval No.</th><th>Destination</th><th>Amount</th><th>PDF</th><th>Status</th><th>Action</th></tr></thead>
+        <thead><tr><th>Date</th><th>Form</th><th>Centre</th><th>Sewadar</th><th>Badge No.</th><th>Approval No.</th><th>Destination</th><th>Amount</th><th>File</th><th>Status</th><th>Action</th></tr></thead>
         <tbody>${forms.length ? forms.map((f) => `
           <tr title="Click to open the full form" data-form-id="${esc(f.id)}">
             <td>${esc((f.submittedAt || '').slice(0, 10))}</td>
@@ -1812,7 +1818,7 @@ function renderSCIFormsLogPage(user) {
 
   function documentLink(form) {
     return form.document
-      ? `<a class="file-link" href="${storageFileUrl(form.document)}" target="_blank">${esc(form.documentName || 'View PDF')}</a>`
+      ? `<a class="file-link" href="${storageFileUrl(form.document)}" target="_blank">${esc(form.documentName || 'View File')}</a>`
       : '—';
   }
 
@@ -1899,7 +1905,7 @@ function renderSCIFormsLogPage(user) {
     const table = document.getElementById('sciLogTable');
     table.innerHTML = `
       <table>
-        <thead><tr><th>Date</th><th>Form</th><th>Centre</th><th>Sewadar</th><th>Badge No.</th><th>Approval No.</th><th>Details</th><th>Destination</th><th>Amount</th><th>PDF</th><th>Status</th><th>Action</th></tr></thead>
+        <thead><tr><th>Date</th><th>Form</th><th>Centre</th><th>Sewadar</th><th>Badge No.</th><th>Approval No.</th><th>Details</th><th>Destination</th><th>Amount</th><th>File</th><th>Status</th><th>Action</th></tr></thead>
         <tbody>${forms.length ? forms.map((f) => {
           const detail = sciDetailsText(f);
           return `<tr title="Click to open the full form" data-form-id="${esc(f.id)}">
@@ -3186,8 +3192,334 @@ function renderSCIDownloadPage(user, focus) {
       <h3>${esc(meta.title)}</h3>
       <p>${esc(meta.hint || '')}</p>
       <a class="btn primary sci-dl-btn" href="${href}" download rel="noopener">Download form (.docx)</a>
-      <p class="hint">Official Word template — open it, fill in the details, then print or save as PDF for submission.</p>
+      <p class="hint">Official Word template — open it in Word, fill in the details, then upload the filled .docx below.</p>
+    </div>
+    <div class="card sci-up-card">
+      <div class="sci-dl-chip">UPLOAD</div>
+      <h3>Upload Filled Form</h3>
+      <p>Upload the ${esc(code)} form you filled in Word. The items and quantities are read out of the document — you can check and fix them before submitting. Stock changes only after an admin approves the form.</p>
+      <input id="sciFillFile" class="sci-up-file" type="file" accept=".docx">
+      <p class="hint">Word (.docx) only, up to 2 MB.</p>
     </div>`;
+  const input = document.getElementById('sciFillFile');
+  if (input) input.addEventListener('change', () => {
+    const f = input.files && input.files[0];
+    input.value = '';
+    if (!f) return;
+    if (!/\.docx$/i.test(f.name)) return toast('Please choose a Word (.docx) file', true);
+    if (f.size > 2 * 1024 * 1024) return toast('File is too large (max 2 MB)', true);
+    openSCIUploadModal(f, code);
+  });
+}
+
+function loadJSZip() {
+  if (window.JSZip) return Promise.resolve(window.JSZip);
+  return new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js';
+    s.onload = () => window.JSZip ? resolve(window.JSZip) : reject(new Error('Could not start the .docx reader'));
+    s.onerror = () => reject(new Error('Could not load the .docx reader — check your internet connection'));
+    document.head.appendChild(s);
+  });
+}
+
+const SCI_DETECT = [
+  ['SCI45', /condemn/i],
+  ['SCI43', /transfer\s+of\s+surplus|surplus\s+items?\s+from/i],
+  ['SCI34', /sale\s+proceeds|scrap/i],
+  ['SCI15', /donation|offer\s+of\s+items?/i],
+  ['SCI76', /issue\s+voucher|material\s+issue/i],
+  ['SCI53', /from\s+beas|requirement\s+of\s+items?/i]
+];
+
+async function parseFilledDocx(file) {
+  const JSZip = await loadJSZip();
+  const zip = await JSZip.loadAsync(file);
+  const entry = zip.file('word/document.xml');
+  if (!entry) throw new Error('This does not look like a Word (.docx) file');
+  const xml = await entry.async('string');
+  const doc = new DOMParser().parseFromString(xml, 'application/xml');
+  if (doc.getElementsByTagName('parsererror').length) throw new Error('Could not read the Word document');
+  const cellText = (tc) => Array.from(tc.getElementsByTagName('w:t')).map((t) => t.textContent || '').join('').trim();
+  const rowCells = (tr) => Array.from(tr.getElementsByTagName('w:tc')).map(cellText);
+  const tables = Array.from(doc.getElementsByTagName('w:tbl')).map((tbl) => Array.from(tbl.getElementsByTagName('w:tr')).map(rowCells));
+  const paras = Array.from(doc.getElementsByTagName('w:p')).map((p) => Array.from(p.getElementsByTagName('w:t')).map((t) => t.textContent || '').join('').trim()).filter(Boolean);
+  const text = paras.join('\n');
+
+  let code = '';
+  const hay = (file.name || '') + '\n' + text;
+  for (const [c, re] of SCI_DETECT) { if (re.test(hay)) { code = c; break; } }
+
+  const qtyHead = /^(total\s+)?(qty|quantity|nos?\.?|numbers?|units?)\b/i;
+  const nameHead = /(description|particulars|name\s+of|item\s*name|article|material\s*desc)/i;
+  const unitHead = /^unit/i;
+  const items = [];
+  for (const rows of tables) {
+    let header = -1, ni = -1, qi = -1, ui = -1;
+    for (let r = 0; r < rows.length; r++) {
+      const cells = rows[r];
+      const qi2 = cells.findIndex((c) => qtyHead.test(c));
+      const ni2 = cells.findIndex((c) => nameHead.test(c));
+      if (qi2 > -1 && ni2 > -1) { header = r; qi = qi2; ni = ni2; ui = cells.findIndex((c) => unitHead.test(c)); break; }
+    }
+    if (header < 0) continue;
+    for (let r = header + 1; r < rows.length; r++) {
+      const cells = rows[r];
+      if (cells.length <= Math.max(ni, qi)) continue;
+      const name = (cells[ni] || '').replace(/\s+/g, ' ').trim();
+      if (!name || name.length > 140) continue;
+      if (/^(total|sub\s*total|grand\s*total|sum)\b/i.test(name)) continue;
+      if (qtyHead.test(name) || nameHead.test(name)) continue;
+      const qm = (cells[qi] || '').match(/\d+/);
+      const qty = qm ? Number(qm[0]) : 0;
+      if (!qty) continue;
+      const unit = ui > -1 && cells[ui] ? cells[ui].replace(/\s+/g, ' ').trim() : '';
+      items.push({ name, qty, unit });
+    }
+  }
+
+  let sewadar = '';
+  const sm = text.match(/sewadar(?:'s)?\s*name\s*[:.\-]?\s*([^\n]{2,80})/i);
+  if (sm) sewadar = sm[1].replace(/\s*[,;|].*$/, '').trim();
+  let badge = '';
+  const bm = text.match(/badge(?:\s*(?:no|number|#))?\s*[:.\-]?\s*([A-Za-z0-9]{12})\b/i);
+  if (bm) badge = bm[1].toUpperCase();
+
+  return { code, items, sewadar, badge };
+}
+
+async function openSCIUploadModal(file, expectedCode) {
+  const me = getUser() || {};
+  const isCentre = typeof me.id === 'number';
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.innerHTML = `
+    <div class="modal" style="width:min(780px,96vw);max-width:none">
+      <div class="modal-head">
+        <div>
+          <h3>Review &amp; Submit Form</h3>
+          <p class="hint">File: <b>${esc(file.name)}</b> — check the items read from your document, fix anything wrong, then submit for admin approval.</p>
+        </div>
+        <button class="btn sm" id="suClose">Close</button>
+      </div>
+      <div class="modal-body">
+        <div class="modal-grid" style="margin-top:10px">
+          <div class="field"><label>Form Type *</label><select id="suType">${SCI_FORM_META.map((m) => `<option value="${m.code}"${m.code === expectedCode ? ' selected' : ''}>${esc(m.code)} — ${esc(m.title)}</option>`).join('')}</select></div>
+          <div class="field"><label>Centre ${isCentre ? '' : '*'}</label>${isCentre
+            ? `<input type="text" value="${esc(me.centreName || '')}" readonly>`
+            : '<select id="suCentre"><option value="">Select centre…</option></select>'}</div>
+          <div class="field"><label>Sewadar Name *</label><input id="suSewadar" type="text" maxlength="120" autocomplete="off" placeholder="Name of sewadar"></div>
+          <div class="field"><label>Badge No. * (12 letters/numbers)</label><input id="suBadge" type="text" maxlength="12" autocomplete="off" placeholder="e.g. AB12CD34EF56"></div>
+          <div class="field" id="suDestField" style="display:none"><label>Transfer To Centre *</label><select id="suDest"><option value="">Select destination…</option></select></div>
+          <div class="field" id="suAmtField" style="display:none"><label>Sale Amount</label><input id="suAmount" type="number" min="0" step="0.01" placeholder="0.00"></div>
+          <div class="field"><label>Approval No.</label><input id="suApproval" type="text" maxlength="60" autocomplete="off" placeholder="If any"></div>
+          <div class="field"><label>Remarks</label><input id="suRemarks" type="text" maxlength="400" autocomplete="off" placeholder="Optional"></div>
+        </div>
+        <div class="field full" style="margin-top:14px">
+          <label>Items from the form (edit name, quantity or unit as needed)</label>
+          <div id="suItems" class="sci-items"><div class="hint" style="padding:14px">Reading the .docx file…</div></div>
+          <button class="btn sm" id="suAddRow" type="button">＋ Add Row</button>
+        </div>
+        <datalist id="suItemNames"></datalist>
+        <div class="m-actions">
+          <button class="btn" id="suCancel" type="button">Cancel</button>
+          <button class="btn primary" id="suSave" type="button">Submit for Review</button>
+        </div>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+
+  let stockData = null;
+  let centres = [];
+  const n = (id) => overlay.querySelector('#' + id);
+  const itemsEl = n('suItems');
+  const close = () => { if (overlay.parentNode) document.body.removeChild(overlay); document.removeEventListener('keydown', escUp, true); };
+  const escUp = (e) => { if (e.key === 'Escape') close(); };
+  document.addEventListener('keydown', escUp, true);
+  n('suClose').addEventListener('click', close);
+  n('suCancel').addEventListener('click', close);
+  overlay.addEventListener('mousedown', (e) => { if (e.target === overlay) close(); });
+
+  const centreIdNow = () => {
+    if (isCentre) return me.centreId != null ? me.centreId : (typeof me.id === 'number' ? me.id : null);
+    const v = n('suCentre') ? n('suCentre').value : '';
+    return v ? Number(v) : null;
+  };
+
+  function stockCanon(centreId, name) {
+    if (!centreId || !name || !stockData) return null;
+    const bag = stockData.stock[centreId] || {};
+    const t = normItemName(name);
+    if (!t) return null;
+    return Object.keys(bag).find((k) => normItemName(k) === t) || null;
+  }
+
+  function refreshDatalist() {
+    const dl = n('suItemNames');
+    if (!dl) return;
+    const set = new Set(stockData ? stockData.items || [] : []);
+    const bag = centreIdNow() && stockData ? stockData.stock[centreIdNow()] || {} : {};
+    Object.keys(bag).forEach((k) => set.add(k));
+    dl.innerHTML = Array.from(set).sort().map((v) => `<option value="${esc(v)}"></option>`).join('');
+  }
+
+  function rowHtml(item) {
+    return `<div class="sci-item-row">
+      <div class="cell">
+        <input class="sci-item-name" type="text" list="suItemNames" value="${esc(item.name)}" placeholder="Item name" autocomplete="off">
+        <small class="su-hint" style="display:none"></small>
+      </div>
+      <input class="sci-item-qty" type="number" min="1" step="1" value="${item.qty || ''}" placeholder="Qty">
+      <input class="sci-item-unit" type="text" value="${esc(item.unit || '')}" placeholder="Unit">
+      <button class="btn sm su-del" type="button" title="Remove row">×</button>
+    </div>`;
+  }
+
+  function syncRowHint(row) {
+    const nameEl = row.querySelector('.sci-item-name');
+    const hint = row.querySelector('.su-hint');
+    const unitEl = row.querySelector('.sci-item-unit');
+    const cid = centreIdNow();
+    const canon = stockCanon(cid, nameEl.value);
+    if (canon && stockData) {
+      const q = (stockData.stock[cid] || {})[canon];
+      const u = (stockData.unit[cid] || {})[canon] || '';
+      hint.textContent = 'In stock: ' + q + (u ? ' ' + u : '');
+      hint.style.display = '';
+      if (!unitEl.value && u) unitEl.value = u;
+    } else {
+      hint.style.display = 'none';
+    }
+  }
+
+  function addRow(item) {
+    const wrap = document.createElement('div');
+    wrap.innerHTML = rowHtml(item || { name: '', qty: '', unit: '' });
+    const row = wrap.firstElementChild;
+    itemsEl.appendChild(row);
+    return row;
+  }
+
+  itemsEl.addEventListener('click', (e) => {
+    const del = e.target.closest('.su-del');
+    if (!del) return;
+    const row = del.closest('.sci-item-row');
+    if (itemsEl.querySelectorAll('.sci-item-row').length <= 1) {
+      row.querySelector('.sci-item-name').value = '';
+      row.querySelector('.sci-item-qty').value = '';
+      row.querySelector('.sci-item-unit').value = '';
+      row.querySelector('.su-hint').style.display = 'none';
+      return;
+    }
+    row.remove();
+  });
+  itemsEl.addEventListener('change', (e) => {
+    if (!e.target.classList.contains('sci-item-name')) return;
+    syncRowHint(e.target.closest('.sci-item-row'));
+  });
+  n('suAddRow').addEventListener('click', () => { const r = addRow(); r.querySelector('.sci-item-name').focus(); });
+
+  const typeSel = n('suType');
+  const syncType = () => {
+    const t = typeSel.value;
+    n('suDestField').style.display = t === 'SCI43' ? '' : 'none';
+    n('suAmtField').style.display = t === 'SCI34' ? '' : 'none';
+  };
+  typeSel.addEventListener('change', syncType);
+  syncType();
+  if (n('suCentre')) n('suCentre').addEventListener('change', () => { refreshDatalist(); itemsEl.querySelectorAll('.sci-item-row').forEach(syncRowHint); });
+
+  n('suSave').addEventListener('click', submitUpload);
+  setTimeout(() => { try { n('suSewadar').focus(); } catch (e) {} }, 60);
+
+  let stockLoading = true;
+  Promise.all([
+    fetchCenters().catch(() => []),
+    fetchStock().catch(() => null)
+  ]).then(([cs, st]) => {
+    centres = cs || [];
+    stockData = st;
+    stockLoading = false;
+    const type = n('suType');
+    const centreSel = n('suCentre');
+    if (centreSel) centreSel.innerHTML = '<option value="">Select centre…</option>' + centres.map((c) => `<option value="${c.id}">${esc(c.name)}${c.type && c.type !== 'CENTRE' ? ' (' + esc(c.type) + ')' : ''}</option>`).join('');
+    const destSel = n('suDest');
+    if (destSel) destSel.innerHTML = '<option value="">Select destination…</option>' + centres.map((c) => `<option value="${c.id}">${esc(c.name)}</option>`).join('');
+    refreshDatalist();
+  });
+
+  await (async () => {
+    let parsed = { code: '', items: [], sewadar: '', badge: '' };
+    try { parsed = await parseFilledDocx(file); }
+    catch (err) { toast(err.message, true); }
+    const detected = parsed.code;
+    if (detected && detected !== expectedCode) {
+      typeSel.value = detected;
+      syncType();
+      const note = n('suClose').closest('.modal-head').querySelector('.hint');
+      if (note) note.innerHTML = esc(note.textContent) + ` <b style="color:var(--amber,#b8860b)">Detected form type ${esc(detected)} — different from this page (${esc(expectedCode)}). Please verify.</b>`;
+    }
+    if (parsed.sewadar) n('suSewadar').value = parsed.sewadar.slice(0, 120);
+    if (parsed.badge) n('suBadge').value = parsed.badge;
+    itemsEl.innerHTML = '';
+    if (parsed.items && parsed.items.length) {
+      parsed.items.forEach((it) => addRow(it));
+      itemsEl.querySelectorAll('.sci-item-row').forEach(syncRowHint);
+    } else {
+      addRow();
+      toast('Could not read items automatically — please add them below', true);
+    }
+  })();
+
+  async function submitUpload() {
+    const btn = n('suSave');
+    const type = typeSel.value;
+    const meta = SCI_FORM_META.find((m) => m.code === type) || SCI_FORM_META[0];
+    const centreId = centreIdNow();
+    if (!centreId) return toast('Select the centre for this form', true);
+    const centreName = isCentre ? (me.centreName || '') : ((centres.find((c) => String(c.id) === String(centreId)) || {}).name || '');
+    const sewadar = n('suSewadar').value.trim();
+    if (!sewadar) return toast('Enter the sewadar name', true);
+    const badge = n('suBadge').value.trim().toUpperCase();
+    if (!/^[A-Z0-9]{12}$/.test(badge)) return toast('Badge number must contain exactly 12 letters and numbers', true);
+    const destId = type === 'SCI43' ? (n('suDest').value ? Number(n('suDest').value) : null) : null;
+    if (type === 'SCI43' && !destId) return toast('Select the destination centre for this transfer', true);
+    const items = Array.from(itemsEl.querySelectorAll('.sci-item-row')).map((row) => {
+      let name = row.querySelector('.sci-item-name').value.trim();
+      const qty = Number(row.querySelector('.sci-item-qty').value) || 0;
+      const unit = row.querySelector('.sci-item-unit').value.trim();
+      const canon = stockCanon(centreId, name);
+      if (canon) name = canon;
+      return { name, qty, unit };
+    }).filter((r) => r.name && r.qty > 0);
+    if (!items.length) return toast('Enter at least one item and its quantity', true);
+    btn.disabled = true;
+    try {
+      const storagePath = Date.now() + '_' + file.name;
+      const { error: upErr } = await sb.storage.from('uploads').upload(storagePath, file, { contentType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', cacheControl: '3600', upsert: false });
+      if (upErr) throw new Error('File upload failed: ' + upErr.message);
+      const { error: insErr } = await sb.from('sci_forms').insert({
+        formType: type,
+        formTitle: meta.title,
+        centreId,
+        centreName,
+        sewadarName: sewadar,
+        sewadarBadge: badge,
+        details: { items, description: '', approvalNo: n('suApproval').value.trim() },
+        remarks: n('suRemarks').value.trim(),
+        quantity: items.reduce((a, r) => a + r.qty, 0),
+        amount: n('suAmount') && n('suAmount').value ? Number(n('suAmount').value) : null,
+        destinationCentreId: destId,
+        destinationCentreName: destId ? ((centres.find((c) => Number(c.id) === destId) || {}).name || '') : null,
+        document: storagePath,
+        documentName: file.name,
+        status: 'pending'
+      });
+      if (insErr) throw new Error('Submission failed: ' + insErr.message);
+      toast(type + ' submitted — stock will change when an admin approves it');
+      close();
+    } catch (err) { btn.disabled = false; toast(err.message, true); }
+  }
 }
 
 function renderSCIFormsPage(user, focus) {
@@ -3206,7 +3538,7 @@ function renderSCIFormsPage(user, focus) {
 
   function documentLink(form) {
     return form.document
-      ? `<a class="file-link" href="${storageFileUrl(form.document)}" target="_blank">${esc(form.documentName || 'View PDF')}</a>`
+      ? `<a class="file-link" href="${storageFileUrl(form.document)}" target="_blank">${esc(form.documentName || 'View File')}</a>`
       : '—';
   }
 
