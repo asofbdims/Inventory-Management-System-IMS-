@@ -412,8 +412,7 @@ td.empty,tr td.empty{color:var(--muted);text-align:center;padding:26px;white-spa
 .fd-box{border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:10px}
 .fd-title{font-weight:700;font-size:12px;color:var(--primary-dark);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px}
 .fd-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
-.masters-grid{display:grid;grid-template-columns:340px minmax(0,1fr);gap:14px;align-items:start}
-@media (max-width:980px){.masters-grid{grid-template-columns:1fr}}
+.masters-grid{display:flex;flex-direction:column;gap:14px}
 .reg-toolbar input[type=text]{padding:8px 12px;border:1px solid var(--line);border-radius:8px;background:#fff;outline:none;font-size:13px;color:var(--text);flex:1;min-width:220px}
 .reg-toolbar input[type=text]:focus{border-color:var(--primary)}
 .reg-toolbar .ma-letter{min-width:110px;max-width:140px}
@@ -1435,6 +1434,7 @@ function renderShell(user, activePage) {
   const PAGES = {
     'dashboard.html': { label: 'Dashboard', icon: 'dash', href: '#/dashboard' },
     'stock.html': { label: 'Stock Register', icon: 'stock', href: '#/stock' },
+    'masters-centre.html': { label: 'Centre Master', icon: 'master', href: '#/masters/centre' },
     'masters-item.html': { label: 'Item Master', icon: 'master', href: '#/masters/item' },
     'masters-doc.html': { label: 'Document Master', icon: 'master', href: '#/masters/doc' },
     'sci45.html': { label: 'SCI45', icon: 'forms', href: '#/forms/SCI45' },
@@ -1449,6 +1449,7 @@ function renderShell(user, activePage) {
   const GROUPS = [
     { label: 'Overview', items: ['dashboard.html'] },
     { label: 'Masters', items: [{ key: 'master', label: 'Masters', icon: 'master', children: [
+      'masters-centre.html',
       'masters-item.html',
       'masters-doc.html',
       { key: 'sci', label: 'SCI Forms', icon: 'forms', children: ['sci45.html', 'sci53.html', 'sci76.html', 'sci43.html', 'sci15.html', 'sci34.html'] },
@@ -1555,8 +1556,9 @@ function route() {
 
   if (path === '/dashboard') { renderShell(user, 'dashboard.html'); renderDashboardPage(user, params); }
   else if (path === '/stock') { renderShell(user, 'stock.html'); renderStockPage(user, params); }
-  else if ((path === '/masters/item' || path === '/masters' || path === '/masters/doc') && (isAdmin() || isViewer())) {
+  else if ((path === '/masters/item' || path === '/masters' || path === '/masters/doc' || path === '/masters/centre') && (isAdmin() || isViewer())) {
     if (path === '/masters/doc') { renderShell(user, 'masters-doc.html'); renderMastersPage(user, 'doc'); }
+    else if (path === '/masters/centre') { renderShell(user, 'masters-centre.html'); renderMastersPage(user, 'centre'); }
     else { renderShell(user, 'masters-item.html'); renderMastersPage(user, 'item'); }
   }
   else if (path === '/forms' || /^\/forms\/SCI\d+$/.test(path)) {
@@ -2566,7 +2568,7 @@ function renderMastersPage(user, focus) {
         </div>
         <div class="table-wrap">
           <table class="ma-tbl">
-            <thead><tr><th>Centre</th><th>Type</th>${isAdmin() ? '<th></th>' : ''}</tr></thead>
+            <thead><tr><th>Centre</th><th>Type</th><th>Parent Centre</th>${isAdmin() ? '<th></th>' : ''}</tr></thead>
             <tbody id="maCentreList"></tbody>
           </table>
         </div>
@@ -2609,11 +2611,13 @@ function renderMastersPage(user, focus) {
     </div>
   `;
 
+  const panelCentre = document.getElementById('maPanel-centre');
   const panelItem = document.getElementById('maPanel-item');
   const panelDoc = document.getElementById('maPanel-doc');
-  const showItem = focus !== 'doc';
-  panelItem.style.display = showItem ? '' : 'none';
-  panelDoc.style.display = showItem ? 'none' : '';
+  const view = focus === 'doc' ? 'doc' : focus === 'centre' ? 'centre' : 'item';
+  panelCentre.style.display = view === 'centre' ? '' : 'none';
+  panelItem.style.display = view === 'item' ? '' : 'none';
+  panelDoc.style.display = view === 'doc' ? '' : 'none';
 
   const q = (id) => document.getElementById(id);
 
@@ -2634,14 +2638,15 @@ function renderMastersPage(user, focus) {
     const list = centreRows.filter((c) => !term || (c.name || '').toLowerCase().includes(term) || (c.type || '').toLowerCase().includes(term));
     if (cnt) cnt.textContent = centreRows.length ? `${list.length} of ${centreRows.length}` : '';
     if (!list.length) {
-      centreList.innerHTML = `<tr><td colspan="${isAdmin() ? 3 : 2}" class="empty">${centreRows.length ? 'No centres match your search.' : 'No centres yet.'}</td></tr>`;
+      centreList.innerHTML = `<tr><td colspan="${isAdmin() ? 4 : 3}" class="empty">${centreRows.length ? 'No centres match your search.' : 'No centres yet.'}</td></tr>`;
       return;
     }
     centreList.innerHTML = list.map((c) => {
       const par = parentName(c.parentId);
       return `<tr>
-        <td><span class="item-name">${esc(c.name)}</span>${par ? `<div class="doc-desc">${esc(par)}</div>` : ''}</td>
+        <td><span class="item-name">${esc(c.name)}</span></td>
         <td><span class="ma-status ${(c.type || 'CENTRE') === 'CENTRE' ? 'on' : 'sub'}">${esc(c.type || 'CENTRE')}</span></td>
+        <td>${par ? esc(par) : '<span style="color:var(--muted)">—</span>'}</td>
         ${isAdmin() ? `<td><div class="doc-row-actions"><button class="btn sm" data-cact="edit" data-id="${c.id}" title="Rename or move this centre">Edit</button><button class="btn red sm" data-cact="del" data-id="${c.id}" title="Delete this centre">×</button></div></td>` : ''}
       </tr>`;
     }).join('');
