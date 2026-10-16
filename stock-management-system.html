@@ -412,8 +412,7 @@ td.empty,tr td.empty{color:var(--muted);text-align:center;padding:26px;white-spa
 .fd-box{border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:10px}
 .fd-title{font-weight:700;font-size:12px;color:var(--primary-dark);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px}
 .fd-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
-.masters-grid{display:grid;grid-template-columns:1fr;gap:14px;align-items:start}
-.masters-grid.single{grid-template-columns:1fr}
+.masters-grid{display:grid;grid-template-columns:340px minmax(0,1fr);gap:14px;align-items:start}
 @media (max-width:980px){.masters-grid{grid-template-columns:1fr}}
 .reg-toolbar input[type=text]{padding:8px 12px;border:1px solid var(--line);border-radius:8px;background:#fff;outline:none;font-size:13px;color:var(--text);flex:1;min-width:220px}
 .reg-toolbar input[type=text]:focus{border-color:var(--primary)}
@@ -435,6 +434,7 @@ td.empty,tr td.empty{color:var(--muted);text-align:center;padding:26px;white-spa
 .ma-status{font-size:11.5px;font-weight:700;padding:3px 10px;border-radius:20px;display:inline-block;white-space:nowrap}
 .ma-status.on{background:var(--green-bg);color:var(--green)}
 .ma-status.off{background:var(--red-bg);color:var(--red)}
+.ma-status.sub{background:var(--accent-tint);color:var(--accent)}
 .sci-dl-card{max-width:560px;margin:0 auto;text-align:center;padding:30px 26px}
 .sci-dl-chip{display:inline-block;background:var(--primary-tint);color:var(--primary-dark);font-weight:700;font-size:12px;letter-spacing:.08em;padding:4px 12px;border-radius:20px;margin-bottom:14px}
 .sci-dl-card h3{margin:0 0 8px;font-size:19px;color:var(--text)}
@@ -2546,14 +2546,31 @@ function renderMastersPage(user, focus) {
     <div class="logo-banner">
       <div>
         <h2>Inventory Masters</h2>
-        <p>Item catalogue with auto-generated codes, and document master for GRN &amp; SCI form PDFs.</p>
+        <p>Centre master (create Satsang places), item catalogue with auto-generated codes, and document master for GRN &amp; SCI form PDFs.</p>
       </div>
       <div class="sr-actions">
         <button class="btn sm" id="maExport" title="Download the item catalogue as CSV">Export</button>
         <button class="btn primary" id="maAddItem" title="Add a new stock item">＋ Add Item</button>
       </div>
     </div>
-    <div class="masters-grid single" id="maGrid">
+    <div class="masters-grid" id="maGrid">
+      <div id="maPanel-centre">
+        <div class="reg-toolbar">
+          <div class="rt-row">
+            <span class="ma-badge item">Centre Master</span>
+            <div class="rt-right"><span class="rt-count" id="maCentreCount"></span>${isAdmin() ? '<button class="btn primary sm" id="maAddCentre" title="Add a new centre / sub centre">＋ Add Centre</button>' : ''}</div>
+          </div>
+          <div class="rt-row">
+            <input id="maCentreSearch" type="text" placeholder="Search centres…" autocomplete="off">
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table class="ma-tbl">
+            <thead><tr><th>Centre</th><th>Type</th>${isAdmin() ? '<th></th>' : ''}</tr></thead>
+            <tbody id="maCentreList"></tbody>
+          </table>
+        </div>
+      </div>
       <div id="maPanel-item">
         <div class="reg-toolbar">
           <div class="rt-row">
@@ -2598,6 +2615,136 @@ function renderMastersPage(user, focus) {
   panelItem.style.display = showItem ? '' : 'none';
   panelDoc.style.display = showItem ? 'none' : '';
 
+  const q = (id) => document.getElementById(id);
+
+  /* -------- Centre master -------- */
+  const centreList = q('maCentreList');
+  let centreRows = [];
+  let centreSearch = '';
+
+  function parentName(pid) {
+    if (!pid) return '';
+    const p = centreRows.find((c) => String(c.id) === String(pid));
+    return p ? p.name : '';
+  }
+
+  function renderCentreRows() {
+    const cnt = q('maCentreCount');
+    const term = centreSearch.trim().toLowerCase();
+    const list = centreRows.filter((c) => !term || (c.name || '').toLowerCase().includes(term) || (c.type || '').toLowerCase().includes(term));
+    if (cnt) cnt.textContent = centreRows.length ? `${list.length} of ${centreRows.length}` : '';
+    if (!list.length) {
+      centreList.innerHTML = `<tr><td colspan="${isAdmin() ? 3 : 2}" class="empty">${centreRows.length ? 'No centres match your search.' : 'No centres yet.'}</td></tr>`;
+      return;
+    }
+    centreList.innerHTML = list.map((c) => {
+      const par = parentName(c.parentId);
+      return `<tr>
+        <td><span class="item-name">${esc(c.name)}</span>${par ? `<div class="doc-desc">${esc(par)}</div>` : ''}</td>
+        <td><span class="ma-status ${(c.type || 'CENTRE') === 'CENTRE' ? 'on' : 'sub'}">${esc(c.type || 'CENTRE')}</span></td>
+        ${isAdmin() ? `<td><div class="doc-row-actions"><button class="btn sm" data-cact="edit" data-id="${c.id}" title="Rename or move this centre">Edit</button><button class="btn red sm" data-cact="del" data-id="${c.id}" title="Delete this centre">×</button></div></td>` : ''}
+      </tr>`;
+    }).join('');
+  }
+
+  function loadCentres() {
+    return fetchCenters().then((rows) => { centreRows = rows; renderCentreRows(); });
+  }
+
+  function openCentreModal(existing) {
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    const isEdit = !!existing;
+    const typeVal = isEdit ? (existing.type || 'CENTRE') : 'CENTRE';
+    overlay.innerHTML = `
+      <div class="modal" style="width:min(460px,94vw);max-width:none">
+        <div class="modal-head">
+          <div>
+            <h3>${isEdit ? 'Edit Centre' : 'New Centre'}</h3>
+            <p class="hint">${isEdit ? 'Rename this centre, or move a sub centre under a different parent.' : 'CENTRE = main Satsang place. SUB CENTRE = smaller place under a parent centre.'}</p>
+          </div>
+          <button class="btn sm" id="cmClose">Close</button>
+        </div>
+        <div class="modal-body">
+          <div class="modal-grid" style="margin-top:12px">
+            <div class="field full"><label>Name *</label><input id="cmName" maxlength="120" placeholder="e.g. GURGAON" autocomplete="off" value="${isEdit ? esc(existing.name) : ''}"></div>
+            <div class="field"><label>Type</label><select id="cmType">
+              <option value="CENTRE"${typeVal === 'CENTRE' ? ' selected' : ''}>CENTRE</option>
+              <option value="SUB CENTRE"${typeVal === 'SUB CENTRE' ? ' selected' : ''}>SUB CENTRE</option>
+            </select></div>
+            <div class="field" id="cmParentField"><label>Parent Centre</label><select id="cmParent"><option value="">(none)</option>${centreRows.filter((c) => (c.type || 'CENTRE') === 'CENTRE' && (!isEdit || String(c.id) !== String(existing.id))).map((c) => `<option value="${c.id}"${isEdit && String(existing.parentId) === String(c.id) ? ' selected' : ''}>${esc(c.name)}</option>`).join('')}</select></div>
+          </div>
+          <div class="m-actions">
+            <button class="btn" id="cmCancel">Cancel</button>
+            <button class="btn primary" id="cmSave">${isEdit ? 'Save Changes' : 'Create Centre'}</button>
+          </div>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+    const n = (id) => overlay.querySelector('#' + id);
+    const close = () => { document.body.removeChild(overlay); document.removeEventListener('keydown', escClose, true); };
+    const escClose = (e) => { if (e.key === 'Escape') close(); };
+    document.addEventListener('keydown', escClose, true);
+    const syncParent = () => {
+      const isCentre = n('cmType').value === 'CENTRE';
+      n('cmParentField').style.display = isCentre ? 'none' : '';
+      if (isCentre) n('cmParent').value = '';
+    };
+    n('cmType').addEventListener('change', syncParent);
+    syncParent();
+    n('cmClose').addEventListener('click', close);
+    n('cmCancel').addEventListener('click', close);
+    overlay.addEventListener('mousedown', (e) => { if (e.target === overlay) close(); });
+    n('cmSave').addEventListener('click', async () => {
+      const name = n('cmName').value.trim();
+      if (!name) return toast('Centre name is required', true);
+      const type = n('cmType').value;
+      const parentId = type === 'CENTRE' ? null : (n('cmParent').value || null);
+      if (type === 'SUB CENTRE' && !parentId) return toast('Choose the parent centre for this sub centre', true);
+      const clash = centreRows.find((c) => String(c.id) !== String(isEdit ? existing.id : '') && (c.name || '').trim().toLowerCase() === name.toLowerCase() && (c.type || 'CENTRE') === type);
+      if (clash) return toast('A ' + type.toLowerCase() + ' named "' + clash.name + '" already exists', true);
+      const btn = n('cmSave');
+      btn.disabled = true;
+      try {
+        const { error } = isEdit
+          ? await sb.from('centres').update({ name, type, parentId }).eq('id', existing.id)
+          : await sb.from('centres').insert({ name, type, parentId });
+        if (error) throw new Error(error.message);
+        toast(isEdit ? 'Centre updated' : 'Centre created: ' + name);
+        close();
+        loadCentres();
+      } catch (err) { btn.disabled = false; toast(err.message, true); }
+    });
+    setTimeout(() => { try { n('cmName').focus(); } catch (e) {} }, 60);
+  }
+
+  if (centreList) {
+    centreList.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-cact]');
+      if (!btn) return;
+      const c = centreRows.find((x) => String(x.id) === String(btn.dataset.id));
+      if (!c) return;
+      if (btn.dataset.cact === 'edit') openCentreModal(c);
+      else if (btn.dataset.cact === 'del') {
+        const kids = centreRows.filter((x) => String(x.parentId) === String(c.id));
+        if (kids.length) return toast('Cannot delete "' + c.name + '" — ' + kids.length + ' sub centre(s) are under it. Move or delete them first.', true);
+        if (!confirm('Delete centre "' + c.name + '"? Its stock rows and SCI forms will also be removed. This cannot be undone.')) return;
+        sb.from('centres').delete().eq('id', c.id)
+          .then(({ error }) => {
+            if (error) throw new Error(error.message);
+            toast('Centre deleted: ' + c.name);
+            loadCentres();
+          })
+          .catch((err) => toast(err.message, true));
+      }
+    });
+  }
+  const maCentreSearch = q('maCentreSearch');
+  if (maCentreSearch) maCentreSearch.addEventListener('input', () => { centreSearch = maCentreSearch.value; renderCentreRows(); });
+  const maAddCentre = q('maAddCentre');
+  if (maAddCentre) maAddCentre.addEventListener('click', () => openCentreModal(null));
+  loadCentres().catch((err) => toast(err.message, true));
+
   /* -------- Item master -------- */
   const itemList = document.getElementById('maItemList');
   let items = [];
@@ -2605,8 +2752,6 @@ function renderMastersPage(user, focus) {
   let itemLetter = '';
   let itemPage = 0;
   let itemPageSize = 50;
-
-  const q = (id) => document.getElementById(id);
 
   function populateLetterOptions() {
     const sel = q('maLetter');
