@@ -378,6 +378,17 @@ td.empty,tr td.empty{color:var(--muted);text-align:center;padding:26px;white-spa
 /* ---------- Modal ---------- */
 .modal-overlay{position:fixed;inset:0;background:rgba(23,33,29,.45);display:flex;align-items:center;justify-content:center;z-index:100;padding:16px}
 .modal{background:#fff;border-radius:12px;padding:22px 22px 18px;width:100%;max-width:360px;box-shadow:0 20px 60px -10px rgba(0,0,0,.35)}
+.modal-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding-bottom:12px;border-bottom:1px solid var(--line)}
+.modal-head h3{margin:0;font-size:16.5px;color:var(--text)}
+.modal-head .hint{margin:4px 0 0;max-width:480px}
+.modal-body{padding-top:2px}
+.modal-sec{padding:12px 0 2px}
+.modal-sec + .modal-sec{border-top:1px dashed var(--line);margin-top:8px}
+.modal-sec-title{font-size:10.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--primary);margin-bottom:10px}
+.modal-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.modal-grid .full{grid-column:1/-1}
+.modal-grid .field input[readonly]{background:var(--bg);color:var(--muted);cursor:default}
+.modal-grid .field input::placeholder{color:#a9b0ac}
 .modal h3{font-size:16px;margin-bottom:4px}
 .modal .m-sub{color:var(--muted);font-size:12px;margin-bottom:14px}
 .modal .m-cur{display:flex;justify-content:space-between;align-items:center;background:var(--bg);border-radius:8px;padding:8px 12px;margin-bottom:14px;font-size:12.5px}
@@ -387,8 +398,8 @@ td.empty,tr td.empty{color:var(--muted);text-align:center;padding:26px;white-spa
 .m-step{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin:12px 0}
 .m-step button{padding:7px 0;border:1px solid var(--line);background:#fff;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600}
 .m-step button:hover{background:var(--primary-tint);border-color:var(--primary)}
-.m-actions{display:flex;gap:10px;margin-top:6px}
-.m-actions .btn{flex:1}
+.m-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:18px;padding-top:14px;border-top:1px solid var(--line)}
+.m-actions .btn{flex:0 0 auto;min-width:120px;justify-content:center}
 
 /* ---------- SCI form detail modal ---------- */
 .fd-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
@@ -422,6 +433,16 @@ td.empty,tr td.empty{color:var(--muted);text-align:center;padding:26px;white-spa
 .ma-status{font-size:11.5px;font-weight:700;padding:3px 10px;border-radius:20px;display:inline-block;white-space:nowrap}
 .ma-status.on{background:var(--green-bg);color:var(--green)}
 .ma-status.off{background:var(--red-bg);color:var(--red)}
+.sci-dl-card{max-width:560px;margin:0 auto;text-align:center;padding:30px 26px}
+.sci-dl-chip{display:inline-block;background:var(--primary-tint);color:var(--primary-dark);font-weight:700;font-size:12px;letter-spacing:.08em;padding:4px 12px;border-radius:20px;margin-bottom:14px}
+.sci-dl-card h3{margin:0 0 8px;font-size:19px;color:var(--text)}
+.sci-dl-card p{color:var(--muted);font-size:13.5px;margin:0 auto 18px;max-width:420px}
+.sci-dl-btn{display:inline-flex;align-items:center;gap:8px;padding:11px 22px;font-size:14px;text-decoration:none}
+.sci-dl-card .hint{font-size:12px;margin:16px auto 0}
+.ma-tbl tbody tr:nth-child(even) td{background:#fafbfc}
+.ma-tbl tbody tr:hover td{background:var(--primary-tint)}
+.ma-tbl td:last-child,.ma-tbl th:last-child{text-align:right}
+.ma-tbl .doc-row-actions{justify-content:flex-end}
 .ma-created{color:var(--muted);font-size:12px;white-space:nowrap}
 .im-sim{margin:2px 0 14px;border:1px solid var(--line);border-radius:10px;background:var(--bg);padding:10px 12px}
 .im-sim-note{font-size:11.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;margin-bottom:8px}
@@ -1083,6 +1104,16 @@ const SCI_STOCK_EFFECT = {
   SCI43: { src: 'centre', dst: 'destination', delta: -1, deltaDst: +1 },
   SCI15: { src: 'centre', delta: -1 },
   SCI34: { src: 'centre', delta: -1 }
+};
+
+// Official SCI form templates (Word .docx) served from /downloads.
+const SCI_DOWNLOADS = {
+  SCI45: 'SCI-45 - CONDEMNATION OF ARTICLES & REQUIREMENT OF ITEMS.docx',
+  SCI53: 'SCI-53 - REQUIREMENT OF ITEMS _ MATERIAL FROM BEAS.docx',
+  SCI76: 'SCI-76 - MATERIAL ISSUE VOUCHER.docx',
+  SCI43: 'SCI-43 - TRANSFER OF SURPLUS ITEMS FROM ONE CENTRE TO ANOTHER.docx',
+  SCI15: 'SCI-15 - OFFER OF ITEMS _ MATERIAL IN DONATION.docx',
+  SCI34: 'SCI-34 - SALE PROCEEDS OF CONDEMNED_SURPLUS ITEMS _ SCRAP ETC.docx'
 };
 
 // ---------- SCI official paper-format builder ----------
@@ -1916,7 +1947,7 @@ function renderStockPage(user, routeParams) {
        let diffFilter = null;  */
   let skipCurrentCentre = null;
   let page = 0;
-  let pageSize = 50;
+  let pageSize = 10;
   const canDeleteReg = function () { return isAdmin(); }();
   const SCROLL_KEY = 'stock-register-scroll';
   const paramC = routeParams.get('c');
@@ -2039,7 +2070,7 @@ function renderStockPage(user, routeParams) {
           <select id="regCentre" title="Filter the register to one centre"></select>
           <button class="btn sm" id="btnClear" title="Clear all filters">Clear All</button>
           <div class="rt-right">
-            <span class="rt-size"><span>Show</span><select id="pgSize" title="Rows per page"><option value="25">25</option><option value="50" selected>50</option><option value="100">100</option></select><span>Entries</span></span>
+            <span class="rt-size"><span>Show</span><select id="pgSize" title="Rows per page"><option value="5">5</option><option value="10" selected>10</option><option value="25">25</option><option value="50">50</option><option value="100">100</option></select><span>Entries</span></span>
             <span class="rt-count">${shown.length} records</span>
             <button class="btn sm" id="btnPrint" title="Print the register">Print</button>
             <button class="btn sm" id="btnExport" title="Download the verification register as CSV">Export</button>
@@ -2095,7 +2126,7 @@ function renderStockPage(user, routeParams) {
     const btnClear = content.querySelector('#btnClear');
     if (btnClear) btnClear.addEventListener('click', () => { skipCurrentCentre = null; page = 0; render(); });
     const pgSize = content.querySelector('#pgSize');
-    if (pgSize) pgSize.addEventListener('change', () => { pageSize = Number(pgSize.value) || 50; page = 0; render(); });
+    if (pgSize) pgSize.addEventListener('change', () => { pageSize = Number(pgSize.value) || 10; page = 0; render(); });
     content.querySelectorAll('.pg-btn').forEach((b) => b.addEventListener('click', () => {
       if (b.disabled) return;
       if (b.dataset.pg === 'prev') page = Math.max(0, page - 1);
@@ -2177,29 +2208,51 @@ function renderStockPage(user, routeParams) {
     overlay.className = 'modal-overlay';
     overlay.innerHTML = `
       <div class="modal" style="width:min(680px,94vw)">
-        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
-          <h3 style="margin:0">${entry ? 'Edit Verification Entry' : 'New Verification Entry'}</h3>
+        <div class="modal-head">
+          <div>
+            <h3>${entry ? 'Edit Verification Entry' : 'New Verification Entry'}</h3>
+            <p class="hint">${entry ? 'Update this row of the paper-style verification register.' : 'Rows are appended to the paper-style register — enter the counted quantity as (B); the Difference is computed automatically.'}</p>
+          </div>
           <button class="btn sm" id="rmCancel">Close</button>
         </div>
-        <p class="hint" style="margin:8px 0 0">Rows are appended to the paper-style register. Quantity (A) is filled from the book figure; enter the counted quantity as (B) and the Difference is computed automatically. When an Approval Number <b>and</b> Approval Date are recorded, the centre's book figure for this item is automatically updated to (B).</p>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px">
-          <div class="field">
-            <label>Satsang Place (Centre) *</label>
-            <select id="rm_centre">${scoped.map((c) => `<option value="${c.id}"${entry && Number(entry.centreId) === c.id ? ' selected' : ''}>${esc(c.name)}</option>`).join('')}</select>
+        <div class="modal-body">
+          <div class="modal-sec">
+            <div class="modal-sec-title">Entry</div>
+            <div class="modal-grid">
+              <div class="field">
+                <label>Satsang Place (Centre) *</label>
+                <select id="rm_centre">${scoped.map((c) => `<option value="${c.id}"${entry && Number(entry.centreId) === c.id ? ' selected' : ''}>${esc(c.name)}</option>`).join('')}</select>
+              </div>
+              <div class="field">
+                <label>Name of Item *</label>
+                <select id="rm_item">${state.items.map((it) => `<option value="${esc(it)}"${entry && entry.item === it ? ' selected' : ''}>${esc(it)}</option>`).join('') || '<option value="">(no items yet)</option>'}</select>
+              </div>
+            </div>
           </div>
-          <div class="field">
-            <label>Name of Item *</label>
-            <select id="rm_item">${state.items.map((it) => `<option value="${esc(it)}"${entry && entry.item === it ? ' selected' : ''}>${esc(it)}</option>`).join('') || '<option value="">(no items yet)</option>'}</select>
+          <div class="modal-sec">
+            <div class="modal-sec-title">Approval</div>
+            <div class="modal-grid">
+              <div class="field"><label>Approval Number</label><input id="rm_appr" placeholder="e.g. ARD/2026/001" value="${esc(entry ? entry.approvalNo || '' : '')}"></div>
+              <div class="field"><label>Approval Date</label><input type="date" id="rm_adate" value="${esc(entry && entry.approvalDate ? entry.approvalDate.slice(0, 10) : new Date().toISOString().slice(0, 10))}"></div>
+              <div class="field full"><label>Stock Register Page No.</label><input id="rm_page" placeholder="e.g. 12" value="${esc(entry ? entry.pageNo || '' : '')}"></div>
+            </div>
           </div>
-          <div class="field"><label>Stock Register Page No.</label><input id="rm_page" placeholder="e.g. 12" value="${esc(entry ? entry.pageNo || '' : '')}"></div>
-          <div class="field"><label>Approval Number</label><input id="rm_appr" placeholder="e.g. ARD/2026/001" value="${esc(entry ? entry.approvalNo || '' : '')}"></div>
-          <div class="field"><label>Approval Date</label><input type="date" id="rm_adate" value="${esc(entry && entry.approvalDate ? entry.approvalDate.slice(0, 10) : new Date().toISOString().slice(0, 10))}"></div>
-          <div class="field"><label>Quantity as per Stock Register (A)</label><input type="number" id="rm_qtyA" min="0" value="${entry ? Number(entry.qtyA) : 0}" readonly></div>
-          <div class="field"><label>Physically Available Quantity (B)</label><input type="number" id="rm_qtyB" min="0" value="${entry ? Number(entry.qtyB) : 0}"></div>
-          <div class="field"><label>Unit</label><input id="rm_unit" placeholder="e.g. mtr, nos, KG" value="${esc(entry ? entry.unit || unitOf(entry.centreId, entry.item) : '')}"></div>
-          <div class="field"><label>Difference (if any) (A − B)</label><input type="text" id="rm_diff" readonly value="${entry ? diffTxt(Number(entry.difference)) : 0}"></div>
-          <div class="field" style="grid-column:1/-1"><label>Reason for Difference</label><input id="rm_reason" placeholder="Only if there is any difference" value="${esc(entry ? entry.reason || '' : '')}"></div>
-          <div class="field" style="grid-column:1/-1"><label>Remarks</label><input id="rm_remarks" placeholder="Any remarks" value="${esc(entry ? entry.remarks || '' : '')}"></div>
+          <div class="modal-sec">
+            <div class="modal-sec-title">Quantities</div>
+            <div class="modal-grid">
+              <div class="field"><label>Quantity as per Stock Register (A)</label><input type="number" id="rm_qtyA" min="0" value="${entry ? Number(entry.qtyA) : 0}" readonly></div>
+              <div class="field"><label>Physically Available Quantity (B)</label><input type="number" id="rm_qtyB" min="0" value="${entry ? Number(entry.qtyB) : 0}"></div>
+              <div class="field"><label>Unit</label><input id="rm_unit" placeholder="e.g. mtr, nos, KG" value="${esc(entry ? entry.unit || unitOf(entry.centreId, entry.item) : '')}"></div>
+              <div class="field"><label>Difference (A − B)</label><input type="text" id="rm_diff" readonly value="${entry ? diffTxt(Number(entry.difference)) : 0}"></div>
+            </div>
+          </div>
+          <div class="modal-sec">
+            <div class="modal-sec-title">Remarks</div>
+            <div class="modal-grid">
+              <div class="field full"><label>Reason for Difference</label><input id="rm_reason" placeholder="Only if there is any difference" value="${esc(entry ? entry.reason || '' : '')}"></div>
+              <div class="field full"><label>Remarks</label><input id="rm_remarks" placeholder="Any remarks" value="${esc(entry ? entry.remarks || '' : '')}"></div>
+            </div>
+          </div>
         </div>
         <div class="m-actions">
           <button class="btn" id="rmCancel2">Cancel</button>
@@ -2689,30 +2742,47 @@ function renderMastersPage(user, focus) {
     overlay.className = 'modal-overlay';
     overlay.innerHTML = `
       <div class="modal" style="width:min(760px,96vw);max-width:none">
-        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
-          <h3 style="margin:0">${isEdit ? 'Edit Item' : 'Add New Item'}</h3>
+        <div class="modal-head">
+          <div>
+            <h3>${isEdit ? 'Edit Item' : 'Add New Item'}</h3>
+            <p class="hint">${isEdit
+              ? `Editing <b>${esc(record.name)}</b>${record.code ? ' (' + esc(record.code) + ')' : ''} · created ${record.createdAt ? esc(String(record.createdAt).slice(0, 10)) : 'unknown'}`
+              : 'New catalogue entry gets an auto-generated item code (ITM-###).'}</p>
+          </div>
           <button class="btn sm" id="imClose">Close</button>
         </div>
-        <p class="m-sub" style="margin-bottom:12px">${isEdit
-          ? `Editing <b>${esc(record.name)}</b>${record.code ? ' (' + esc(record.code) + ')' : ''} · created ${record.createdAt ? esc(String(record.createdAt).slice(0, 10)) : 'unknown'}`
-          : 'New catalogue entry gets an auto-generated item code (ITM-###).'}</p>
-        <div id="imSim"></div>
-        <div class="sci-grid">
-          <div class="field" style="grid-column:1/-1">
-            <label for="imName">Item Name *</label>
-            <input id="imName" type="text" maxlength="200" placeholder="e.g. Amplifier 80 W" autocomplete="off" value="${esc(itemVal(record, 'name'))}">
+        <div class="modal-body">
+          <div class="modal-sec">
+            <div class="modal-sec-title">Item</div>
+            <div class="modal-grid">
+              <div class="field full">
+                <label for="imName">Item Name *</label>
+                <input id="imName" type="text" maxlength="200" placeholder="e.g. Amplifier 80 W" autocomplete="off" value="${esc(itemVal(record, 'name'))}">
+              </div>
+              <div id="imSim" class="full"></div>
+              <div class="field full"><label for="imStandard">Standard Name</label><input id="imStandard" type="text" maxlength="200" placeholder="e.g. Amplifier" autocomplete="off" value="${esc(itemVal(record, 'standardName'))}"></div>
+            </div>
           </div>
-          <div class="field"><label for="imStandard">Standard Name</label><input id="imStandard" type="text" maxlength="200" placeholder="e.g. Amplifier" autocomplete="off" value="${esc(itemVal(record, 'standardName'))}"></div>
-          <div class="field"><label for="imCategory">Category</label><input id="imCategory" type="text" maxlength="100" placeholder="e.g. Electronics" value="${esc(itemVal(record, 'category'))}"></div>
-          <div class="field"><label for="imSub">Subcategory</label><input id="imSub" type="text" maxlength="100" placeholder="e.g. Audio" value="${esc(itemVal(record, 'subcategory'))}"></div>
-          <div class="field"><label for="imUnit">Unit</label><input id="imUnit" type="text" maxlength="40" placeholder="e.g. Nos" value="${esc(itemVal(record, 'unit'))}"></div>
-          <div class="field"><label for="imBrand">Brand</label><input id="imBrand" type="text" maxlength="100" placeholder="e.g. Sony" value="${esc(itemVal(record, 'brand'))}"></div>
-          <div class="field"><label for="imModel">Model</label><input id="imModel" type="text" maxlength="100" placeholder="Model / capacity / rating" value="${esc(itemVal(record, 'model'))}"></div>
-          <div class="field"><label for="imStatus">Status</label><select id="imStatus">${['Active', 'Inactive'].map((st) => `<option${(itemVal(record, 'status') || (isEdit ? '' : 'Active')) === st ? ' selected' : ''}>${st}</option>`).join('')}</select></div>
-          <div class="field"><label for="imDesc">Description</label><input id="imDesc" type="text" maxlength="255" placeholder="Short description" value="${esc(itemVal(record, 'description'))}"></div>
+          <div class="modal-sec">
+            <div class="modal-sec-title">Classification</div>
+            <div class="modal-grid">
+              <div class="field"><label for="imCategory">Category</label><input id="imCategory" type="text" maxlength="100" placeholder="e.g. Electronics" value="${esc(itemVal(record, 'category'))}"></div>
+              <div class="field"><label for="imSub">Subcategory</label><input id="imSub" type="text" maxlength="100" placeholder="e.g. Audio" value="${esc(itemVal(record, 'subcategory'))}"></div>
+              <div class="field"><label for="imUnit">Unit</label><input id="imUnit" type="text" maxlength="40" placeholder="e.g. Nos" value="${esc(itemVal(record, 'unit'))}"></div>
+              <div class="field"><label for="imBrand">Brand</label><input id="imBrand" type="text" maxlength="100" placeholder="e.g. Sony" value="${esc(itemVal(record, 'brand'))}"></div>
+              <div class="field full"><label for="imModel">Model</label><input id="imModel" type="text" maxlength="100" placeholder="Model / capacity / rating" value="${esc(itemVal(record, 'model'))}"></div>
+            </div>
+          </div>
+          <div class="modal-sec">
+            <div class="modal-sec-title">Details</div>
+            <div class="modal-grid">
+              <div class="field"><label for="imStatus">Status</label><select id="imStatus">${['Active', 'Inactive'].map((st) => `<option${(itemVal(record, 'status') || (isEdit ? '' : 'Active')) === st ? ' selected' : ''}>${st}</option>`).join('')}</select></div>
+              <div class="field"><label for="imDesc">Description</label><input id="imDesc" type="text" maxlength="255" placeholder="Short description" value="${esc(itemVal(record, 'description'))}"></div>
+            </div>
+          </div>
         </div>
-        <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:18px">
-          <button class="btn sm" id="imCancel">Cancel</button>
+        <div class="m-actions">
+          <button class="btn" id="imCancel">Cancel</button>
           <button class="btn primary" id="imSave">${isEdit ? 'Save Changes' : 'Create New Item'}</button>
         </div>
       </div>`;
@@ -2931,7 +3001,32 @@ function renderMastersPage(user, focus) {
 /* =========================================================================
    SCI forms page
    ========================================================================= */
+function renderSCIDownloadPage(user, focus) {
+  document.body.classList.remove('login-page');
+  const content = document.getElementById('content');
+  const code = SCI_FORM_META.some((m) => m.code === focus) ? focus : SCI_FORM_META[0].code;
+  const meta = SCI_FORM_META.find((m) => m.code === code) || SCI_FORM_META[0];
+  const file = SCI_DOWNLOADS[code] || '';
+  const href = file ? encodeURI('downloads/' + file) : '#';
+  content.innerHTML = `
+    <div class="logo-banner">
+      <div>
+        <h2>${esc(code)} — ${esc(meta.title)}</h2>
+        <p>${esc(meta.hint || '')}</p>
+      </div>
+    </div>
+    <div class="card sci-dl-card">
+      <div class="sci-dl-chip">${esc(code)}</div>
+      <h3>${esc(meta.title)}</h3>
+      <p>${esc(meta.hint || '')}</p>
+      <a class="btn primary sci-dl-btn" href="${href}" download rel="noopener">Download form (.docx)</a>
+      <p class="hint">Official Word template — open it, fill in the details, then print or save as PDF for submission.</p>
+    </div>`;
+}
+
 function renderSCIFormsPage(user, focus) {
+  return renderSCIDownloadPage(user, focus);
+  /* SCI form editor disabled — download-only page (see renderSCIDownloadPage above). */
   document.body.classList.remove('login-page');
   const content = document.getElementById('content');
   const state = { forms: [], destinations: [], stock: null };
