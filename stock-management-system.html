@@ -2494,7 +2494,7 @@ function renderStockPage(user, routeParams) {
         </div>
         <div class="sr-actions">
           <button class="btn sm" id="btnManage" title="Add, edit or delete stock items">Manage Items</button>
-          <button class="btn primary" id="btnNew" title="Enter a new physical verification entry">ï¼‹ New Verification Entry</button>
+          <button class="btn primary" id="btnNew" title="Enter a new physical verification entry">+ New Verification Entry</button>
         </div>
       </div>
       <div class="reg-toolbar">
@@ -3002,7 +3002,7 @@ function renderMastersPage(user, focus) {
             <button type="button" id="maExpPrint">Print / PDF</button>
           </div>
         </div>
-        <button class="btn primary" id="maAddItem" title="Add a new stock item">ï¼‹ Add Item</button>
+        <button class="btn primary" id="maAddItem" title="Add a new stock item">+ Add Item</button>
       </div>
     </div>
     <div class="masters-grid" id="maGrid">
@@ -3010,7 +3010,7 @@ function renderMastersPage(user, focus) {
         <div class="reg-toolbar">
           <div class="rt-row">
             <span class="ma-badge item">Centre Master</span>
-            <div class="rt-right"><span class="rt-count" id="maCentreCount"></span>${isAdmin() ? '<button class="btn primary sm" id="maAddCentre" title="Add a new centre / sub centre">ï¼‹ Add Centre</button>' : ''}</div>
+            <div class="rt-right"><span class="rt-count" id="maCentreCount"></span>${isAdmin() ? '<button class="btn primary sm" id="maAddCentre" title="Add a new centre / sub centre">+ Add Centre</button>' : ''}</div>
           </div>
           <div class="rt-row">
             <input id="maCentreSearch" type="text" placeholder="Search centresâ€¦" autocomplete="off">
@@ -3048,7 +3048,7 @@ function renderMastersPage(user, focus) {
           <div class="rt-row">
             <span class="ma-badge doc">Document Master</span>
             <span class="ma-sub">Upload SCI form PDFs &amp; manage GRN number</span>
-            <div class="rt-right"><span class="rt-count" id="maDocCount"></span>${isAdmin() ? '<button class="btn primary sm" id="maAddDoc" title="Add a new document type">ï¼‹ Add Document</button>' : ''}</div>
+            <div class="rt-right"><span class="rt-count" id="maDocCount"></span>${isAdmin() ? '<button class="btn primary sm" id="maAddDoc" title="Add a new document type">+ Add Document</button>' : ''}</div>
           </div>
         </div>
         <div class="table-wrap">
@@ -3645,7 +3645,7 @@ function renderMastersPage(user, focus) {
         <div style="margin-top:14px;display:grid;gap:10px">
           <input id="adName" placeholder="Document name (e.g. SCI55)" maxlength="100" autocomplete="off">
           <input id="adDesc" placeholder="Description (optional)" maxlength="255" autocomplete="off">
-          <button class="btn primary" id="adSave">ï¼‹ Create Document</button>
+          <button class="btn primary" id="adSave">+ Create Document</button>
         </div>
       </div>`;
     document.body.appendChild(overlay);
@@ -3854,7 +3854,7 @@ async function openSCIUploadModal(file, expectedCode) {
         <div class="field full" style="margin-top:14px">
           <label>Items from the form (edit name, quantity or unit as needed)</label>
           <div id="suItems" class="sci-items"><div class="hint" style="padding:14px">Reading the .docx fileâ€¦</div></div>
-          <button class="btn sm" id="suAddRow" type="button">ï¼‹ Add Row</button>
+          <button class="btn sm" id="suAddRow" type="button">+ Add Row</button>
         </div>
         <datalist id="suItemNames"></datalist>
         <div class="m-actions">
@@ -4249,7 +4249,7 @@ END SCI PAGE HELPERS */
             <datalist id="sciManualItems">${state.stock && state.stock.items ? state.stock.items.map((i) => `<option value="${esc(i)}"></option>`).join('') : ''}</datalist>
             <div class="sci-items" id="sciItems"></div>
             <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:4px">
-              <button type="button" class="btn sm" id="sciAddItem">ï¼‹ Add another item</button>
+              <button type="button" class="btn sm" id="sciAddItem">+ Add another item</button>
               <span class="hint">${hasRegister ? 'Pick the items from the stock register above and enter the quantity. The register balance is shown for reference.' : 'Enter item / material name, quantity and unit. Items are listed from the Item Master for quick entry.'}</span>
             </div>
             <div class="field full" style="margin-top:16px"><label>Description / serial numbers</label><textarea id="sci_details" placeholder="Serial numbers, condition, or notes if the items above are not enough"></textarea></div>
