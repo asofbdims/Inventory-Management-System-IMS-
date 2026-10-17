@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -520,22 +520,11 @@ td.empty,tr td.empty{color:var(--muted);text-align:center;padding:26px;white-spa
 .ma-tbl tbody tr:hover td{background:var(--primary-tint)}
 .ma-tbl td:last-child,.ma-tbl th:last-child{text-align:right}
 .ma-tbl .doc-row-actions{justify-content:flex-end}
-#maPanel-item .ma-tbl{table-layout:fixed}
-#maPanel-item .ma-tbl th{white-space:normal}
+#maPanel-item .ma-tbl{table-layout:auto;min-width:1900px}
+#maPanel-item .ma-tbl th{white-space:nowrap}
 #maPanel-item .ma-tbl td{overflow:hidden}
-#maPanel-item .ma-tbl .doc-row-actions{flex-wrap:wrap}
-#maPanel-item .ma-tbl th:nth-child(1),#maPanel-item .ma-tbl td:nth-child(1){width:8%}
-#maPanel-item .ma-tbl th:nth-child(2),#maPanel-item .ma-tbl td:nth-child(2){width:13%}
-#maPanel-item .ma-tbl th:nth-child(3),#maPanel-item .ma-tbl td:nth-child(3){width:10%}
-#maPanel-item .ma-tbl th:nth-child(4),#maPanel-item .ma-tbl td:nth-child(4){width:14%}
-#maPanel-item .ma-tbl th:nth-child(5),#maPanel-item .ma-tbl td:nth-child(5){width:7%}
-#maPanel-item .ma-tbl th:nth-child(6),#maPanel-item .ma-tbl td:nth-child(6){width:7%}
-#maPanel-item .ma-tbl th:nth-child(7),#maPanel-item .ma-tbl td:nth-child(7){width:5%}
-#maPanel-item .ma-tbl th:nth-child(8),#maPanel-item .ma-tbl td:nth-child(8){width:6%}
-#maPanel-item .ma-tbl th:nth-child(9),#maPanel-item .ma-tbl td:nth-child(9){width:6%}
-#maPanel-item .ma-tbl th:nth-child(10),#maPanel-item .ma-tbl td:nth-child(10){width:7%}
-#maPanel-item .ma-tbl th:nth-child(11),#maPanel-item .ma-tbl td:nth-child(11){width:7%}
-#maPanel-item .ma-tbl th:nth-child(12),#maPanel-item .ma-tbl td:nth-child(12){width:10%}
+#maPanel-item .ma-tbl .doc-row-actions{flex-wrap:nowrap}
+#maPanel-item .ma-tbl td.col-sticky{min-width:130px}
 .ma-created{color:var(--muted);font-size:12px;white-space:nowrap}
 .im-sim{margin:2px 0 14px;border:1px solid var(--line);border-radius:10px;background:var(--bg);padding:10px 12px}
 .im-sim-note{font-size:11.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;margin-bottom:8px}
@@ -3380,12 +3369,12 @@ function renderMastersPage(user, focus) {
     const cnt = q('maCount');
     if (cnt) cnt.textContent = items.length ? `${list.length} of ${items.length} items` : '';
     if (!items.length) {
-      itemList.innerHTML = '<tr><td colspan="12" class="empty">No items yet - click Add Item.</td></tr>';
+      itemList.innerHTML = '<tr><td colspan="20" class="empty">No items yet - click Add Item.</td></tr>';
       renderItemPagination(totalPages, 0);
       return;
     }
     if (!list.length) {
-      itemList.innerHTML = '<tr><td colspan="12" class="empty">No items match your search.</td></tr>';
+      itemList.innerHTML = '<tr><td colspan="20" class="empty">No items match your search.</td></tr>';
       renderItemPagination(totalPages, 0);
       return;
     }
