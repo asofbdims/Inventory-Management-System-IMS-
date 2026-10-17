@@ -27,6 +27,18 @@
   --sky:#3F8FB0; --sky-bg:#E9F5F9;
   --radius:10px;
   --shadow:0 1px 2px rgba(23,33,29,.06), 0 6px 20px -8px rgba(23,33,29,.10);
+  --sidebar-bg:#F8F8F8;
+  --sidebar-border:#DDDFEB;
+  --sidebar-text:#444444;
+  --sidebar-muted:#858796;
+  --sidebar-hover:#EAF2EF;
+  --sidebar-active:#E7F0EC;
+  --sidebar-active-text:#153F37;
+  --brand-bar:#E8E8E8;
+  --thead:#FFFFFF;
+  --input-border:#D1D5DB;
+  --chip-bg:#F7F8FC;
+  --chip-border:#ECECEE;
 }
 *{box-sizing:border-box}
 html,body{margin:0;padding:0}
@@ -38,7 +50,7 @@ body{
   line-height:1.5;
   min-height:100vh;
 }
-h1,h2,h3{font-family:'Source Serif 4',Georgia,serif;font-weight:600;margin:0;color:var(--primary-dark)}
+h1,h2,h3{font-family:'Inter',system-ui,-apple-system,sans-serif;font-weight:600;margin:0;color:var(--primary-dark)}
 a{color:var(--primary);text-decoration:none}
 input,select,button{font-family:inherit;font-size:13.5px}
 .mono{font-family:'JetBrains Mono',monospace}
@@ -47,58 +59,79 @@ input,select,button{font-family:inherit;font-size:13.5px}
 #app{min-height:100vh}
 .shell{display:flex;min-height:100vh;background:var(--bg)}
 .sidebar{
-  width:256px;flex:0 0 auto;background:var(--primary-dark);color:#fff;
-  display:flex;flex-direction:column;position:sticky;top:0;height:100vh;
+  width:262px;flex:0 0 auto;background:var(--sidebar-bg);color:var(--sidebar-text);
+  display:flex;flex-direction:column;position:sticky;top:0;height:100vh;border-right:1px solid var(--sidebar-border);transition:width .18s ease;
 }
-.side-brand{display:flex;align-items:center;gap:11px;padding:18px 18px 14px;border-bottom:1px solid rgba(255,255,255,.08)}
-.side-brand .mark{width:34px;height:34px;border-radius:9px;background:var(--accent);color:var(--primary-dark);display:flex;align-items:center;justify-content:center;font-family:'Source Serif 4',serif;font-weight:800;font-size:17px}
-.side-brand b{display:block;font-family:'Source Serif 4',serif;font-size:16px;color:#fff}
-.side-brand small{color:rgba(255,255,255,.6);font-size:10.5px;letter-spacing:.04em}
+.side-brand{position:relative;display:flex;flex-direction:column;align-items:center;text-align:center;gap:7px;padding:22px 16px 16px;background:var(--brand-bar);border-bottom:4px solid var(--primary)}
+.side-brand .mark{width:46px;height:46px;border-radius:11px;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-family:'Inter',sans-serif;font-weight:800;font-size:21px}
+.side-brand b{display:block;font-family:'Inter',sans-serif;font-size:15px;font-weight:600;color:#111;letter-spacing:.06em;text-transform:uppercase}
+.side-brand small{display:block;color:var(--sidebar-muted);font-size:11px;letter-spacing:.03em;text-transform:uppercase;font-weight:600;margin-top:1px}
+.side-brand .brand-period{margin-top:7px;color:var(--sidebar-text);font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.02em}
+.side-toggle{position:absolute;right:-19px;top:50%;transform:translateY(-50%);z-index:60;width:38px;height:38px;border-radius:50%;background:#eee;border:1px solid var(--sidebar-border);color:#111;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s}
+.side-toggle:hover{background:var(--sidebar-hover)}
+.side-toggle svg{width:19px;height:19px;transition:transform .18s}
+.shell.mini .side-toggle svg{transform:rotate(180deg)}
 .side-nav{flex:1;overflow:auto;padding:12px 12px 16px}
-.nav-group{margin-bottom:18px}
-.nav-label{font-size:10px;font-weight:700;letter-spacing:.1em;color:rgba(255,255,255,.45);text-transform:uppercase;padding:0 10px;margin-bottom:6px}
-.nav-item{display:flex;align-items:center;gap:11px;color:rgba(255,255,255,.75);padding:9px 11px;border-radius:9px;font-size:13.5px;font-weight:500;margin-bottom:2px;transition:background .15s,color .15s}
-.nav-item svg{width:18px;height:18px;flex:0 0 auto}
-.nav-item:hover{background:rgba(255,255,255,.08);color:#fff}
-.nav-item.active{background:var(--accent);color:var(--primary-dark);font-weight:600}
-.nav-drop{margin-bottom:2px}
-.nav-parent{display:flex;align-items:center;gap:11px;color:rgba(255,255,255,.75);width:100%;background:none;border:none;padding:9px 11px;border-radius:9px;font-size:13.5px;font-weight:500;cursor:pointer;text-align:left;transition:background .15s,color .15s;font-family:inherit}
-.nav-parent svg{width:18px;height:18px;flex:0 0 auto}
-.nav-parent:hover{background:rgba(255,255,255,.08);color:#fff}
-.nav-parent.active{background:var(--accent);color:var(--primary-dark);font-weight:600}
-.nav-parent .nav-chev{margin-left:auto;width:14px;height:14px;transition:transform .18s}
+.nav-group{margin-bottom:14px}
+.nav-label{font-size:10.5px;font-weight:700;letter-spacing:.1em;color:var(--sidebar-muted);text-transform:uppercase;padding:0 10px;margin-bottom:6px}
+.nav-item{display:flex;align-items:center;gap:11px;color:var(--sidebar-text);padding:10px 12px;border-radius:8px;font-size:14.5px;font-weight:500;margin-bottom:1px;transition:background .15s,color .15s}
+.nav-item svg{width:20px;height:20px;flex:0 0 auto}
+.nav-item:hover{background:var(--sidebar-hover);color:#111}
+.nav-item.active{background:var(--sidebar-active);color:var(--sidebar-active-text);font-weight:600}
+.nav-drop{margin-bottom:1px}
+.nav-parent{display:flex;align-items:center;gap:11px;color:var(--sidebar-text);width:100%;background:none;border:none;padding:10px 12px;border-radius:8px;font-size:14.5px;font-weight:500;cursor:pointer;text-align:left;transition:background .15s,color .15s;font-family:inherit}
+.nav-parent svg{width:20px;height:20px;flex:0 0 auto}
+.nav-parent:hover{background:var(--sidebar-hover);color:#111}
+.nav-parent.active{background:var(--sidebar-active);color:var(--sidebar-active-text);font-weight:600}
+.nav-parent .nav-chev{margin-left:auto;width:15px;height:15px;color:var(--sidebar-muted);transition:transform .18s}
 .nav-parent.open .nav-chev{transform:rotate(180deg)}
 .nav-sub{max-height:0;overflow:hidden;transition:max-height .2s ease}
-.nav-sub.open{max-height:260px}
-.nav-sub-item{display:flex;align-items:center;gap:11px;color:rgba(255,255,255,.62);padding:8px 11px 8px 26px;border-radius:8px;font-size:12.5px;font-weight:500;margin-bottom:1px;text-decoration:none}
-.nav-sub-item svg{width:16px;height:16px;flex:0 0 auto}
-.nav-sub-item:hover{background:rgba(255,255,255,.08);color:#fff}
-.nav-sub-item.active{background:rgba(255,255,255,.16);color:#fff}
+.nav-sub.open{max-height:360px}
+.nav-sub-item{display:flex;align-items:center;gap:11px;color:var(--sidebar-text);padding:9px 12px 9px 30px;border-radius:8px;font-size:13.5px;font-weight:500;margin-bottom:1px;text-decoration:none;opacity:.85}
+.nav-sub-item svg{width:17px;height:17px;flex:0 0 auto}
+.nav-sub-item:hover{background:var(--sidebar-hover);color:#111;opacity:1}
+.nav-sub-item.active{background:var(--sidebar-active);color:var(--sidebar-active-text);font-weight:600;opacity:1}
 .nav-drop2{margin-bottom:1px}
-.nav-drop2 .nav-parent{padding:8px 11px 8px 20px;font-size:12.5px}
-.nav-drop2 .nav-parent .nav-chev{width:13px;height:13px}
-.nav-drop2 .nav-sub-item{padding-left:38px;font-size:12px}
+.nav-drop2 .nav-parent{padding:9px 12px 9px 22px;font-size:13.5px}
+.nav-drop2 .nav-parent .nav-chev{width:14px;height:14px}
+.nav-drop2 .nav-sub-item{padding-left:42px;font-size:13px}
 .nav-sub2{max-height:0;overflow:hidden;transition:max-height .2s ease}
-.nav-sub2.open{max-height:200px}
-.side-foot{border-top:1px solid rgba(255,255,255,.08);padding:12px 14px}
-.side-foot .who{display:flex;align-items:center;gap:10px;color:rgba(255,255,255,.85);font-size:12.5px;margin-bottom:10px}
-.side-foot .avatar{width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.14);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;color:#fff;flex:0 0 auto}
-.side-foot .who-txt{min-width:0}
-.side-foot .who-txt b{color:#fff;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12.5px}
-.side-foot .role{font-size:10.5px;background:var(--accent);color:var(--primary-dark);padding:1px 8px;border-radius:100px;font-weight:700}
-.side-foot .logout{width:100%;background:transparent;border:1px solid rgba(255,255,255,.25);color:#fff;padding:8px 0;border-radius:8px;cursor:pointer;font-size:12.5px}
-.side-foot .logout:hover{background:rgba(255,255,255,.1)}
+.nav-sub2.open{max-height:280px}
+.shell.mini .sidebar{width:78px}
+.shell.mini .side-brand{padding:18px 6px 14px}
+.shell.mini .side-brand > b,.shell.mini .side-brand small,.shell.mini .brand-period{display:none}
+.shell.mini .nav-label{display:none}
+.shell.mini .nav-item,.shell.mini .nav-parent{justify-content:center;padding:11px 0}
+.shell.mini .nav-item span,.shell.mini .nav-parent span,.shell.mini .nav-sub-item span{display:none}
+.shell.mini .nav-parent .nav-chev{display:none}
+.shell.mini .nav-sub-item{justify-content:center;padding:10px 0}
+.shell.mini .nav-sub.open,.shell.mini .nav-sub2.open{max-height:320px}
 .shell .main{flex:1;min-width:0;display:flex;flex-direction:column}
-.tophead{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 26px;border-bottom:1px solid var(--line);background:var(--surface)}
-.page-title{font-family:'Source Serif 4',serif;font-size:20px;font-weight:600;margin:0}
+.tophead{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 24px;border-bottom:1px solid var(--sidebar-border);background:var(--surface);position:sticky;top:0;z-index:40}
+.page-title{font-family:'Inter',system-ui,sans-serif;font-size:22px;font-weight:600;margin:0;color:#111}
 .tophead-right{display:flex;align-items:center;gap:12px}
 .period-pill{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:600;color:var(--muted);background:var(--bg);border:1px solid var(--line);padding:6px 12px;border-radius:100px}
 .period-pill .dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 0 3px var(--green-bg)}
-main#content{max-width:1280px;margin:0 auto;padding:26px 26px 60px;width:100%}
+.user-menu{position:relative}
+.user-btn{display:flex;align-items:center;gap:9px;padding:6px 10px;border-radius:8px;border:1px solid transparent;background:none;color:var(--sidebar-text);cursor:pointer;font-size:14px;font-weight:500;font-family:inherit;min-height:40px}
+.user-btn:hover{background:var(--sidebar-hover)}
+.user-btn .u-avatar{width:30px;height:30px;border-radius:50%;background:var(--primary-tint);color:var(--primary-dark);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex:0 0 auto}
+.user-btn .u-chev{width:16px;height:16px;color:var(--sidebar-muted)}
+.user-drop{position:absolute;right:0;top:calc(100% + 6px);min-width:230px;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow);padding:6px;z-index:70;display:none}
+.user-drop.open{display:block}
+.user-drop .ud-head{padding:9px 12px 11px;border-bottom:1px solid var(--line);margin-bottom:5px}
+.user-drop .ud-head b{display:block;font-size:13.5px;color:var(--text)}
+.user-drop .ud-head span{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;font-weight:700}
+.user-drop .ud-item{display:flex;align-items:center;gap:9px;width:100%;padding:9px 12px;border:none;background:none;border-radius:7px;cursor:pointer;font-size:13.5px;color:var(--text);text-align:left;font-family:inherit}
+.user-drop .ud-item:hover{background:var(--bg)}
+.user-drop .ud-item.red{color:var(--red)}
+.user-drop .ud-item svg{width:16px;height:16px}
+main#content{max-width:1340px;margin:0 auto;padding:24px 24px 60px;width:100%}
 @media(max-width:980px){
   .sidebar{width:72px}
   .side-brand{justify-content:center;padding:16px 6px 12px}
-  .side-brand > div{display:none}
+  .side-brand > b,.side-brand small,.brand-period{display:none}
+  .side-toggle{display:none}
   .nav-label{display:none}
   .nav-item{justify-content:center;padding:10px 0}
   .nav-item span,.nav-parent span,.nav-sub-item span{display:none}
@@ -106,8 +139,6 @@ main#content{max-width:1280px;margin:0 auto;padding:26px 26px 60px;width:100%}
   .nav-parent .nav-chev{display:none}
   .nav-sub.open{max-height:200px}
   .nav-sub-item{justify-content:center;padding:8px 0}
-  .side-foot .who{padding:6px 0}
-  .side-foot .who-txt{display:none}
 }
 .item-row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;margin-bottom:8px;background:var(--surface)}
 .item-row .meta{font-size:12px;color:var(--muted)}
@@ -168,7 +199,7 @@ body.login-page{
 }
 .login-card .logo{
   width:44px;height:44px;border-radius:10px;background:var(--primary);color:#fff;
-  display:flex;align-items:center;justify-content:center;font-family:'Source Serif 4',serif;
+  display:flex;align-items:center;justify-content:center;font-family:'Inter',system-ui,sans-serif;
   font-size:20px;font-weight:700;margin-bottom:14px;
 }
 .login-card h1{font-size:20px;margin-bottom:4px}
@@ -190,7 +221,7 @@ body.login-page{
 /* ---------- Cards / grid ---------- */
 .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow)}
 .card h3{font-size:13.5px;color:var(--muted);font-weight:600;margin-bottom:6px;text-transform:uppercase;letter-spacing:.03em}
-.big-num{font-family:'Source Serif 4',serif;font-size:32px;font-weight:700;color:var(--primary-dark)}
+.big-num{font-family:'Inter',system-ui,sans-serif;font-size:32px;font-weight:700;color:var(--primary-dark)}
 .grid{display:grid;gap:14px}
 .grid.cols-3{grid-template-columns:repeat(3,1fr)}
 .grid.cols-4{grid-template-columns:repeat(4,1fr)}
@@ -198,15 +229,15 @@ body.login-page{
 @media(max-width:560px){.grid.cols-3,.grid.cols-4{grid-template-columns:1fr}}
 .stat-link{display:block}
 .stat{border-radius:var(--radius);padding:16px 18px}
-.stat b{display:block;font-family:'Source Serif 4',serif;font-size:26px}
+.stat b{display:block;font-family:'Inter',sans-serif;font-size:26px;font-weight:700}
 
 .logo-banner{
-  background:linear-gradient(120deg,var(--primary) 0%,var(--primary-dark) 100%);
-  color:#fff;border-radius:14px;padding:22px 24px;margin-bottom:20px;
+  background:var(--surface);color:var(--text);border:1px solid var(--line);border-radius:12px;
+  padding:18px 20px;margin-bottom:18px;box-shadow:var(--shadow);
   display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;
 }
-.logo-banner h2{color:#fff;font-size:20px}
-.logo-banner p{margin:4px 0 0;color:rgba(255,255,255,.82);font-size:13px}
+.logo-banner h2{color:#111;font-size:19px;text-transform:uppercase;letter-spacing:.02em}
+.logo-banner p{margin:4px 0 0;color:var(--muted);font-size:13px}
 
 /* ---------- Badges ---------- */
 .badge{
@@ -326,25 +357,48 @@ td.empty,tr td.empty{color:var(--muted);text-align:center;padding:26px;white-spa
 
 /* ---------- Buttons ---------- */
 .btn{
-  padding:9px 15px;border-radius:8px;border:1px solid var(--line);background:#fff;color:var(--text);
-  cursor:pointer;font-weight:600;font-size:13px;transition:background .15s,border-color .15s;
+  padding:8px 15px;border-radius:8px;border:1px solid var(--input-border);background:#fff;color:var(--text);
+  cursor:pointer;font-weight:600;font-size:13.5px;transition:background .15s,border-color .15s,color .15s,box-shadow .15s;
+  display:inline-flex;align-items:center;justify-content:center;gap:7px;font-family:inherit;line-height:1.3;
 }
 .btn:hover{background:var(--bg)}
+.btn:focus-visible{outline:none;box-shadow:0 0 0 2px rgba(31,93,80,.18)}
 .btn.primary{background:var(--primary);border-color:var(--primary);color:#fff}
 .btn.primary:hover{background:var(--primary-dark)}
 .btn.green{background:var(--green-bg);border-color:var(--green-bg);color:var(--green)}
 .btn.green:hover{background:#d5eee1}
 .btn.red{background:var(--red-bg);border-color:var(--red-bg);color:var(--red)}
 .btn.red:hover{background:#fbdcd8}
-.btn.sm{padding:6px 11px;font-size:12px}
+.btn.sm{padding:6px 11px;font-size:12.5px}
+.btn.icon{padding:8px;width:36px;height:36px}
+.btn.icon.sm{padding:6px;width:32px;height:32px}
 .btn:disabled{opacity:.55;cursor:not-allowed}
+.btn svg{width:15px;height:15px;flex:0 0 auto}
+
+/* ---------- Dropdown / popover ---------- */
+.dropdown{position:relative;display:inline-block}
+.dropdown-menu{position:absolute;right:0;top:calc(100% + 6px);min-width:190px;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow);padding:6px;z-index:70;display:none}
+.dropdown-menu.open{display:block}
+.dropdown-menu .chead{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);padding:8px 11px 4px}
+.dropdown-menu button,.dropdown-menu label{display:flex;align-items:center;gap:9px;width:100%;padding:9px 11px;border:none;background:none;border-radius:7px;cursor:pointer;font-size:13.5px;color:var(--text);text-align:left;font-family:inherit;white-space:nowrap}
+.dropdown-menu button:hover,.dropdown-menu label:hover{background:var(--bg)}
+.dropdown-menu button svg{width:15px;height:15px;color:var(--muted)}
+.dropdown-menu label input{margin:0;accent-color:var(--primary)}
+.dropdown-menu .dsep{height:1px;background:var(--line);margin:5px 0}
+
+/* ---------- Filter chips ---------- */
+.chips{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:12px 0}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:3px 11px;border:1px solid var(--chip-border);border-radius:16px;background:var(--chip-bg);font-size:13px;color:#374151;white-space:nowrap;font-weight:500}
+.chip b{font-weight:600;color:var(--text)}
+.chip button{border:none;background:none;cursor:pointer;color:var(--muted);font-size:14px;line-height:1;padding:0 1px;border-radius:50%}
+.chip button:hover{color:var(--red)}
 
 /* ---------- Search bar (log page) ---------- */
 .search-bar{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end}
 .field{display:flex;flex-direction:column;gap:5px}
 .field label{font-size:11.5px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.03em}
-.field input,.field select{padding:9px 11px;border:1px solid var(--line);border-radius:8px;outline:none;background:#fff}
-.field input:focus,.field select:focus{border-color:var(--primary)}
+.field input,.field select{padding:8px 11px;border:1px solid var(--input-border);border-radius:8px;outline:none;background:#fff;height:36px}
+.field input:focus,.field select:focus{border-color:var(--primary);box-shadow:0 0 0 2px rgba(31,93,80,.12)}
 .field.wide{min-width:170px}
 .field.full{width:100%}
 .form-row{display:flex;flex-wrap:wrap;gap:14px}
@@ -356,10 +410,11 @@ td.empty,tr td.empty{color:var(--muted);text-align:center;padding:26px;white-spa
 .sci-detail-tbl td:last-child{border-bottom:none}
 
 /* ---------- Tabs ---------- */
-.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:18px;flex-wrap:wrap}
-.tab{padding:10px 16px;cursor:pointer;font-weight:600;font-size:13px;color:var(--muted);border-bottom:2px solid transparent;display:flex;align-items:center;gap:7px}
+.tabs{display:flex;gap:24px;border-bottom:1px solid var(--line);margin-bottom:18px;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{padding:11px 1px;cursor:pointer;font-weight:500;font-size:14px;color:var(--muted);border-bottom:2px solid transparent;display:flex;align-items:center;gap:7px;white-space:nowrap;background:none;border-top:none;border-left:none;border-right:none;font-family:inherit}
 .tab:hover{color:var(--primary)}
-.tab.active{color:var(--primary);border-bottom-color:var(--primary)}
+.tab.active{color:var(--primary-dark);border-bottom-color:var(--primary-dark);font-weight:600}
 .tab .count{background:var(--accent);color:#fff;font-size:10.5px;font-weight:700;border-radius:100px;padding:1px 7px}
 .tab-panel{}
 
@@ -394,7 +449,7 @@ td.empty,tr td.empty{color:var(--muted);text-align:center;padding:26px;white-spa
 .modal h3{font-size:16px;margin-bottom:4px}
 .modal .m-sub{color:var(--muted);font-size:12px;margin-bottom:14px}
 .modal .m-cur{display:flex;justify-content:space-between;align-items:center;background:var(--bg);border-radius:8px;padding:8px 12px;margin-bottom:14px;font-size:12.5px}
-.modal .m-cur b{font-family:'Source Serif 4',serif;font-size:18px;color:var(--primary-dark)}
+.modal .m-cur b{font-family:'Inter',system-ui,sans-serif;font-size:18px;color:var(--primary-dark)}
 .m-input{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:8px;outline:none;font-size:16px;text-align:center}
 .m-input:focus{border-color:var(--primary)}
 .m-step{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin:12px 0}
@@ -487,7 +542,7 @@ td.empty,tr td.empty{color:var(--muted);text-align:center;padding:26px;white-spa
 
 /* ---------- SCI forms ---------- */
 .sci-editor{margin-bottom:20px}
-.sci-editor h3{font-family:'Source Serif 4',serif;color:var(--primary-dark);font-size:18px;text-transform:none;letter-spacing:0}
+.sci-editor h3{font-family:'Inter',system-ui,sans-serif;color:var(--primary-dark);font-size:18px;text-transform:none;letter-spacing:0}
 .sci-editor textarea{padding:9px 11px;border:1px solid var(--line);border-radius:8px;outline:none;background:#fff;width:100%;box-sizing:border-box;min-height:92px;resize:vertical}
 .sci-editor textarea:focus{border-color:var(--primary)}
 .sci-editor input[type=text],.sci-editor input[type=number],.sci-editor input[type=file],.sci-editor select{padding:9px 11px;border:1px solid var(--line);border-radius:8px;outline:none;background:#fff;font-size:13px;color:var(--text)}
@@ -496,7 +551,7 @@ td.empty,tr td.empty{color:var(--muted);text-align:center;padding:26px;white-spa
 .sci-meta{display:flex;flex-wrap:wrap;gap:8px 22px;color:var(--muted);font-size:13px}
 .sci-meta b{color:var(--ink);font-weight:600}
 .sci-section-head{padding:16px 18px;border-bottom:1px solid var(--line)}
-.sci-section-head h3{margin:0;font-family:'Source Serif 4',serif;color:var(--primary-dark);font-size:17px;text-transform:none;letter-spacing:0}
+.sci-section-head h3{margin:0;font-family:'Inter',system-ui,sans-serif;color:var(--primary-dark);font-size:17px;text-transform:none;letter-spacing:0}
 .sci-section-head p{margin:3px 0 0;color:var(--muted);font-size:12.5px}
 .sci-form-body{padding:0 18px 18px}
 .sci-section{padding:16px 0;border-bottom:1px solid var(--line)}
@@ -519,7 +574,7 @@ td.empty,tr td.empty{color:var(--muted);text-align:center;padding:26px;white-spa
 .sci-up-card{max-width:560px;margin:14px auto 0;text-align:center;padding:24px 26px}
 .sci-up-file{display:block;margin:14px auto 0;max-width:340px;font-size:13px}
 /*
-  SCI OFFICIAL-FORM EDITOR STYLES (commit 9720880) — COMMENTED OUT for now.
+  SCI OFFICIAL-FORM EDITOR STYLES (commit 9720880) â€” COMMENTED OUT for now.
   The register-style 4-column item row grid above stays active.
   Remove the outer marker to re-enable the official paper-format editor.
 
@@ -611,7 +666,7 @@ async function login(username, password) {
 }
 
 /* =========================================================================
-   Shared helpers — auth, api, ui utilities
+   Shared helpers â€” auth, api, ui utilities
    ========================================================================= */
 
 function esc(s) {
@@ -892,7 +947,7 @@ async function updateFormStatus(id, action) {
     if (fErr) throw new Error(fErr.message);
     if (form && form.status !== 'approved') {
       const adjusted = await applyApprovalStock(form);
-      if (adjusted) toast('Approved — stock auto-adjusted');
+      if (adjusted) toast('Approved â€” stock auto-adjusted');
     }
   }
   const { error } = await sb.from('sci_forms').update({ status }).eq('id', id);
@@ -970,7 +1025,7 @@ async function applyApprovalStock(form) {
       qtyA: before,
       qtyB: after,
       reason: `SCI ${form.formType} approved - stock auto-adjusted`,
-      remarks: `Approved form ${form.id} · ${form.formType} → ${centreName}`,
+      remarks: `Approved form ${form.id} Â· ${form.formType} â†’ ${centreName}`,
       verifiedBy: approver
     });
   }
@@ -987,12 +1042,12 @@ async function applyApprovalStock(form) {
 function openSCIFormDetail(form, onChanged) {
   if (!form) return;
   const escH = (v) => v == null ? '' : String(v).replace(/[&<>"']/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
-  const nice = (v) => v == null || v === '' ? '—' : escH(v);
+  const nice = (v) => v == null || v === '' ? 'â€”' : escH(v);
   const fmtBadge = (s) => s === 'approved' ? '<span class="badge green">Approved</span>'
     : s === 'rejected' ? '<span class="badge red">Rejected</span>'
     : '<span class="badge amber">Pending</span>';
   const base = [
-    ['form', escH(form.formType) + ' — ' + escH(form.formTitle || '')],
+    ['form', escH(form.formType) + ' â€” ' + escH(form.formTitle || '')],
     ['date', nice(form.submittedAt && String(form.submittedAt).slice(0, 10))],
     ['centre', nice(form.centreName)],
     ['sewadar', nice(form.sewadarName)],
@@ -1006,7 +1061,7 @@ function openSCIFormDetail(form, onChanged) {
   if (form.details && typeof form.details === 'object') {
     const items = Array.isArray(form.details.items) ? form.details.items : null;
     if (items && items.length) {
-      detailsHtml = `<table class="sci-detail-tbl"><thead><tr><th>Item</th><th>Qty</th><th>Unit</th></tr></thead><tbody>${items.map((it) => `<tr><td>${escH(it.name || '')}</td><td>${escH(it.qty)}</td><td>${escH(it.unit || '—')}</td></tr>`).join('')}</tbody></table>`;
+      detailsHtml = `<table class="sci-detail-tbl"><thead><tr><th>Item</th><th>Qty</th><th>Unit</th></tr></thead><tbody>${items.map((it) => `<tr><td>${escH(it.name || '')}</td><td>${escH(it.qty)}</td><td>${escH(it.unit || 'â€”')}</td></tr>`).join('')}</tbody></table>`;
       const desc = String(form.details.description || '').trim();
       if (desc) detailsHtml += `<div class="f-d" style="margin-top:8px"><span>description</span><b>${escH(desc)}</b></div>`;
     } else {
@@ -1015,9 +1070,9 @@ function openSCIFormDetail(form, onChanged) {
         .map(([k, v]) => `<div class="f-d"><span>${k.replace(/([A-Z])/g, (m) => ' ' + m.toLowerCase())}</span><b>${escH(String(v))}</b></div>`).join('');
     }
     /*
-    // SCI OFFICIAL-FORM DETAIL BLOCKS (9720880) — COMMENTED OUT for now.
+    // SCI OFFICIAL-FORM DETAIL BLOCKS (9720880) â€” COMMENTED OUT for now.
     if (Array.isArray(form.details.replacement) && form.details.replacement.length) {
-      detailsHtml += `<div class="off-note" style="margin-top:10px">Replacement items against condemnation:</div><table class="sci-detail-tbl"><thead><tr><th>Item</th><th>Qty</th><th>Unit</th></tr></thead><tbody>${form.details.replacement.map((it) => `<tr><td>${escH(it.name || '')}</td><td>${escH(it.qty)}</td><td>${escH(it.unit || '—')}</td></tr>`).join('')}</tbody></table>`;
+      detailsHtml += `<div class="off-note" style="margin-top:10px">Replacement items against condemnation:</div><table class="sci-detail-tbl"><thead><tr><th>Item</th><th>Qty</th><th>Unit</th></tr></thead><tbody>${form.details.replacement.map((it) => `<tr><td>${escH(it.name || '')}</td><td>${escH(it.qty)}</td><td>${escH(it.unit || 'â€”')}</td></tr>`).join('')}</tbody></table>`;
     }
     const official = form.details.form && typeof form.details.form === 'object' ? form.details.form : null;
     if (official) {
@@ -1027,7 +1082,7 @@ function openSCIFormDetail(form, onChanged) {
         relevantType: 'Type', reqPlace: 'Required at', reqAttachedTo: 'Attached to', fromPlace: 'Transfer from', toPlace: 'Transfer to',
         workshopName: 'Workshop', workshopType: 'Workshop type', workshopAttachedTo: 'Workshop attached to', zone: 'Zone', indentNo: 'Indent no.', indentDate: 'Indent date', indentType: 'Indent type',
         issuedPlace: 'Issued to', issuedArea: 'Issued area', issuedZone: 'Issued zone', boardPlace: 'Board at', boardDate: 'Board on',
-        boardAreaSecretary: 'Board — Area Secy', boardPresident: 'Board — President', boardSecretary: 'Board — Secretary', examinedCentreType: 'Centre examined',
+        boardAreaSecretary: 'Board â€” Area Secy', boardPresident: 'Board â€” President', boardSecretary: 'Board â€” Secretary', examinedCentreType: 'Centre examined',
         cashSewa: 'Offer against cash Sewa?'
       };
       const rows = Object.entries(official).filter(([, v]) => v !== null && v !== '' && v !== undefined).map(([k, v]) => `<div class="f-d"><span>${escH(labels[k] || k.replace(/([A-Z])/g, (m) => ' ' + m.toLowerCase()))}</span><b>${escH(Array.isArray(v) ? v.map((x) => String(x == null ? '' : x).replace(/"/g, '""')).join(', ') : String(v))}</b></div>`).join('');
@@ -1046,7 +1101,7 @@ function openSCIFormDetail(form, onChanged) {
       <div class="fd-grid">${base}</div>
       ${detailsHtml ? `<div class="fd-box"><div class="fd-title">Items / Material Details</div>${detailsHtml}</div>` : ''}
       ${form.remarks ? `<div class="fd-box"><div class="fd-title">Remarks</div><div class="f-d"><b>${escH(String(form.remarks))}</b></div></div>` : ''}
-      <div class="fd-box"><div class="fd-title">Document</div><div class="f-d"><b>${form.document ? `<a class="file-link" href="${storageFileUrl(form.document)}" target="_blank">${escH(form.documentName || 'View File')}</a>` : '—'}</b></div></div>
+      <div class="fd-box"><div class="fd-title">Document</div><div class="f-d"><b>${form.document ? `<a class="file-link" href="${storageFileUrl(form.document)}" target="_blank">${escH(form.documentName || 'View File')}</a>` : 'â€”'}</b></div></div>
       <div class="fd-actions">${isAdmin() && form.status === 'pending' ? '<button class="btn green" id="fdApprove">Approve</button><button class="btn red" id="fdReject">Reject</button>' : ''}</div>
     </div>`;
   document.body.appendChild(overlay);
@@ -1083,9 +1138,9 @@ function sciDetailsText(f) {
     const parts = d.items.filter((it) => it && it.name).map((it) => `${it.name} x${it.qty || 0}${it.unit ? ' ' + it.unit : ''}`);
     const desc = String(d.description || '').trim();
     if (desc) parts.push(desc);
-    return parts.join(' · ');
+    return parts.join(' Â· ');
   }
-  return Object.values(d).filter((v) => v !== null && v !== '').join(' · ');
+  return Object.values(d).filter((v) => v !== null && v !== '').join(' Â· ');
 }
 
 async function downloadSCIForms(qs) {
@@ -1143,7 +1198,7 @@ const SCI_DOWNLOADS = {
 // Column config for each SCI item grid. 'name' is the article; 'qty' is always
 // the quantity used for the stock effect; 'unit' shows register sync.
 /*
-  SCI OFFICIAL PAPER-FORMAT BUILDER (commit 9720880) — COMMENTED OUT for now.
+  SCI OFFICIAL PAPER-FORMAT BUILDER (commit 9720880) â€” COMMENTED OUT for now.
   ITEM_COLS, offFld/offSel/offCentreSel/offTick/offPara/offSign/offSec/offLetterhead,
   officialSections, itemRowHtml and tableHead below are inert.
   Re-enable together with the matching CSS + renderEditor/submitForm/modal code.
@@ -1173,7 +1228,7 @@ const ITEM_COLS = {
   SCI15: [
     { key: 'name', label: 'NAME OF ARTICLE', type: 'name' },
     { key: 'qty', label: 'PRESENT OFFER QTY', type: 'number' },
-    { key: 'cost', label: 'COST OF ITEM (₹)', type: 'number' },
+    { key: 'cost', label: 'COST OF ITEM (â‚¹)', type: 'number' },
     { key: 'justification', label: 'JUSTIFICATION FOR ACCEPTANCE OR PURPOSE', type: 'text' },
     { key: 'existingQty', label: 'EXISTING HOLDING QTY', type: 'number' },
     { key: 'existingDate', label: 'EXISTING HOLDING DATE', type: 'text' },
@@ -1184,8 +1239,8 @@ const ITEM_COLS = {
   SCI76: [
     { key: 'name', label: 'ITEM', type: 'name' },
     { key: 'qty', label: 'QUANTITY', type: 'number' },
-    { key: 'rate', label: 'RATE (₹)', type: 'number' },
-    { key: 'totalCost', label: 'TOTAL COST (₹)', type: 'calc' },
+    { key: 'rate', label: 'RATE (â‚¹)', type: 'number' },
+    { key: 'totalCost', label: 'TOTAL COST (â‚¹)', type: 'calc' },
     { key: 'workProject', label: 'NAME OF WORK / PROJECT', type: 'text' },
     { key: 'beasNo', label: 'BEAS APPROVAL LTR NO.', type: 'text' },
     { key: 'beasDate', label: 'BEAS APPROVAL DATE', type: 'text' },
@@ -1197,7 +1252,7 @@ const ITEM_COLS = {
     { key: 'acqDate', label: 'ACQUISITION DATE', type: 'text' },
     { key: 'condition', label: 'CONDITION', type: 'select', options: ['UNSERVICEABLE', 'REPAIRABLE', 'SERVICEABLE'] },
     { key: 'signatures', label: 'SIGNATURES', type: 'text' },
-    { key: 'approxValue', label: 'APPROX. VALUE (₹)', type: 'number' },
+    { key: 'approxValue', label: 'APPROX. VALUE (â‚¹)', type: 'number' },
     { key: 'unit', label: 'UNIT', type: 'unit' }
   ],
   SCI45r: [
@@ -1221,7 +1276,7 @@ function offFld(key, label, o = {}) {
 }
 
 function offSel(key, label, options, o = {}) {
-  const opts = (o.allowEmpty ? '<option value="">— select —</option>' : '') +
+  const opts = (o.allowEmpty ? '<option value="">â€” select â€”</option>' : '') +
     options.map((opt) => `<option value="${esc(opt[0])}">${esc(opt[1] == null ? opt[0] : opt[1])}</option>`).join('');
   return `<div class="field"><label>${label}</label><select data-official="${key}"${o.required ? ' required' : ''}>${opts}</select></div>`;
 }
@@ -1243,7 +1298,7 @@ function offPara(parts, o = {}) {
 }
 
 function offSign(title, fields, noteHtml) {
-  const inp = (fields || []).map((k) => `<div class="field"><label>${k[0]}</label><input type="text" data-official="${k[1]}" placeholder="—"></div>`).join('');
+  const inp = (fields || []).map((k) => `<div class="field"><label>${k[0]}</label><input type="text" data-official="${k[1]}" placeholder="â€”"></div>`).join('');
   return `<div class="off-sign"><div class="off-sign-title">${title}</div>${noteHtml ? `<div class="off-note">${noteHtml}</div>` : ''}<div class="sci-grid">${inp || '<span class="off-note">Signature</span>'}</div></div>`;
 }
 
@@ -1257,21 +1312,21 @@ function offLetterhead(o, extraFields) {
     .concat(offCentreSel('placeName', 'NAME OF SATSANG PLACE (C/SC/SP)', o.centres))
     .concat(offFld('area', 'AREA'))
     .concat(extraFields || []);
-  return offSec('Letterhead', `<div class="off-addr">THE SEWADAR I/C SATSANG CENTRES IN INDIA &nbsp;·&nbsp; RSSB, DERA BABA JAIMAL SINGH, DISTT. AMRITSAR</div><div class="sci-grid">${g.join('')}</div>`);
+  return offSec('Letterhead', `<div class="off-addr">THE SEWADAR I/C SATSANG CENTRES IN INDIA &nbsp;Â·&nbsp; RSSB, DERA BABA JAIMAL SINGH, DISTT. AMRITSAR</div><div class="sci-grid">${g.join('')}</div>`);
 }
 
 // Build the non-items sections of a form editor to mirror the official format.
 function officialSections(code, o) {
-  const lock = `<div class="off-note">Locked from the stock register — the digital copy is a mirror of the filled paper form, which you upload below.</div>`;
+  const lock = `<div class="off-note">Locked from the stock register â€” the digital copy is a mirror of the filled paper form, which you upload below.</div>`;
   switch (code) {
     case 'SCI34': return offLetterhead(o) +
       offSec('Permission &amp; Sale Proceeds',
         offPara(['1. Permission was granted to dispose of ', { key: 'disposeOf', w: 260 }, ' by Zonal Secretary.']) +
         offPara(['2. The Sale proceeds amounting to Rs. ', { key: 'amount', type: 'number', w: 120 }, ' of the said items are sent herewith vide DD no. ', { key: 'ddNo', w: 130 }, ' dated ', { key: 'ddDate', w: 120 }, '.']) +
-        offTick('relevantType', [['CONDEMNED', 'Condemned'], ['SURPLUS', 'Surplus'], ['SCRAP', 'Scrap']], '* PLEASE TICK (√) THE RELEVANT TYPE', { required: true }) + lock) +
+        offTick('relevantType', [['CONDEMNED', 'Condemned'], ['SURPLUS', 'Surplus'], ['SCRAP', 'Scrap']], '* PLEASE TICK (âˆš) THE RELEVANT TYPE', { required: true }) + lock) +
       offSec('Signature Blocks',
         offSign('SECRETARY', [['NO.', 'noRef'], ['DATE', 'dateRef']]) +
-        offSign('FORWARDED — AREA SECRETARY', [['NO.', 'areaSecNo'], ['DATE', 'areaSecDate']]) +
+        offSign('FORWARDED â€” AREA SECRETARY', [['NO.', 'areaSecNo'], ['DATE', 'areaSecDate']]) +
         offSign('ZONAL SECRETARY', [['NO.', 'zonalNo'], ['DATE', 'zonalDate']]) +
         offSign('DECISION BY BEAS', [['NO.', 'beasNo'], ['DATE', 'beasDate']], 'Receipt of above cheque/DD for Rs. <span class="off-note"><input class="off-inline" type="number" step="any" min="0" data-official="beasRcptAmt" style="min-width:120px"></span> is hereby acknowledged.') +
         offSign('SIC SATSANG CENTRES IN INDIA')) +
@@ -1282,27 +1337,27 @@ function officialSections(code, o) {
         `<div class="off-para">Dear Brother,<br>An offer of the following items is being sent, for which approval may please be accorded. ${lock}</div>` +
         offSec('Recommendations &amp; Approvals',
           offSign('INCHARGE/CT/SECRETARY') +
-          offSign('RECOMMENDATIONS OF — ZONAL SECRETARY', [['NO.', 'zonalNo'], ['DATE', 'zonalDate']]) +
+          offSign('RECOMMENDATIONS OF â€” ZONAL SECRETARY', [['NO.', 'zonalNo'], ['DATE', 'zonalDate']]) +
           offSign('APPROVAL OF SECRETARY, RSSB', [['NO.', 'secNo'], ['DATE', 'secDate']],
             'The sewa material being offered in donation is as per Beas Design &amp; will be used as per Beas Drawings.') +
-          `<div class="off-tick"><label style="text-transform:none;font-weight:600">Specify whether Offer of Donation is against acceptance of cash Sewa —</label> ${(['YES', 'NO'].map((v) => `<label style="text-transform:none"><input type="radio" name="off_tick_cashSewa" value="${v}" data-official="cashSewa"> ${v}</label>`).join(''))}</div>` +
+          `<div class="off-tick"><label style="text-transform:none;font-weight:600">Specify whether Offer of Donation is against acceptance of cash Sewa â€”</label> ${(['YES', 'NO'].map((v) => `<label style="text-transform:none"><input type="radio" name="off_tick_cashSewa" value="${v}" data-official="cashSewa"> ${v}</label>`).join(''))}</div>` +
           `<div class="off-note">If yes, the information of Sewa in cash/bank should be reported to sewa@rssb.in</div>` +
           offSign('ZONAL SECRETARY', [['NO.', 'zonalNo2'], ['DATE', 'zonalDate2']]) +
-          offSign('AREA SECRETARY — RECOMMENDED', [['NO.', 'areaSecNo'], ['DATE', 'areaSecDate']], 'Note: 1. The Sewa material approved is to be used as per Beas approved design/drawing. 2. No collection whatsoever is to be made at any Satsang Place.') +
-          offSign('SIC SATSANG CENTRES IN INDIA · SECRETARY, RSSB, BEAS · RETURNED TO SIC')) +
-          offSec('DISTRIBUTION — CC CAO',
-            offPara(['DISTRIBUTION — INCHARGE/CT/SECRETARY/AREA SECRETARY/ZONAL SECRETARY. CC — CAO for necessary adjustment of Rs. ', { key: 'amountCc', type: 'number', w: 110 }, '.'])));
+          offSign('AREA SECRETARY â€” RECOMMENDED', [['NO.', 'areaSecNo'], ['DATE', 'areaSecDate']], 'Note: 1. The Sewa material approved is to be used as per Beas approved design/drawing. 2. No collection whatsoever is to be made at any Satsang Place.') +
+          offSign('SIC SATSANG CENTRES IN INDIA Â· SECRETARY, RSSB, BEAS Â· RETURNED TO SIC')) +
+          offSec('DISTRIBUTION â€” CC CAO',
+            offPara(['DISTRIBUTION â€” INCHARGE/CT/SECRETARY/AREA SECRETARY/ZONAL SECRETARY. CC â€” CAO for necessary adjustment of Rs. ', { key: 'amountCc', type: 'number', w: 110 }, '.'])));
     case 'SCI43': return offLetterhead(o) +
       offSec('Transfer Request',
         `<div class="off-para">THE ZONAL SECRETARY:</div>` +
         offPara(['1. The following items, which are surplus with the above Centre, are required at ', { key: 'reqPlace', w: 200 }, ' (C/SC/SP) attached to ', { key: 'reqAttachedTo', w: 160 }, '.']) +
-        offPara(['2. Form No. SCI/09/53 in respect of ', { key: 'reqPlace2', w: 200 }, ' (C/SC/SP — where the items are required) duly completed is enclosed.']) +
+        offPara(['2. Form No. SCI/09/53 in respect of ', { key: 'reqPlace2', w: 200 }, ' (C/SC/SP â€” where the items are required) duly completed is enclosed.']) +
         offPara(['3. You are requested to allow the transfer of above items from ', { key: 'fromPlace', w: 160 }, ' to ', { key: 'toPlace', w: 160 }, ' Satsang Place.'])) +
       offSec('Signature Blocks',
         offSign('INCHARGE/CT/SECRETARY') +
-        offSign('RECOMMENDATIONS OF — AREA SECRETARY', [['NO.', 'areaSecNo'], ['DATE', 'areaSecDate']]) +
+        offSign('RECOMMENDATIONS OF â€” AREA SECRETARY', [['NO.', 'areaSecNo'], ['DATE', 'areaSecDate']]) +
         offSign('DECISION GIVEN BY ZONAL SECRETARY', [['NO.', 'zonalNo'], ['DATE', 'zonalDate']], 'Transfer of the above items is approved as proposed.') +
-        offSign('DISTRIBUTION — AREA SECRETARY / INCHARGE-CT / SECRETARY'));
+        offSign('DISTRIBUTION â€” AREA SECRETARY / INCHARGE-CT / SECRETARY'));
     case 'SCI76': return offSec('Workshop',
       `<div class="sci-grid">
         ${offFld('workshopName', 'NAME OF WORKSHOP')}
@@ -1314,7 +1369,7 @@ function officialSections(code, o) {
         ${offFld('indentDate', 'INDENT DATE')}
         ${offSel('indentType', 'INDENT TYPE', [['CAPITAL'], ['REVENUE']], { allowEmpty: true })}
       </div>${lock}`) +
-      offSec('Material Issued To — Book Debit Adjustment (Amt. in Rs.)',
+      offSec('Material Issued To â€” Book Debit Adjustment (Amt. in Rs.)',
         `<div class="off-tick"><label style="text-transform:none;font-weight:600">MATERIAL ISSUED TO</label></div>
         <div class="sci-grid">
           ${offCentreSel('issuedPlace', 'NAME OF SATSANG PLACE', o.centres)}
@@ -1326,13 +1381,13 @@ function officialSections(code, o) {
         offSign('INDENT AUTHORIZED BY WORKSHOP I/C', [['SIGNATURE (NAME)', 'wsSignature'], ['NAME', 'wsName']]) +
         offSign('MATERIAL RECEIVED BY', [['SIGNATURE (NAME)', 'rcvSignature'], ['NAME', 'rcvName']]) +
         offSign('SIGNATURE OF SECRETARY FOR RECEIPT OF MATERIAL (WITH RUBBER SEAL)' ) +
-        `<div class="off-note">NOTE: * PLEASE TICK (√) THE TYPE OF WORKSHOP</div>`);
+        `<div class="off-note">NOTE: * PLEASE TICK (âˆš) THE TYPE OF WORKSHOP</div>`);
     case 'SCI53': return offLetterhead(o, [offFld('avgAttendance', 'AVERAGE WEEKLY ATTENDANCE', { placeholder: 'e.g. 250' })]) +
       offSec('Requirement',
         `<div class="off-para">DEAR BROTHER,<br>Requirement of items/material in respect of above Satsang place is submitted as under for necessary action at your end. ${lock}</div>` +
         offSec('Signature Blocks',
           offSign('INCHARGE / CT / SECRETARY') +
-          offSign('RECOMMENDATIONS OF — AREA SECRETARY', [['NO.', 'areaSecNo'], ['DATE', 'areaSecDate']]) +
+          offSign('RECOMMENDATIONS OF â€” AREA SECRETARY', [['NO.', 'areaSecNo'], ['DATE', 'areaSecDate']]) +
           offSign('ZONAL SECRETARY', [['NO.', 'zonalNo'], ['DATE', 'zonalDate']])));
     case 'SCI45': return offLetterhead(o, [offFld('avgAttendance', 'AVERAGE WEEKLY ATTENDANCE', { placeholder: 'e.g. 250' })]) +
       offSec('Condemnation Board', `<div class="off-para">THE ZONAL SECRETARY:</div>` +
@@ -1342,9 +1397,9 @@ function officialSections(code, o) {
       offSec('Condemnation List', `<div class="off-note" style="margin-bottom:8px">Please enter the condemned articles below.</div>`) +
       offSec('Replacement (if required)', `<div class="off-note">Note: In case replacement against condemnation is required, please fill the following details.</div>`) +
       offSec('Signature Blocks',
-        offSign('AREA SECRETARY · SECRETARY · PRESIDENT') +
+        offSign('AREA SECRETARY Â· SECRETARY Â· PRESIDENT') +
         offSign('INCHARGE/CT/SECRETARY') +
-        offSign('RECOMMENDATIONS OF — AREA SECRETARY', [['NO.', 'areaSecNo'], ['DATE', 'areaSecDate']]) +
+        offSign('RECOMMENDATIONS OF â€” AREA SECRETARY', [['NO.', 'areaSecNo'], ['DATE', 'areaSecDate']]) +
         offSign('ZONAL SECRETARY', [['NO.', 'zonalNo'], ['DATE', 'zonalDate']], 'Please arrange to collect the above mentioned items against condemnation from Area Depot.'));
     default: return '';
   }
@@ -1358,7 +1413,7 @@ function itemRowHtml(cols, hasRegister, itemOptions) {
       ? `<select class="sci-item-name" title="Item from the centre stock register">${itemOptions}</select>`
       : `<input class="sci-item-name" type="text" placeholder="Item / material name" list="sciManualItems" maxlength="200">`);
     if (c.type === 'unit') return cell('', hasRegister ? '<span class="sci-unit"></span>' : `<input class="sci-unit" type="text" placeholder="Unit" maxlength="20">`);
-    if (c.type === 'select') return cell('', `<select class="sci-sel" data-col="${c.key}"><option value="">— ${esc(c.label)} —</option>${c.options.map((opt) => `<option value="${esc(opt)}">${esc(opt)}</option>`).join('')}</select>`);
+    if (c.type === 'select') return cell('', `<select class="sci-sel" data-col="${c.key}"><option value="">â€” ${esc(c.label)} â€”</option>${c.options.map((opt) => `<option value="${esc(opt)}">${esc(opt)}</option>`).join('')}</select>`);
     if (c.type === 'calc') return cell('', `<input type="number" class="sci-calc" data-col="${c.key}" readonly placeholder="Auto" title="Auto-computed">`);
     return cell(cls, c.type === 'number'
       ? `<input type="number" class="sci-num" data-col="${c.key}" placeholder="${esc(c.label)}" title="${esc(c.label)}" step="any" min="${c.key === 'qty' ? '1' : '0'}">`
@@ -1376,7 +1431,7 @@ function createCenterSearch(opts) {
   const wrap = document.createElement('div');
   wrap.className = 'cs-wrap';
   wrap.innerHTML = `
-    <input class="cs-input" type="text" placeholder="${esc(opts.placeholder || 'Search…')}" autocomplete="off">
+    <input class="cs-input" type="text" placeholder="${esc(opts.placeholder || 'Searchâ€¦')}" autocomplete="off">
     <div class="cs-drop"></div>`;
   const input = wrap.querySelector('.cs-input');
   const drop = wrap.querySelector('.cs-drop');
@@ -1467,7 +1522,15 @@ function renderShell(user, activePage) {
   app.innerHTML = `
     <div class="shell">
       <aside class="sidebar">
-        <div class="side-brand"><span class="mark">I</span><div><b>IMS</b><small>Inventory Management System</small></div></div>
+        <div class="side-brand">
+          <button class="side-toggle" id="sideToggle" type="button" title="Collapse / expand sidebar" aria-label="Toggle sidebar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M15 19l-7-7 7-7"/></svg>
+          </button>
+          <span class="mark">I</span>
+          <b>IMS</b>
+          <small>Inventory Management System</small>
+          <div class="brand-period">Period: ${fiscalYearLabel()}</div>
+        </div>
         <nav class="side-nav">
           ${GROUPS.filter((g) => g.items.length).map((g) => `
             <div class="nav-group">
@@ -1507,16 +1570,22 @@ function renderShell(user, activePage) {
               }).join('')}
             </div>`).join('')}
         </nav>
-        <div class="side-foot">
-          <div class="who"><div class="avatar">${esc(initials(user.name))}</div><div class="who-txt"><b>${esc(user.name)}</b>${admin ? ' <span class="role">Admin</span>' : ''}</div></div>
-          <button class="logout" id="logoutBtn">Sign out</button>
-        </div>
       </aside>
       <div class="main">
         <header class="tophead">
           <div><h1 class="page-title">${PAGES[activePage] ? PAGES[activePage].label : ''}</h1></div>
           <div class="tophead-right">
-            <div class="period-pill"><span class="dot"></span>Period: ${fiscalYearLabel()}</div>
+            <div class="user-menu">
+              <button class="user-btn" id="userBtn" type="button" aria-haspopup="menu" aria-expanded="false">
+                <span class="u-avatar">${esc(initials(user.name))}</span>
+                <span class="u-name">${esc(user.name)}${admin ? ' (Admin)' : ''}</span>
+                <svg class="u-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 9l-7 7-7-7"/></svg>
+              </button>
+              <div class="user-drop" id="userDrop" role="menu">
+                <div class="ud-head"><b>${esc(user.name)}</b><span>${esc(admin ? 'Administrator' : (isViewer() ? 'ASO Viewer' : (user.type || 'Centre')))}</span></div>
+                <button class="ud-item red" id="logoutBtn" type="button" role="menuitem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>Sign out</button>
+              </div>
+            </div>
           </div>
         </header>
         <main id="content"></main>
@@ -1527,6 +1596,24 @@ function renderShell(user, activePage) {
     clearSession();
     sb.auth.signOut();
     location.hash = '/login';
+  });
+  const userBtn = app.querySelector('#userBtn');
+  const userDrop = app.querySelector('#userDrop');
+  if (userBtn && userDrop) {
+    userBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const open = userDrop.classList.toggle('open');
+      userBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+    document.addEventListener('click', () => { userDrop.classList.remove('open'); userBtn.setAttribute('aria-expanded', 'false'); });
+    userDrop.addEventListener('click', (e) => e.stopPropagation());
+  }
+  const shellEl = app.querySelector('.shell');
+  const sideToggle = app.querySelector('#sideToggle');
+  if (shellEl && localStorage.getItem('ims_sidebar_mini') === '1') shellEl.classList.add('mini');
+  if (sideToggle) sideToggle.addEventListener('click', () => {
+    const mini = shellEl.classList.toggle('mini');
+    localStorage.setItem('ims_sidebar_mini', mini ? '1' : '0');
   });
   app.querySelectorAll('.nav-parent').forEach((b) => b.addEventListener('click', () => {
     b.classList.toggle('open');
@@ -1623,7 +1710,7 @@ function renderLoginPage() {
 
   sb.from('org_users').select('username, name, type').order('name', { ascending: true }).then(({ data, error }) => {
     if (error) return;
-    document.getElementById('rp_user').innerHTML = data.map((c) => `<option value="${esc(c.username)}">${esc(c.name)} — ${esc(c.type)}</option>`).join('');
+    document.getElementById('rp_user').innerHTML = data.map((c) => `<option value="${esc(c.username)}">${esc(c.name)} â€” ${esc(c.type)}</option>`).join('');
   }).catch(() => {});
 
   document.getElementById('toggleReset').addEventListener('click', () => {
@@ -1699,7 +1786,7 @@ function renderDashboardPage(user, routeParams) {
   function documentLink(form) {
     return form.document
       ? `<a class="file-link" href="${storageFileUrl(form.document)}" target="_blank">${esc(form.documentName || 'View File')}</a>`
-      : '—';
+      : 'â€”';
   }
 
   function scopedIds() {
@@ -1730,12 +1817,12 @@ function renderDashboardPage(user, routeParams) {
             <td>${esc(f.centreName)}</td>
             <td>${esc(f.sewadarName)}</td>
             <td class="mono">${esc(f.sewadarBadge)}</td>
-            <td>${esc((f.details && f.details.approvalNo) || '—')}</td>
-            <td>${esc(f.destinationCentreName || '—')}</td>
-            <td>${esc(f.amount || '—')}</td>
+            <td>${esc((f.details && f.details.approvalNo) || 'â€”')}</td>
+            <td>${esc(f.destinationCentreName || 'â€”')}</td>
+            <td>${esc(f.amount || 'â€”')}</td>
             <td>${documentLink(f)}</td>
             <td>${badge(f.status)}</td>
-            <td>${isAdmin() && f.status === 'pending' ? `<button class="btn green sm" data-form-action="approve" data-id="${esc(f.id)}">Approve</button> <button class="btn red sm" data-form-action="reject" data-id="${esc(f.id)}">Reject</button>` : '—'}</td>
+            <td>${isAdmin() && f.status === 'pending' ? `<button class="btn green sm" data-form-action="approve" data-id="${esc(f.id)}">Approve</button> <button class="btn red sm" data-form-action="reject" data-id="${esc(f.id)}">Reject</button>` : 'â€”'}</td>
           </tr>`).join('') : '<tr><td colspan="11" class="empty">No SCI forms found</td></tr>'}</tbody>
       </table>
       <div style="padding:10px 14px;border-top:1px solid var(--line);color:var(--muted);font-size:12.5px"><b>${forms.length}</b> forms shown</div>`;
@@ -1819,7 +1906,7 @@ function renderSCIFormsLogPage(user) {
   function documentLink(form) {
     return form.document
       ? `<a class="file-link" href="${storageFileUrl(form.document)}" target="_blank">${esc(form.documentName || 'View File')}</a>`
-      : '—';
+      : 'â€”';
   }
 
   async function load() {
@@ -1914,13 +2001,13 @@ function renderSCIFormsLogPage(user) {
             <td>${esc(f.centreName)}</td>
             <td>${esc(f.sewadarName)}</td>
             <td class="mono">${esc(f.sewadarBadge)}</td>
-            <td>${esc((f.details && f.details.approvalNo) || '—')}</td>
-            <td class="sci-detail">${esc(detail || '—')}</td>
-            <td>${esc(f.destinationCentreName || '—')}</td>
-            <td>${esc(f.amount || '—')}</td>
+            <td>${esc((f.details && f.details.approvalNo) || 'â€”')}</td>
+            <td class="sci-detail">${esc(detail || 'â€”')}</td>
+            <td>${esc(f.destinationCentreName || 'â€”')}</td>
+            <td>${esc(f.amount || 'â€”')}</td>
             <td>${documentLink(f)}</td>
             <td>${badge(f.status)}</td>
-            <td>${isAdmin() && f.status === 'pending' ? `<button class="btn green sm" data-form-action="approve" data-id="${esc(f.id)}">Approve</button> <button class="btn red sm" data-form-action="reject" data-id="${esc(f.id)}">Reject</button>` : '—'}</td>
+            <td>${isAdmin() && f.status === 'pending' ? `<button class="btn green sm" data-form-action="approve" data-id="${esc(f.id)}">Approve</button> <button class="btn red sm" data-form-action="reject" data-id="${esc(f.id)}">Reject</button>` : 'â€”'}</td>
           </tr>`;
         }).join('') : '<tr><td colspan="12" class="empty">No SCI forms found</td></tr>'}</tbody>
       </table>
@@ -2071,10 +2158,10 @@ function renderStockPage(user, routeParams) {
     if (shown.length) {
       pgHtml = `
         <div class="reg-pagination">
-          <span class="pg-info">${page * pageSize + 1}–${Math.min(shown.length, (page + 1) * pageSize)} of ${shown.length}</span>
-          <button class="pg-btn" data-pg="prev"${page === 0 ? ' disabled' : ''}>‹ Prev</button>
-          ${pgLinks.map((n) => n === -1 ? '<span class="pg-btn" style="border:none;background:none;cursor:default">…</span>' : `<button class="pg-btn${n === page ? ' active' : ''}" data-pg="${n}">${n + 1}</button>`).join('')}
-          <button class="pg-btn" data-pg="next"${page >= totalPages - 1 ? ' disabled' : ''}>Next ›</button>
+          <span class="pg-info">${page * pageSize + 1}â€“${Math.min(shown.length, (page + 1) * pageSize)} of ${shown.length}</span>
+          <button class="pg-btn" data-pg="prev"${page === 0 ? ' disabled' : ''}>â€¹ Prev</button>
+          ${pgLinks.map((n) => n === -1 ? '<span class="pg-btn" style="border:none;background:none;cursor:default">â€¦</span>' : `<button class="pg-btn${n === page ? ' active' : ''}" data-pg="${n}">${n + 1}</button>`).join('')}
+          <button class="pg-btn" data-pg="next"${page >= totalPages - 1 ? ' disabled' : ''}>Next â€º</button>
         </div>`;
     }
 
@@ -2082,11 +2169,11 @@ function renderStockPage(user, routeParams) {
       <div class="logo-banner">
         <div>
           <h2>Stock Register</h2>
-          <p>${isAdmin() ? 'Physical-stock verification ledger for every centre — log each verified count, spot any difference from the book figure, and adjust stock when needed.' : 'Verification ledger for your centre + allocated sub centres & points — log each verified count and spot differences from the book figure.'}</p>
+          <p>${isAdmin() ? 'Physical-stock verification ledger for every centre â€” log each verified count, spot any difference from the book figure, and adjust stock when needed.' : 'Verification ledger for your centre + allocated sub centres & points â€” log each verified count and spot differences from the book figure.'}</p>
         </div>
         <div class="sr-actions">
           <button class="btn sm" id="btnManage" title="Add, edit or delete stock items">Manage Items</button>
-          <button class="btn primary" id="btnNew" title="Enter a new physical verification entry">＋ New Verification Entry</button>
+          <button class="btn primary" id="btnNew" title="Enter a new physical verification entry">ï¼‹ New Verification Entry</button>
         </div>
       </div>
       <div class="reg-toolbar">
@@ -2102,7 +2189,7 @@ function renderStockPage(user, routeParams) {
         </div>
       </div>
       ${(centreSel) ? `<div class="reg-pills">
-        ${`<span class="reg-pill">Centre : ${esc(centreSel.name)}<button data-clearf="centre" title="Remove filter">✕</button></span>`}
+        ${`<span class="reg-pill">Centre : ${esc(centreSel.name)}<button data-clearf="centre" title="Remove filter">âœ•</button></span>`}
       </div>` : ''}
       <!-- DIFF PILL COMMENTED OUT: filter locked to "No difference" (see code note near diffFilter default). 
            ${diffFilter != null ? `<span class="reg-pill">Filter : No difference</span>` : ''} -->
@@ -2116,17 +2203,17 @@ function renderStockPage(user, routeParams) {
             <th>Approval Date</th>
             <th>Quantity as per Stock Register (A)</th>
             <th>Physically Available Quantity (B)</th>
-            <th>Difference (if any) (A−B)</th>
+            <th>Difference (if any) (Aâˆ’B)</th>
             <th>Reason for Difference</th>
             <th>Remarks</th>
             <th>Stock Register Page No.</th>
             <th>Actions</th>
           </tr></thead>
-          <tbody>${pageRows.map((en, i) => renderRegRow(en, page * pageSize + i + 1)).join('') || '<tr><td class="empty" colspan="12">No verification entries yet — click "＋ New Verification Entry" to log the first physical count.</td></tr>'}</tbody>
+          <tbody>${pageRows.map((en, i) => renderRegRow(en, page * pageSize + i + 1)).join('') || '<tr><td class="empty" colspan="12">No verification entries yet â€” click "ï¼‹ New Verification Entry" to log the first physical count.</td></tr>'}</tbody>
         </table>
       </div>
       ${pgHtml}
-      <p style="margin-top:12px;color:var(--muted);font-size:12px">${shown.length} of ${centreScope.length} entries in scope${skipCurrentCentre ? ' · filtered to one centre' : ''}${diffFilter ? ' · filtered by difference' : ''}. The Difference column is computed automatically as (A − B); use <b>Apply</b> to write the physically counted quantity back into the book figure.</p>
+      <p style="margin-top:12px;color:var(--muted);font-size:12px">${shown.length} of ${centreScope.length} entries in scope${skipCurrentCentre ? ' Â· filtered to one centre' : ''}${diffFilter ? ' Â· filtered by difference' : ''}. The Difference column is computed automatically as (A âˆ’ B); use <b>Apply</b> to write the physically counted quantity back into the book figure.</p>
     `;
 
     bindSearch();
@@ -2196,26 +2283,26 @@ function renderStockPage(user, routeParams) {
 
   function renderRegRow(en, sno) {
     const d = Number(en.difference);
-    const fmtDate = (s) => { if (!s) return '—'; const dt = new Date(s + (s.length === 10 ? 'T00:00:00' : '')); if (isNaN(dt)) return s; return dt.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }); };
+    const fmtDate = (s) => { if (!s) return 'â€”'; const dt = new Date(s + (s.length === 10 ? 'T00:00:00' : '')); if (isNaN(dt)) return s; return dt.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }); };
     const centre = centerName(en.centreId);
     const unit = esc(en.unit || unitOf(en.centreId, en.item));
     return `<tr data-id="${en.id}">
       <td class="sno">${sno}</td>
       <td class="centre stick-1"><b>${esc(centre)}</b></td>
       <td>${esc(en.item)}</td>
-      <td>${esc(en.approvalNo || '—')}</td>
+      <td>${esc(en.approvalNo || 'â€”')}</td>
       <td>${fmtDate(en.approvalDate)}</td>
       <td>${Number(en.qtyA)}${unit ? ' ' + unit : ''}</td>
       <td>${Number(en.qtyB)}${unit ? ' ' + unit : ''}</td>
       <td class="diff ${diffCls(d)}">${diffTxt(d)}</td>
-      <td class="wrap">${esc(en.reason || '—')}</td>
-      <td class="wrap">${esc(en.remarks || '—')}</td>
-      <td>${esc(en.pageNo || '—')}</td>
+      <td class="wrap">${esc(en.reason || 'â€”')}</td>
+      <td class="wrap">${esc(en.remarks || 'â€”')}</td>
+      <td>${esc(en.pageNo || 'â€”')}</td>
       <td>
         <div class="row-actions">
           <button class="btn sm" data-reg="edit" data-id="${en.id}" title="Edit this entry">Edit</button>
           ${d !== 0 ? `<button class="btn sm" data-reg="apply" data-id="${en.id}" title="Write the physically counted quantity (B) into the book">Apply</button>` : ''}
-          ${canDeleteReg ? `<button class="btn red sm" data-reg="del" data-id="${en.id}" title="Delete this entry">×</button>` : ''}
+          ${canDeleteReg ? `<button class="btn red sm" data-reg="del" data-id="${en.id}" title="Delete this entry">Ã—</button>` : ''}
         </div>
       </td>
     </tr>`;
@@ -2235,7 +2322,7 @@ function renderStockPage(user, routeParams) {
         <div class="modal-head">
           <div>
             <h3>${entry ? 'Edit Verification Entry' : 'New Verification Entry'}</h3>
-            <p class="hint">${entry ? 'Update this row of the paper-style verification register.' : 'Rows are appended to the paper-style register — enter the counted quantity as (B); the Difference is computed automatically.'}</p>
+            <p class="hint">${entry ? 'Update this row of the paper-style verification register.' : 'Rows are appended to the paper-style register â€” enter the counted quantity as (B); the Difference is computed automatically.'}</p>
           </div>
           <button class="btn sm" id="rmCancel">Close</button>
         </div>
@@ -2267,7 +2354,7 @@ function renderStockPage(user, routeParams) {
               <div class="field"><label>Quantity as per Stock Register (A)</label><input type="number" id="rm_qtyA" min="0" value="${entry ? Number(entry.qtyA) : 0}" readonly></div>
               <div class="field"><label>Physically Available Quantity (B)</label><input type="number" id="rm_qtyB" min="0" value="${entry ? Number(entry.qtyB) : 0}"></div>
               <div class="field"><label>Unit</label><input id="rm_unit" placeholder="e.g. mtr, nos, KG" value="${esc(entry ? entry.unit || unitOf(entry.centreId, entry.item) : '')}"></div>
-              <div class="field"><label>Difference (A − B)</label><input type="text" id="rm_diff" readonly value="${entry ? diffTxt(Number(entry.difference)) : 0}"></div>
+              <div class="field"><label>Difference (A âˆ’ B)</label><input type="text" id="rm_diff" readonly value="${entry ? diffTxt(Number(entry.difference)) : 0}"></div>
             </div>
           </div>
           <div class="modal-sec">
@@ -2359,12 +2446,12 @@ function renderStockPage(user, routeParams) {
     if (!en) return;
     if (btn.dataset.reg === 'edit') { openRegisterModal(en); return; }
     if (btn.dataset.reg === 'del' && canDeleteReg) {
-      if (!confirm('Delete this verification entry for ' + centerName(en.centreId) + ' — ' + en.item + '?')) return;
+      if (!confirm('Delete this verification entry for ' + centerName(en.centreId) + ' â€” ' + en.item + '?')) return;
       deleteStockRegisterEntry(id).then(() => { toast('Entry deleted'); load(); }).catch((err) => toast(err.message, true));
       return;
     }
     if (btn.dataset.reg === 'apply') {
-      if (!confirm('Set the book figure for ' + centerName(en.centreId) + ' — ' + en.item + ' to the physically counted quantity ' + en.qtyB + '?')) return;
+      if (!confirm('Set the book figure for ' + centerName(en.centreId) + ' â€” ' + en.item + ' to the physically counted quantity ' + en.qtyB + '?')) return;
       btn.disabled = true;
       updateStock(en.centreId, { [en.item]: Number(en.qtyB) }, { [en.item]: en.unit || unitOf(en.centreId, en.item) }).then(() => { toast('Book figure updated to ' + en.qtyB); load(); }).catch((err) => { btn.disabled = false; toast(err.message, true); });
     }
@@ -2385,7 +2472,7 @@ function renderStockPage(user, routeParams) {
           const fmtDate = (s) => { if (!s) return ''; const dt = new Date(s + (s.length === 10 ? 'T00:00:00' : '')); return isNaN(dt) ? s : dt.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }); };
           return [centerName(en.centreId), en.item, en.approvalNo || '', fmtDate(en.approvalDate), Number(en.qtyA), Number(en.qtyB), en.unit || unitOf(en.centreId, en.item), Number(en.difference), en.reason || '', en.remarks || '', en.pageNo || ''];
         });
-      const header = ['S.No', 'Satsang Place', 'Name of Item', 'Approval Number', 'Approval Date', 'Quantity as per Stock Register (A)', 'Physically Available Quantity (B)', 'Unit', 'Difference (if any) (A−B)', 'Reason for Difference', 'Remarks', 'Stock Register Page No.'];
+      const header = ['S.No', 'Satsang Place', 'Name of Item', 'Approval Number', 'Approval Date', 'Quantity as per Stock Register (A)', 'Physically Available Quantity (B)', 'Unit', 'Difference (if any) (Aâˆ’B)', 'Reason for Difference', 'Remarks', 'Stock Register Page No.'];
       const csv = [header.map((h) => csvCell(h)).join(',')].concat(rows.map((r, i) => [i + 1].concat(r).map(csvCell).join(','))).join('\r\n');
       const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
       const url = URL.createObjectURL(blob);
@@ -2453,7 +2540,7 @@ function renderStockPage(user, routeParams) {
 
     function render() {
       if (!rows.length) {
-        listEl.innerHTML = '<div class="card hint" style="padding:16px;text-align:center">No items yet — add the first one above.</div>';
+        listEl.innerHTML = '<div class="card hint" style="padding:16px;text-align:center">No items yet â€” add the first one above.</div>';
         return;
       }
       listEl.innerHTML = rows.map((r, i) => r.editing ? `
@@ -2471,7 +2558,7 @@ function renderStockPage(user, routeParams) {
         <div class="item-row">
           <div style="flex:1">
             <b>${esc(r.name)}</b>
-            <div class="meta">${esc(r.description || '')}${(r.category ? ' · ' + esc(r.category) : (r.description ? '' : 'No description'))}</div>
+            <div class="meta">${esc(r.description || '')}${(r.category ? ' Â· ' + esc(r.category) : (r.description ? '' : 'No description'))}</div>
           </div>
           <div class="item-actions">
             <button class="btn sm" data-act="edit" data-id="${r.id}">Edit</button>
@@ -2545,7 +2632,7 @@ function renderStockPage(user, routeParams) {
 }
 
 /* =========================================================================
-   Masters page — item master (auto codes) + document master (GRN, uploads)
+   Masters page â€” item master (auto codes) + document master (GRN, uploads)
    ========================================================================= */
 function renderMastersPage(user, focus) {
   document.body.classList.remove('login-page');
@@ -2558,7 +2645,7 @@ function renderMastersPage(user, focus) {
       </div>
       <div class="sr-actions">
         <button class="btn sm" id="maExport" title="Download the item catalogue as CSV">Export</button>
-        <button class="btn primary" id="maAddItem" title="Add a new stock item">＋ Add Item</button>
+        <button class="btn primary" id="maAddItem" title="Add a new stock item">ï¼‹ Add Item</button>
       </div>
     </div>
     <div class="masters-grid" id="maGrid">
@@ -2566,10 +2653,10 @@ function renderMastersPage(user, focus) {
         <div class="reg-toolbar">
           <div class="rt-row">
             <span class="ma-badge item">Centre Master</span>
-            <div class="rt-right"><span class="rt-count" id="maCentreCount"></span>${isAdmin() ? '<button class="btn primary sm" id="maAddCentre" title="Add a new centre / sub centre">＋ Add Centre</button>' : ''}</div>
+            <div class="rt-right"><span class="rt-count" id="maCentreCount"></span>${isAdmin() ? '<button class="btn primary sm" id="maAddCentre" title="Add a new centre / sub centre">ï¼‹ Add Centre</button>' : ''}</div>
           </div>
           <div class="rt-row">
-            <input id="maCentreSearch" type="text" placeholder="Search centres…" autocomplete="off">
+            <input id="maCentreSearch" type="text" placeholder="Search centresâ€¦" autocomplete="off">
           </div>
         </div>
         <div class="table-wrap">
@@ -2582,7 +2669,7 @@ function renderMastersPage(user, focus) {
       <div id="maPanel-item">
         <div class="reg-toolbar">
           <div class="rt-row">
-            <input id="maSearch" type="text" placeholder="Search items by name, code, category, brand or model…" autocomplete="off">
+            <input id="maSearch" type="text" placeholder="Search items by name, code, category, brand or modelâ€¦" autocomplete="off">
             <select id="maLetter" class="ma-letter" title="Filter items by the first letter of their name"><option value="">All letters</option></select>
             <button class="btn sm" id="maClear" title="Clear all filters">Clear All</button>
             <div class="rt-right">
@@ -2604,7 +2691,7 @@ function renderMastersPage(user, focus) {
           <div class="rt-row">
             <span class="ma-badge doc">Document Master</span>
             <span class="ma-sub">Upload SCI form PDFs &amp; manage GRN number</span>
-            <div class="rt-right"><span class="rt-count" id="maDocCount"></span>${isAdmin() ? '<button class="btn primary sm" id="maAddDoc" title="Add a new document type">＋ Add Document</button>' : ''}</div>
+            <div class="rt-right"><span class="rt-count" id="maDocCount"></span>${isAdmin() ? '<button class="btn primary sm" id="maAddDoc" title="Add a new document type">ï¼‹ Add Document</button>' : ''}</div>
           </div>
         </div>
         <div class="table-wrap">
@@ -2652,8 +2739,8 @@ function renderMastersPage(user, focus) {
       return `<tr>
         <td><span class="item-name">${esc(c.name)}</span></td>
         <td><span class="ma-status ${(c.type || 'CENTRE') === 'CENTRE' ? 'on' : 'sub'}">${esc(c.type || 'CENTRE')}</span></td>
-        <td>${par ? esc(par) : '<span style="color:var(--muted)">—</span>'}</td>
-        ${isAdmin() ? `<td><div class="doc-row-actions"><button class="btn sm" data-cact="edit" data-id="${c.id}" title="Rename or move this centre">Edit</button><button class="btn red sm" data-cact="del" data-id="${c.id}" title="Delete this centre">×</button></div></td>` : ''}
+        <td>${par ? esc(par) : '<span style="color:var(--muted)">â€”</span>'}</td>
+        ${isAdmin() ? `<td><div class="doc-row-actions"><button class="btn sm" data-cact="edit" data-id="${c.id}" title="Rename or move this centre">Edit</button><button class="btn red sm" data-cact="del" data-id="${c.id}" title="Delete this centre">Ã—</button></div></td>` : ''}
       </tr>`;
     }).join('');
   }
@@ -2738,7 +2825,7 @@ function renderMastersPage(user, focus) {
       if (btn.dataset.cact === 'edit') openCentreModal(c);
       else if (btn.dataset.cact === 'del') {
         const kids = centreRows.filter((x) => String(x.parentId) === String(c.id));
-        if (kids.length) return toast('Cannot delete "' + c.name + '" — ' + kids.length + ' sub centre(s) are under it. Move or delete them first.', true);
+        if (kids.length) return toast('Cannot delete "' + c.name + '" â€” ' + kids.length + ' sub centre(s) are under it. Move or delete them first.', true);
         if (!confirm('Delete centre "' + c.name + '"? Its stock rows and SCI forms will also be removed. This cannot be undone.')) return;
         sb.from('centres').delete().eq('id', c.id)
           .then(({ error }) => {
@@ -2795,10 +2882,10 @@ function renderMastersPage(user, focus) {
       else if (win[win.length - 1] !== -1) win.push(-1);
     }
     pg.innerHTML = `
-      <span class="pg-info">${itemPage * itemPageSize + 1}–${Math.min(n, (itemPage + 1) * itemPageSize)} of ${n}</span>
-      <button class="pg-btn" data-mpg="prev"${itemPage === 0 ? ' disabled' : ''}>‹ Prev</button>
-      ${win.map((p) => p === -1 ? '<span class="pg-btn" style="border:none;background:none;cursor:default">…</span>' : `<button class="pg-btn${p === itemPage ? ' active' : ''}" data-mpg="${p}">${p + 1}</button>`).join('')}
-      <button class="pg-btn" data-mpg="next"${itemPage >= totalPages - 1 ? ' disabled' : ''}>Next ›</button>`;
+      <span class="pg-info">${itemPage * itemPageSize + 1}â€“${Math.min(n, (itemPage + 1) * itemPageSize)} of ${n}</span>
+      <button class="pg-btn" data-mpg="prev"${itemPage === 0 ? ' disabled' : ''}>â€¹ Prev</button>
+      ${win.map((p) => p === -1 ? '<span class="pg-btn" style="border:none;background:none;cursor:default">â€¦</span>' : `<button class="pg-btn${p === itemPage ? ' active' : ''}" data-mpg="${p}">${p + 1}</button>`).join('')}
+      <button class="pg-btn" data-mpg="next"${itemPage >= totalPages - 1 ? ' disabled' : ''}>Next â€º</button>`;
     pg.querySelectorAll('.pg-btn').forEach((b) => b.addEventListener('click', () => {
       if (b.disabled) return;
       if (b.dataset.mpg === 'prev') itemPage = Math.max(0, itemPage - 1);
@@ -2815,7 +2902,7 @@ function renderMastersPage(user, focus) {
     const cnt = q('maCount');
     if (cnt) cnt.textContent = items.length ? `${list.length} of ${items.length} items` : '';
     if (!items.length) {
-      itemList.innerHTML = '<tr><td colspan="12" class="empty">No items yet — click Add Item.</td></tr>';
+      itemList.innerHTML = '<tr><td colspan="12" class="empty">No items yet â€” click Add Item.</td></tr>';
       renderItemPagination(totalPages, 0);
       return;
     }
@@ -2829,15 +2916,15 @@ function renderMastersPage(user, focus) {
       <tr>
         <td><span class="item-code">${esc(r.code || 'ITM-###')}</span></td>
         <td><span class="item-name">${esc(r.name)}</span></td>
-        <td><span class="item-plain">${esc(r.standardName || '—')}</span></td>
-        <td><span class="item-sub">${esc(r.description || '—')}</span></td>
-        <td><span class="item-plain">${esc(r.category || '—')}</span></td>
-        <td><span class="item-plain">${esc(r.subcategory || '—')}</span></td>
-        <td><span class="item-plain">${esc(r.unit || '—')}</span></td>
-        <td><span class="item-plain">${esc(r.brand || '—')}</span></td>
-        <td><span class="item-plain">${esc(r.model || '—')}</span></td>
+        <td><span class="item-plain">${esc(r.standardName || 'â€”')}</span></td>
+        <td><span class="item-sub">${esc(r.description || 'â€”')}</span></td>
+        <td><span class="item-plain">${esc(r.category || 'â€”')}</span></td>
+        <td><span class="item-plain">${esc(r.subcategory || 'â€”')}</span></td>
+        <td><span class="item-plain">${esc(r.unit || 'â€”')}</span></td>
+        <td><span class="item-plain">${esc(r.brand || 'â€”')}</span></td>
+        <td><span class="item-plain">${esc(r.model || 'â€”')}</span></td>
         <td><span class="ma-status ${(r.status || 'Active') === 'Inactive' ? 'off' : 'on'}">${esc(r.status || 'Active')}</span></td>
-        <td><span class="ma-created">${r.createdAt ? esc(String(r.createdAt).slice(0, 10)) : '—'}</span></td>
+        <td><span class="ma-created">${r.createdAt ? esc(String(r.createdAt).slice(0, 10)) : 'â€”'}</span></td>
         <td><div class="doc-row-actions"><button class="btn sm" data-act="edit" data-id="${r.id}">Edit</button><button class="btn red sm" data-act="del" data-id="${r.id}">Delete</button></div></td>
       </tr>`).join('');
     renderItemPagination(totalPages, list.length);
@@ -2918,7 +3005,7 @@ function renderMastersPage(user, focus) {
           <div>
             <h3>${isEdit ? 'Edit Item' : 'Add New Item'}</h3>
             <p class="hint">${isEdit
-              ? `Editing <b>${esc(record.name)}</b>${record.code ? ' (' + esc(record.code) + ')' : ''} · created ${record.createdAt ? esc(String(record.createdAt).slice(0, 10)) : 'unknown'}`
+              ? `Editing <b>${esc(record.name)}</b>${record.code ? ' (' + esc(record.code) + ')' : ''} Â· created ${record.createdAt ? esc(String(record.createdAt).slice(0, 10)) : 'unknown'}`
               : 'New catalogue entry gets an auto-generated item code (ITM-###).'}</p>
           </div>
           <button class="btn sm" id="imClose">Close</button>
@@ -2991,8 +3078,8 @@ function renderMastersPage(user, focus) {
       field('#imBrand').value = m.brand || '';
       field('#imModel').value = m.model || '';
       field('#imStatus').value = m.status || 'Active';
-      simBox.innerHTML = `<div class="im-selected">✓ Using existing item <b>${esc(m.name)}</b>${m.code ? ' (' + esc(m.code) + ')' : ''}. No new record will be created.</div>`;
-      saveBtn.textContent = 'Done — Using Existing Item';
+      simBox.innerHTML = `<div class="im-selected">âœ“ Using existing item <b>${esc(m.name)}</b>${m.code ? ' (' + esc(m.code) + ')' : ''}. No new record will be created.</div>`;
+      saveBtn.textContent = 'Done â€” Using Existing Item';
       nameEl.focus();
     }
 
@@ -3004,14 +3091,14 @@ function renderMastersPage(user, focus) {
       if (!exact && !sims.length) { simBox.innerHTML = ''; return; }
       simBox.innerHTML = `<div class="im-sim">
         ${exact ? `
-          <div class="im-sim-hi">ⓘ This item already exists as <b>${esc(exact.name)}</b> <span class="sim-meta">${esc(exact.code || 'ITM-###')} • ${esc(exact.category || 'no category')}</span></div>
+          <div class="im-sim-hi">â“˜ This item already exists as <b>${esc(exact.name)}</b> <span class="sim-meta">${esc(exact.code || 'ITM-###')} â€¢ ${esc(exact.category || 'no category')}</span></div>
           <div class="im-sim-row"><span>Join the existing record instead of creating a duplicate.</span><button class="btn primary sm" data-use-exact="1">Use Existing Item</button></div>
           <div class="im-sim-row"><span>You can still create a separate record.</span><button class="btn sm" data-new-any="1">Create New Item</button></div>` : ''}
         ${sims.length ? `
           <div class="im-sim-note">Similar existing items</div>
           ${sims.map((m) => `
             <div class="im-sim-row">
-              <span><b>${esc(m.item.name)}</b> <span class="sim-meta">${esc(m.item.code || 'ITM-###')} • ${esc(m.item.category || 'no category')}</span></span>
+              <span><b>${esc(m.item.name)}</b> <span class="sim-meta">${esc(m.item.code || 'ITM-###')} â€¢ ${esc(m.item.category || 'no category')}</span></span>
               <button class="btn primary sm" data-use-idx="${m.item.id}">Use Existing Item</button>
             </div>`).join('')}
           <div class="im-sim-row"><span>None of these match? Create a new record.</span><button class="btn sm" data-new-any="1">Create New Item</button></div>` : ''}
@@ -3044,7 +3131,7 @@ function renderMastersPage(user, focus) {
       if (!f.name) return toast('Item name is required', true);
       if (existingId) {
         const m = items.find((x) => String(x.id) === String(existingId));
-        if (m) toast('Using existing item "' + m.name + '" — no new record created');
+        if (m) toast('Using existing item "' + m.name + '" â€” no new record created');
         close();
         return;
       }
@@ -3109,7 +3196,7 @@ function renderMastersPage(user, focus) {
         <div style="margin-top:14px;display:grid;gap:10px">
           <input id="adName" placeholder="Document name (e.g. SCI55)" maxlength="100" autocomplete="off">
           <input id="adDesc" placeholder="Description (optional)" maxlength="255" autocomplete="off">
-          <button class="btn primary" id="adSave">＋ Create Document</button>
+          <button class="btn primary" id="adSave">ï¼‹ Create Document</button>
         </div>
       </div>`;
     document.body.appendChild(overlay);
@@ -3183,7 +3270,7 @@ function renderSCIDownloadPage(user, focus) {
   content.innerHTML = `
     <div class="logo-banner">
       <div>
-        <h2>${esc(code)} — ${esc(meta.title)}</h2>
+        <h2>${esc(code)} â€” ${esc(meta.title)}</h2>
         <p>${esc(meta.hint || '')}</p>
       </div>
     </div>
@@ -3192,12 +3279,12 @@ function renderSCIDownloadPage(user, focus) {
       <h3>${esc(meta.title)}</h3>
       <p>${esc(meta.hint || '')}</p>
       <a class="btn primary sci-dl-btn" href="${href}" download rel="noopener">Download form (.docx)</a>
-      <p class="hint">Official Word template — open it in Word, fill in the details, then upload the filled .docx below.</p>
+      <p class="hint">Official Word template â€” open it in Word, fill in the details, then upload the filled .docx below.</p>
     </div>
     <div class="card sci-up-card">
       <div class="sci-dl-chip">UPLOAD</div>
       <h3>Upload Filled Form</h3>
-      <p>Upload the ${esc(code)} form you filled in Word. The items and quantities are read out of the document — you can check and fix them before submitting. Stock changes only after an admin approves the form.</p>
+      <p>Upload the ${esc(code)} form you filled in Word. The items and quantities are read out of the document â€” you can check and fix them before submitting. Stock changes only after an admin approves the form.</p>
       <input id="sciFillFile" class="sci-up-file" type="file" accept=".docx">
       <p class="hint">Word (.docx) only, up to 2 MB.</p>
     </div>`;
@@ -3218,7 +3305,7 @@ function loadJSZip() {
     const s = document.createElement('script');
     s.src = 'https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js';
     s.onload = () => window.JSZip ? resolve(window.JSZip) : reject(new Error('Could not start the .docx reader'));
-    s.onerror = () => reject(new Error('Could not load the .docx reader — check your internet connection'));
+    s.onerror = () => reject(new Error('Could not load the .docx reader â€” check your internet connection'));
     document.head.appendChild(s);
   });
 }
@@ -3298,27 +3385,27 @@ async function openSCIUploadModal(file, expectedCode) {
       <div class="modal-head">
         <div>
           <h3>Review &amp; Submit Form</h3>
-          <p class="hint">File: <b>${esc(file.name)}</b> — check the items read from your document, fix anything wrong, then submit for admin approval.</p>
+          <p class="hint">File: <b>${esc(file.name)}</b> â€” check the items read from your document, fix anything wrong, then submit for admin approval.</p>
         </div>
         <button class="btn sm" id="suClose">Close</button>
       </div>
       <div class="modal-body">
         <div class="modal-grid" style="margin-top:10px">
-          <div class="field"><label>Form Type *</label><select id="suType">${SCI_FORM_META.map((m) => `<option value="${m.code}"${m.code === expectedCode ? ' selected' : ''}>${esc(m.code)} — ${esc(m.title)}</option>`).join('')}</select></div>
+          <div class="field"><label>Form Type *</label><select id="suType">${SCI_FORM_META.map((m) => `<option value="${m.code}"${m.code === expectedCode ? ' selected' : ''}>${esc(m.code)} â€” ${esc(m.title)}</option>`).join('')}</select></div>
           <div class="field"><label>Centre ${isCentre ? '' : '*'}</label>${isCentre
             ? `<input type="text" value="${esc(me.centreName || '')}" readonly>`
-            : '<select id="suCentre"><option value="">Select centre…</option></select>'}</div>
+            : '<select id="suCentre"><option value="">Select centreâ€¦</option></select>'}</div>
           <div class="field"><label>Sewadar Name *</label><input id="suSewadar" type="text" maxlength="120" autocomplete="off" placeholder="Name of sewadar"></div>
           <div class="field"><label>Badge No. * (12 letters/numbers)</label><input id="suBadge" type="text" maxlength="12" autocomplete="off" placeholder="e.g. AB12CD34EF56"></div>
-          <div class="field" id="suDestField" style="display:none"><label>Transfer To Centre *</label><select id="suDest"><option value="">Select destination…</option></select></div>
+          <div class="field" id="suDestField" style="display:none"><label>Transfer To Centre *</label><select id="suDest"><option value="">Select destinationâ€¦</option></select></div>
           <div class="field" id="suAmtField" style="display:none"><label>Sale Amount</label><input id="suAmount" type="number" min="0" step="0.01" placeholder="0.00"></div>
           <div class="field"><label>Approval No.</label><input id="suApproval" type="text" maxlength="60" autocomplete="off" placeholder="If any"></div>
           <div class="field"><label>Remarks</label><input id="suRemarks" type="text" maxlength="400" autocomplete="off" placeholder="Optional"></div>
         </div>
         <div class="field full" style="margin-top:14px">
           <label>Items from the form (edit name, quantity or unit as needed)</label>
-          <div id="suItems" class="sci-items"><div class="hint" style="padding:14px">Reading the .docx file…</div></div>
-          <button class="btn sm" id="suAddRow" type="button">＋ Add Row</button>
+          <div id="suItems" class="sci-items"><div class="hint" style="padding:14px">Reading the .docx fileâ€¦</div></div>
+          <button class="btn sm" id="suAddRow" type="button">ï¼‹ Add Row</button>
         </div>
         <datalist id="suItemNames"></datalist>
         <div class="m-actions">
@@ -3371,7 +3458,7 @@ async function openSCIUploadModal(file, expectedCode) {
       </div>
       <input class="sci-item-qty" type="number" min="1" step="1" value="${item.qty || ''}" placeholder="Qty">
       <input class="sci-item-unit" type="text" value="${esc(item.unit || '')}" placeholder="Unit">
-      <button class="btn sm su-del" type="button" title="Remove row">×</button>
+      <button class="btn sm su-del" type="button" title="Remove row">Ã—</button>
     </div>`;
   }
 
@@ -3442,9 +3529,9 @@ async function openSCIUploadModal(file, expectedCode) {
     stockLoading = false;
     const type = n('suType');
     const centreSel = n('suCentre');
-    if (centreSel) centreSel.innerHTML = '<option value="">Select centre…</option>' + centres.map((c) => `<option value="${c.id}">${esc(c.name)}${c.type && c.type !== 'CENTRE' ? ' (' + esc(c.type) + ')' : ''}</option>`).join('');
+    if (centreSel) centreSel.innerHTML = '<option value="">Select centreâ€¦</option>' + centres.map((c) => `<option value="${c.id}">${esc(c.name)}${c.type && c.type !== 'CENTRE' ? ' (' + esc(c.type) + ')' : ''}</option>`).join('');
     const destSel = n('suDest');
-    if (destSel) destSel.innerHTML = '<option value="">Select destination…</option>' + centres.map((c) => `<option value="${c.id}">${esc(c.name)}</option>`).join('');
+    if (destSel) destSel.innerHTML = '<option value="">Select destinationâ€¦</option>' + centres.map((c) => `<option value="${c.id}">${esc(c.name)}</option>`).join('');
     refreshDatalist();
   });
 
@@ -3457,7 +3544,7 @@ async function openSCIUploadModal(file, expectedCode) {
       typeSel.value = detected;
       syncType();
       const note = n('suClose').closest('.modal-head').querySelector('.hint');
-      if (note) note.innerHTML = esc(note.textContent) + ` <b style="color:var(--amber,#b8860b)">Detected form type ${esc(detected)} — different from this page (${esc(expectedCode)}). Please verify.</b>`;
+      if (note) note.innerHTML = esc(note.textContent) + ` <b style="color:var(--amber,#b8860b)">Detected form type ${esc(detected)} â€” different from this page (${esc(expectedCode)}). Please verify.</b>`;
     }
     if (parsed.sewadar) n('suSewadar').value = parsed.sewadar.slice(0, 120);
     if (parsed.badge) n('suBadge').value = parsed.badge;
@@ -3467,7 +3554,7 @@ async function openSCIUploadModal(file, expectedCode) {
       itemsEl.querySelectorAll('.sci-item-row').forEach(syncRowHint);
     } else {
       addRow();
-      toast('Could not read items automatically — please add them below', true);
+      toast('Could not read items automatically â€” please add them below', true);
     }
   })();
 
@@ -3516,7 +3603,7 @@ async function openSCIUploadModal(file, expectedCode) {
         status: 'pending'
       });
       if (insErr) throw new Error('Submission failed: ' + insErr.message);
-      toast(type + ' submitted — stock will change when an admin approves it');
+      toast(type + ' submitted â€” stock will change when an admin approves it');
       close();
     } catch (err) { btn.disabled = false; toast(err.message, true); }
   }
@@ -3524,7 +3611,7 @@ async function openSCIUploadModal(file, expectedCode) {
 
 function renderSCIFormsPage(user, focus) {
   return renderSCIDownloadPage(user, focus);
-  /* SCI form editor disabled — download-only page (see renderSCIDownloadPage above). */
+  /* SCI form editor disabled â€” download-only page (see renderSCIDownloadPage above). */
   document.body.classList.remove('login-page');
   const content = document.getElementById('content');
   const state = { forms: [], destinations: [], stock: null };
@@ -3539,11 +3626,11 @@ function renderSCIFormsPage(user, focus) {
   function documentLink(form) {
     return form.document
       ? `<a class="file-link" href="${storageFileUrl(form.document)}" target="_blank">${esc(form.documentName || 'View File')}</a>`
-      : '—';
+      : 'â€”';
   }
 
   /*
-  SCI OFFICIAL-FORM PAGE HELPERS (9720880) — tableTitle / initItemsGrid / collectGrid COMMENTED OUT for now.
+  SCI OFFICIAL-FORM PAGE HELPERS (9720880) â€” tableTitle / initItemsGrid / collectGrid COMMENTED OUT for now.
 
   function tableTitle(code) {
     return {
@@ -3551,7 +3638,7 @@ function renderSCIFormsPage(user, focus) {
       SCI43: 'Items to be transferred',
       SCI53: 'Requirement of Items / Material',
       SCI15: 'Offer of Items / Material in Donation',
-      SCI76: 'Items issued — Book Debit Adjustment',
+      SCI76: 'Items issued â€” Book Debit Adjustment',
       SCI45: 'Articles examined for Condemnation'
     }[code] || 'Items / Material';
   }
@@ -3679,7 +3766,7 @@ END SCI PAGE HELPERS */
         <input class="sci-item-unit" type="text" placeholder="Unit" title="Unit, e.g. pcs / kg / mtr">
         <button type="button" class="btn-del" title="Remove this item" aria-label="Remove item"></button>
       </div>`;
-    // SCI official-format builder (9720880) — commented out:
+    // SCI official-format builder (9720880) â€” commented out:
     // const cols = form.code === 'SCI45' ? ITEM_COLS.SCI45c : (ITEM_COLS[form.code] || ITEM_COLS.SCI43);
     // const destOptions = state.destinations.map((centre) => `<option value="${esc(centre.id)}">${esc(centre.name)} (${esc(centre.type)})</option>`).join('');
     // const oreq = { me, today, centres: state.destinations };
@@ -3687,13 +3774,13 @@ END SCI PAGE HELPERS */
 
     document.getElementById('sciEditor').innerHTML = `
       <div class="sci-meta-bar reg-toolbar" style="margin-bottom:14px">
-        <div class="sci-meta"><span>Date: <b>${today}</b></span><span>Satsang Place / Centre: <b>${esc(me.centreName || '—')}</b></span><span>Form No.: <b>${form.code}</b></span></div>
+        <div class="sci-meta"><span>Date: <b>${today}</b></span><span>Satsang Place / Centre: <b>${esc(me.centreName || 'â€”')}</b></span><span>Form No.: <b>${form.code}</b></span></div>
         <span class="rt-right"><span class="badge navy">Fill like the paper form, then upload the signed hardcopy</span></span>
       </div>
       <div class="card" style="padding:0">
         <div class="sci-section-head">
           <div>
-            <h3>${form.code} — ${esc(form.title)}</h3>
+            <h3>${form.code} â€” ${esc(form.title)}</h3>
             <p>${esc(form.hint)}</p>
           </div>
         </div>
@@ -3704,7 +3791,7 @@ END SCI PAGE HELPERS */
               <div class="field"><label>1. Sewadar Name (in block letters)</label><input id="sci_sewadar" type="text" maxlength="200" required placeholder="Full name"></div>
               <div class="field"><label>2. Sewadar Badge No.</label><input id="sci_badge" type="text" maxlength="12" minlength="12" pattern="[A-Za-z0-9]{12}" required placeholder="e.g. AB12CD34EF56" autocomplete="off"></div>
               <div class="field"><label>Approval No.</label><input id="sci_approval" type="text" maxlength="40" placeholder="Approval number for this form" title="Approval number printed on the approved form"></div>
-              ${form.code === 'SCI43' ? `<div class="field"><label>3. Destination Centre</label><select id="sci_destination" required><option value="">— select destination centre —</option>${destinationOptions}</select></div>` : ''}
+              ${form.code === 'SCI43' ? `<div class="field"><label>3. Destination Centre</label><select id="sci_destination" required><option value="">â€” select destination centre â€”</option>${destinationOptions}</select></div>` : ''}
               ${form.code === 'SCI34' ? '<div class="field"><label>3. Sale Proceeds Amount</label><input id="sci_amount" type="number" min="0" step="0.01" required placeholder="0.00"></div>' : ''}
             </div>
           </div>
@@ -3713,7 +3800,7 @@ END SCI PAGE HELPERS */
             <datalist id="sciManualItems">${state.stock && state.stock.items ? state.stock.items.map((i) => `<option value="${esc(i)}"></option>`).join('') : ''}</datalist>
             <div class="sci-items" id="sciItems"></div>
             <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:4px">
-              <button type="button" class="btn sm" id="sciAddItem">＋ Add another item</button>
+              <button type="button" class="btn sm" id="sciAddItem">ï¼‹ Add another item</button>
               <span class="hint">${hasRegister ? 'Pick the items from the stock register above and enter the quantity. The register balance is shown for reference.' : 'Enter item / material name, quantity and unit. Items are listed from the Item Master for quick entry.'}</span>
             </div>
             <div class="field full" style="margin-top:16px"><label>Description / serial numbers</label><textarea id="sci_details" placeholder="Serial numbers, condition, or notes if the items above are not enough"></textarea></div>
@@ -3725,7 +3812,7 @@ END SCI PAGE HELPERS */
           <div class="sci-section">
             <div class="sci-sec-title">Upload the filled hardcopy (${form.code} PDF)</div>
             <input id="sci_document" type="file" accept="application/pdf,.pdf" required>
-            <span class="hint">SCAN the hardcopy you filled in the paper format and upload it here — PDF only, maximum 200 KB.</span>
+            <span class="hint">SCAN the hardcopy you filled in the paper format and upload it here â€” PDF only, maximum 200 KB.</span>
           </div>
           <div class="sci-submit-bar">
             <button type="submit" class="btn primary">Submit ${form.code}</button>
@@ -3739,7 +3826,7 @@ END SCI PAGE HELPERS */
         </form>
       </div>
     `;
-    // SCI official-format priming loop (9720880) — commented out:
+    // SCI official-format priming loop (9720880) â€” commented out:
     // document.querySelectorAll('#sciSubmitForm [data-official]').forEach((el) => {
     //   if (el.dataset.official === 'date' && !el.value) el.value = today;
     //   if (el.dataset.official === 'placeName' && !el.value && me.centreName) el.value = me.centreName;
@@ -3771,7 +3858,7 @@ END SCI PAGE HELPERS */
       items.addEventListener('input', (e) => { if (hasRegister && e.target.classList.contains('sci-item-name')) syncUnit(e.target.closest('.sci-item-row')); });
       document.getElementById('sciAddItem').addEventListener('click', addRow);
     }
-    // SCI official-format grid wiring + destination prefill (9720880) — commented out:
+    // SCI official-format grid wiring + destination prefill (9720880) â€” commented out:
     // initItemsGrid('sciItems', cols, hasRegister, registerItems, itemOptions);
     // if (form.code === 'SCI45') initItemsGrid('sciItemsRepl', ITEM_COLS.SCI45r, hasRegister, registerItems, itemOptions);
     // const destSel = document.getElementById('sci_destination');
@@ -3800,7 +3887,7 @@ END SCI PAGE HELPERS */
     const destEl = document.getElementById('sci_destination');
     const destId = destEl && destEl.value ? Number(destEl.value) : null;
     const destName = destId ? (state.destinations.find((c) => Number(c.id) === destId) || {}).name || '' : '';
-    // SCI official-format collection (9720880) — commented out:
+    // SCI official-format collection (9720880) â€” commented out:
     // const cols = selectedCode === 'SCI45' ? ITEM_COLS.SCI45c : (ITEM_COLS[selectedCode] || ITEM_COLS.SCI43);
     // const official = {};
     // document.querySelectorAll('#sciSubmitForm [data-official]').forEach((el) => {
@@ -3884,10 +3971,10 @@ END SCI PAGE HELPERS */
           <td>${esc(form.centreName)}</td>
           <td>${esc(form.sewadarName)}</td>
           <td class="mono">${esc(form.sewadarBadge)}</td>
-          <td>${esc((form.details && form.details.approvalNo) || '—')}</td>
+          <td>${esc((form.details && form.details.approvalNo) || 'â€”')}</td>
           <td>${documentLink(form)}</td>
           <td>${badge(form.status)}</td>
-          <td>${isAdmin() && form.status === 'pending' ? `<button class="btn green sm" data-form-action="approve" data-id="${esc(form.id)}">Approve</button> <button class="btn red sm" data-form-action="reject" data-id="${esc(form.id)}">Reject</button>` : '—'}</td>
+          <td>${isAdmin() && form.status === 'pending' ? `<button class="btn green sm" data-form-action="approve" data-id="${esc(form.id)}">Approve</button> <button class="btn red sm" data-form-action="reject" data-id="${esc(form.id)}">Reject</button>` : 'â€”'}</td>
         </tr>`).join('') : '<tr><td colspan="9" class="empty">No SCI forms submitted yet</td></tr>'}</tbody>
       </table>
       ${state.forms.length > 20 ? '<div style="padding:10px 14px;border-top:1px solid var(--line);color:var(--muted);font-size:12.5px"><b>Showing the 20 most recent submissions.</b> Open the Forms Log for the full list.</div>' : ''}
@@ -3947,7 +4034,7 @@ function renderResetPage() {
 
   const loadUsers = () => sb.from('org_users').select('username, name, type').order('name', { ascending: true }).then(({ data, error }) => {
     if (error) throw new Error(error.message);
-    document.getElementById('rp_user').innerHTML = data.map((c) => `<option value="${esc(c.username)}">${esc(c.name)} — ${esc(c.type)}</option>`).join('');
+    document.getElementById('rp_user').innerHTML = data.map((c) => `<option value="${esc(c.username)}">${esc(c.name)} â€” ${esc(c.type)}</option>`).join('');
   });
   loadUsers().catch((err) => showResetMsg(err.message, true));
 
