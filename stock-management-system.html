@@ -238,6 +238,10 @@ body.login-page{
 }
 .logo-banner h2{color:#111;font-size:19px;text-transform:uppercase;letter-spacing:.02em}
 .logo-banner p{margin:4px 0 0;color:var(--muted);font-size:13px}
+.logo-banner .stat{background:var(--primary-tint);color:var(--primary-dark);border-radius:12px;padding:12px 18px;text-align:center}
+.logo-banner .stat b{color:var(--primary-dark);font-size:26px}
+.logo-banner .stat span{color:var(--muted);font-size:12px}
+
 
 /* ---------- Badges ---------- */
 .badge{
@@ -1913,131 +1917,152 @@ function renderSCIFormsLogPage(user) {
   const content = document.getElementById('content');
   let centers = [];
   let currentForms = [];
+  let statusTab = '';
+  let page = 0;
+  let pageSize = 10;
+  let sortState = { key: null, dir: 'asc' };
+  const LOG_COLS_KEY = 'ims.cols.log';
+  let hiddenCols = [];
+  try { hiddenCols = JSON.parse(localStorage.getItem(LOG_COLS_KEY) || '[]'); } catch (e) { hiddenCols = []; }
+  if (!Array.isArray(hiddenCols)) hiddenCols = [];
+
+  const LOG_COLS = [
+    { key: 'date',        label: 'Date',         sortable: true,  always: true },
+    { key: 'form',        label: 'Form',         sortable: true,  always: true },
+    { key: 'centre',      label: 'Centre',       sortable: true },
+    { key: 'sewadar',     label: 'Sewadar',      sortable: true },
+    { key: 'badge',       label: 'Badge No.',    sortable: true },
+    { key: 'approval',    label: 'Approval No.', sortable: true },
+    { key: 'details',     label: 'Details',      sortable: false },
+    { key: 'destination', label: 'Destination',  sortable: true },
+    { key: 'amount',      label: 'Amount',       sortable: true, align: 'right' },
+    { key: 'file',        label: 'File',         sortable: false },
+    { key: 'status',      label: 'Status',       sortable: true },
+    { key: 'action',      label: 'Action',       sortable: false, cls: 'col-sticky', always: true },
+  ];
+
+  function visibleCols() { return LOG_COLS.filter((c) => c.always || hiddenCols.indexOf(c.key) === -1); }
+  function isHidden(key) { const c = LOG_COLS.find((x) => x.key === key); return c && !c.always && hiddenCols.indexOf(key) !== -1; }
+  function saveHidden() { try { localStorage.setItem(LOG_COLS_KEY, JSON.stringify(hiddenCols)); } catch (e) {} }
+  function thClass(c) { return [c.cls || '', c.align === 'right' ? 'num' : ''].filter(Boolean).join(' '); }
 
   function badge(status) {
     if (status === 'approved') return '<span class="badge green">Approved</span>';
     if (status === 'rejected') return '<span class="badge red">Rejected</span>';
     return '<span class="badge amber">Pending</span>';
   }
-
   function documentLink(form) {
     return form.document
       ? `<a class="file-link" href="${storageFileUrl(form.document)}" target="_blank">${esc(form.documentName || 'View File')}</a>`
-      : 'â€”';
+      : '-';
   }
 
-  async function load() {
-    [centers] = await Promise.all([fetchCenters(), fetchSCIForms()]);
-    render();
+  function tabList() { return currentForms.filter((f) => !statusTab || f.status === statusTab); }
+
+  function sortVal(f, key) {
+    switch (key) {
+      case 'date': return String(f.submittedAt || '');
+      case 'form': return String(f.formType || '').toLowerCase();
+      case 'centre': return String(f.centreName || '').toLowerCase();
+      case 'sewadar': return String(f.sewadarName || '').toLowerCase();
+      case 'badge': return String(f.sewadarBadge || '').toLowerCase();
+      case 'approval': return String((f.details && f.details.approvalNo) || '').toLowerCase();
+      case 'destination': return String(f.destinationCentreName || '').toLowerCase();
+      case 'amount': return Number(String(f.amount || '').replace(/[^0-9.-]/g, '')) || 0;
+      case 'status': return String(f.status || '');
+      default: return '';
+    }
+  }
+  function sortRows(list) {
+    if (!sortState.key) return list.slice();
+    const k = sortState.key;
+    const dir = sortState.dir === 'asc' ? 1 : -1;
+    return list.slice().sort((a, b) => {
+      const va = sortVal(a, k); const vb = sortVal(b, k);
+      if (va < vb) return -1 * dir;
+      if (va > vb) return 1 * dir;
+      return 0;
+    });
   }
 
-  function render() {
-    const today = new Date().toISOString().slice(0, 10);
-    content.innerHTML = `
-      <div class="logo-banner">
-        <div>
-          <h2>SCI Forms Log</h2>
-          <p>Search, filter, and review all submitted SCI forms across centres.</p>
-        </div>
-        <div class="stat" style="background:rgba(255,255,255,.12);color:#fff;min-width:150px">
-          <b id="formLogCount">0</b>
-          <span style="color:rgba(255,255,255,.8)">Forms shown</span>
-        </div>
-      </div>
-
-      <div class="card" style="margin-bottom:18px">
-        <div class="search-bar">
-          <div class="field wide">
-            <label>SCI Form</label>
-            <select id="sci_log_type"><option value="">All forms</option>${SCI_FORM_META.map((f) => `<option value="${f.code}">${f.code}</option>`).join('')}</select>
-          </div>
-          <div class="field wide">
-            <label>Search</label>
-            <input type="text" id="sci_log_q" placeholder="sewadar / badge / centre">
-          </div>
-          <div class="field">
-            <label>Status</label>
-            <select id="sci_log_status"><option value="">All</option><option value="pending">Pending</option><option value="approved">Approved</option><option value="rejected">Rejected</option></select>
-          </div>
-          <div class="field">
-            <label>Centre</label>
-            <select id="sci_log_center"><option value="">All</option>${centers.map((c) => `<option value="${c.id}">${esc(c.name)}</option>`).join('')}</select>
-          </div>
-          <button class="btn primary" id="sci_log_go">Search Forms</button>
-          <button class="btn" id="sci_log_export">Export Excel</button>
-          <button class="btn" id="sci_log_reset">Reset</button>
-        </div>
-      </div>
-      <div class="table-wrap" id="sciLogTable"></div>
-    `;
-    document.getElementById('sci_log_go').addEventListener('click', applyFilter);
-    document.getElementById('sci_log_export').addEventListener('click', exportCurrent);
-    document.getElementById('sci_log_reset').addEventListener('click', resetFilter);
-    applyFilter();
+  function theadFlat() {
+    return '<tr>' + visibleCols().map((c) => {
+      if (!c.sortable) return '<th class="' + thClass(c) + '"><span class="th-label">' + esc(c.label) + '</span></th>';
+      const active = sortState.key === c.key;
+      const ic = active ? (sortState.dir === 'asc' ? '&#9650;' : '&#9660;') : '&#8645;';
+      return '<th class="' + thClass(c) + '"><span class="th-label" data-sort="' + c.key + '">' + esc(c.label) + '<span class="sort-ic' + (active ? ' active' : '') + '">' + ic + '</span></span></th>';
+    }).join('') + '</tr>';
   }
 
-  function currentParams() {
-    const params = new URLSearchParams();
-    const type = document.getElementById('sci_log_type').value;
-    const q = document.getElementById('sci_log_q').value.trim();
-    const status = document.getElementById('sci_log_status').value;
-    const center = document.getElementById('sci_log_center').value;
-    if (type) params.set('formType', type);
-    if (q) params.set('q', q);
-    if (status) params.set('status', status);
-    if (center) params.set('centreId', center);
-    return params;
+  function rowHtml(f) {
+    const detail = sciDetailsText(f);
+    const act = isAdmin() && f.status === 'pending'
+      ? `<button class="btn green sm" data-form-action="approve" data-id="${esc(f.id)}">Approve</button> <button class="btn red sm" data-form-action="reject" data-id="${esc(f.id)}">Reject</button>`
+      : '-';
+    const cell = {
+      date: `<td>${esc((f.submittedAt || '').slice(0, 10))}</td>`,
+      form: `<td class="wrap"><b>${esc(f.formType)}</b><br><small>${esc(f.formTitle || '')}</small></td>`,
+      centre: `<td>${esc(f.centreName)}</td>`,
+      sewadar: `<td>${esc(f.sewadarName)}</td>`,
+      badge: `<td class="mono">${esc(f.sewadarBadge)}</td>`,
+      approval: `<td>${esc((f.details && f.details.approvalNo) || '-')}</td>`,
+      details: `<td class="wrap sci-detail">${esc(detail || '-')}</td>`,
+      destination: `<td>${esc(f.destinationCentreName || '-')}</td>`,
+      amount: `<td class="num">${esc(f.amount || '-')}</td>`,
+      file: `<td>${documentLink(f)}</td>`,
+      status: `<td>${badge(f.status)}</td>`,
+      action: `<td class="col-sticky"><div class="row-actions">${act}</div></td>`
+    };
+    return `<tr data-form-id="${esc(f.id)}" title="Click to open the full form">${visibleCols().map((c) => cell[c.key]).join('')}</tr>`;
   }
 
-  async function exportCurrent() {
-    const button = document.getElementById('sci_log_export');
-    button.disabled = true;
-    try {
-      await downloadSCIForms(currentParams().toString());
-      toast('SCI forms exported to Excel');
-    } catch (err) { toast(err.message, true); }
-    button.disabled = false;
-  }
-
-  async function applyFilter() {
-    const params = currentParams();
-    let forms;
-    try { forms = await fetchSCIForms(params.toString()); }
-    catch (err) { toast(err.message, true); return; }
-    currentForms = forms;
-    document.getElementById('formLogCount').textContent = forms.length;
-    const table = document.getElementById('sciLogTable');
-    table.innerHTML = `
-      <table>
-        <thead><tr><th>Date</th><th>Form</th><th>Centre</th><th>Sewadar</th><th>Badge No.</th><th>Approval No.</th><th>Details</th><th>Destination</th><th>Amount</th><th>File</th><th>Status</th><th>Action</th></tr></thead>
-        <tbody>${forms.length ? forms.map((f) => {
-          const detail = sciDetailsText(f);
-          return `<tr title="Click to open the full form" data-form-id="${esc(f.id)}">
-            <td>${esc((f.submittedAt || '').slice(0, 10))}</td>
-            <td><b>${esc(f.formType)}</b><br><small>${esc(f.formTitle)}</small></td>
-            <td>${esc(f.centreName)}</td>
-            <td>${esc(f.sewadarName)}</td>
-            <td class="mono">${esc(f.sewadarBadge)}</td>
-            <td>${esc((f.details && f.details.approvalNo) || 'â€”')}</td>
-            <td class="sci-detail">${esc(detail || 'â€”')}</td>
-            <td>${esc(f.destinationCentreName || 'â€”')}</td>
-            <td>${esc(f.amount || 'â€”')}</td>
-            <td>${documentLink(f)}</td>
-            <td>${badge(f.status)}</td>
-            <td>${isAdmin() && f.status === 'pending' ? `<button class="btn green sm" data-form-action="approve" data-id="${esc(f.id)}">Approve</button> <button class="btn red sm" data-form-action="reject" data-id="${esc(f.id)}">Reject</button>` : 'â€”'}</td>
-          </tr>`;
-        }).join('') : '<tr><td colspan="12" class="empty">No SCI forms found</td></tr>'}</tbody>
+  function renderTable() {
+    const host = document.getElementById('sciLogTable');
+    if (!host) return;
+    const shown = sortRows(tabList());
+    const totalPages = Math.max(1, Math.ceil(shown.length / pageSize));
+    if (page >= totalPages) page = totalPages - 1;
+    const rows = shown.slice(page * pageSize, (page + 1) * pageSize);
+    const nCols = visibleCols().length;
+    let pgHtml = '';
+    if (shown.length) {
+      pgHtml = `
+        <div class="reg-pagination">
+          <span class="pg-info">${page * pageSize + 1}-${Math.min(shown.length, (page + 1) * pageSize)} of ${shown.length}</span>
+          <button class="pg-btn" data-pg="prev"${page === 0 ? ' disabled' : ''}>&#8249; Prev</button>
+          <span class="pg-info" style="margin:0 4px">Page ${page + 1} / ${totalPages}</span>
+          <button class="pg-btn" data-pg="next"${page >= totalPages - 1 ? ' disabled' : ''}>Next &#8250;</button>
+        </div>`;
+    }
+    host.innerHTML = `
+      <table class="dt">
+        <thead>${theadFlat()}</thead>
+        <tbody>${rows.length ? rows.map(rowHtml).join('') : `<tr><td class="empty" colspan="${nCols}">No SCI forms found</td></tr>`}</tbody>
       </table>
-      <div style="padding:10px 14px;border-top:1px solid var(--line);color:var(--muted);font-size:12.5px"><b>${forms.length}</b> forms shown</div>
-    `;
-    table.onclick = (e) => {
+      ${pgHtml}`;
+    const countEl = document.getElementById('formLogCount');
+    if (countEl) countEl.textContent = shown.length;
+
+    host.querySelectorAll('[data-sort]').forEach((el) => el.addEventListener('click', () => {
+      const k = el.dataset.sort;
+      if (sortState.key === k) sortState.dir = sortState.dir === 'asc' ? 'desc' : 'asc';
+      else { sortState.key = k; sortState.dir = 'asc'; }
+      page = 0; renderTable();
+    }));
+    host.querySelectorAll('.pg-btn').forEach((b) => b.addEventListener('click', () => {
+      if (b.disabled) return;
+      if (b.dataset.pg === 'prev') page = Math.max(0, page - 1);
+      else page = page + 1;
+      renderTable();
+    }));
+    host.onclick = (e) => {
       if (e.target.closest('[data-form-action], a, button')) return;
       const tr = e.target.closest('tr[data-form-id]');
       if (!tr) return;
       const form = currentForms.find((f) => String(f.id) === String(tr.dataset.formId));
       if (form) openSCIFormDetail(form, applyFilter);
     };
-    table.querySelectorAll('[data-form-action]').forEach((button) => button.addEventListener('click', async () => {
+    host.querySelectorAll('[data-form-action]').forEach((button) => button.addEventListener('click', async () => {
       button.disabled = true;
       try {
         await updateFormStatus(button.dataset.id, button.dataset.formAction);
@@ -2047,11 +2072,160 @@ function renderSCIFormsLogPage(user) {
     }));
   }
 
-  function resetFilter() {
-    document.getElementById('sci_log_type').value = '';
-    document.getElementById('sci_log_q').value = '';
-    document.getElementById('sci_log_status').value = '';
-    document.getElementById('sci_log_center').value = '';
+  function currentParams() {
+    const params = new URLSearchParams();
+    const type = document.getElementById('sci_log_type').value;
+    const q = document.getElementById('sci_log_q').value.trim();
+    const center = document.getElementById('sci_log_center').value;
+    if (type) params.set('formType', type);
+    if (q) params.set('q', q);
+    if (center) params.set('centreId', center);
+    return params;
+  }
+
+  async function applyFilter() {
+    const params = currentParams();
+    let forms;
+    try { forms = await fetchSCIForms(params.toString()); }
+    catch (err) { toast(err.message, true); return; }
+    currentForms = forms;
+    page = 0;
+    renderTable();
+  }
+
+  function exportCSV() {
+    const rows = sortRows(tabList());
+    const csvCell = (v) => { const s = v == null ? '' : String(v); return /[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+    const header = ['Date', 'Form', 'Title', 'Centre', 'Sewadar', 'Badge No.', 'Approval No.', 'Details', 'Destination', 'Amount', 'Status'];
+    const body = rows.map((f) => [
+      (f.submittedAt || '').slice(0, 10), f.formType, f.formTitle || '', f.centreName, f.sewadarName, f.sewadarBadge,
+      (f.details && f.details.approvalNo) || '', sciDetailsText(f) || '', f.destinationCentreName || '', f.amount || '', f.status
+    ]);
+    const csv = [header].concat(body).map((r) => r.map(csvCell).join(',')).join('\r\n');
+    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'sci-forms-log.csv';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+    toast('Forms exported as CSV');
+  }
+
+  function printLog() {
+    const host = document.getElementById('sciLogTable');
+    if (host) {
+      const shown = sortRows(tabList());
+      host.innerHTML = '<table class="dt"><thead>' + theadFlat() + '</thead><tbody>' + (shown.length ? shown.map(rowHtml).join('') : '') + '</tbody></table>';
+    }
+    window.print();
+    renderTable();
+  }
+
+  function render() {
+    content.innerHTML = `
+      <div class="logo-banner">
+        <div>
+          <h2>SCI Forms Log</h2>
+          <p>Search, filter, and review all submitted SCI forms across centres.</p>
+        </div>
+        <div class="stat" style="min-width:150px">
+          <b id="formLogCount">0</b>
+          <span>Forms shown</span>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom:14px">
+        <div class="dash-tabs" id="logTabs">
+          ${['', 'pending', 'approved', 'rejected'].map((k) => `<button class="dash-tab${statusTab === k ? ' active' : ''}" data-log-tab="${k}">${k ? k.charAt(0).toUpperCase() + k.slice(1) : 'All'}</button>`).join('')}
+        </div>
+      </div>
+
+      <div class="reg-toolbar">
+        <div class="rt-row">
+          <select id="sci_log_type" title="Filter by form"><option value="">All forms</option>${SCI_FORM_META.map((f) => `<option value="${f.code}">${f.code}</option>`).join('')}</select>
+          <input type="text" id="sci_log_q" placeholder="Search sewadar / badge / centre">
+          <select id="sci_log_center" title="Filter by centre"><option value="">All centres</option>${centers.map((c) => `<option value="${c.id}">${esc(c.name)}</option>`).join('')}</select>
+          <button class="btn primary" id="sci_log_go">Search Forms</button>
+          <button class="btn" id="sci_log_reset">Reset</button>
+          <div class="rt-right">
+            <span class="rt-size"><span>Show</span><select id="pgSize"><option value="10" selected>10</option><option value="25">25</option><option value="50">50</option><option value="100">100</option></select><span>Entries</span></span>
+            <div class="dropdown">
+              <button class="btn sm icon" id="btnCols" title="Show or hide columns">&#9881;</button>
+              <div class="dropdown-menu" id="colsMenu">
+                <div class="chead">Columns</div>
+                ${LOG_COLS.filter((c) => !c.always).map((c) => '<label><input type="checkbox" data-col="' + c.key + '"' + (isHidden(c.key) ? '' : ' checked') + '> ' + esc(c.label) + '</label>').join('')}
+              </div>
+            </div>
+            <div class="dropdown">
+              <button class="btn sm" id="btnExport">Export &#9662;</button>
+              <div class="dropdown-menu" id="expMenu">
+                <button type="button" id="expExcel">Export as Excel</button>
+                <button type="button" id="expCsv">Export as CSV</button>
+                <button type="button" id="expPrint">Print / PDF</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="table-wrap" id="sciLogTable"></div>
+    `;
+
+    document.getElementById('sci_log_go').addEventListener('click', applyFilter);
+    document.getElementById('sci_log_q').addEventListener('keydown', (e) => { if (e.key === 'Enter') applyFilter(); });
+    document.getElementById('sci_log_reset').addEventListener('click', () => {
+      document.getElementById('sci_log_type').value = '';
+      document.getElementById('sci_log_q').value = '';
+      document.getElementById('sci_log_center').value = '';
+      statusTab = '';
+      content.querySelectorAll('[data-log-tab]').forEach((b) => b.classList.toggle('active', b.dataset.logTab === ''));
+      applyFilter();
+    });
+    document.getElementById('pgSize').addEventListener('change', (e) => { pageSize = Number(e.target.value) || 10; page = 0; renderTable(); });
+    content.querySelectorAll('[data-log-tab]').forEach((b) => b.addEventListener('click', () => {
+      statusTab = b.dataset.logTab;
+      content.querySelectorAll('[data-log-tab]').forEach((x) => x.classList.toggle('active', x === b));
+      page = 0;
+      renderTable();
+    }));
+
+    const btCols = document.getElementById('btnCols');
+    const colsMenu = document.getElementById('colsMenu');
+    if (btCols && colsMenu) {
+      btCols.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const open = colsMenu.classList.toggle('open');
+        if (open) setTimeout(() => document.addEventListener('click', () => colsMenu.classList.remove('open'), { once: true }), 0);
+      });
+      colsMenu.addEventListener('click', (e) => e.stopPropagation());
+      colsMenu.querySelectorAll('input[data-col]').forEach((cb) => cb.addEventListener('change', () => {
+        const key = cb.dataset.col;
+        if (cb.checked) hiddenCols = hiddenCols.filter((k) => k !== key);
+        else if (hiddenCols.indexOf(key) === -1) hiddenCols.push(key);
+        saveHidden();
+        renderTable();
+      }));
+    }
+    const btExp = document.getElementById('btnExport');
+    const expMenu = document.getElementById('expMenu');
+    if (btExp && expMenu) {
+      btExp.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const open = expMenu.classList.toggle('open');
+        if (open) setTimeout(() => document.addEventListener('click', () => expMenu.classList.remove('open'), { once: true }), 0);
+      });
+      expMenu.addEventListener('click', (e) => e.stopPropagation());
+      document.getElementById('expExcel').addEventListener('click', async () => {
+        expMenu.classList.remove('open');
+        try { await downloadSCIForms(currentParams().toString()); toast('SCI forms exported to Excel'); }
+        catch (err) { toast(err.message, true); }
+      });
+      document.getElementById('expCsv').addEventListener('click', () => { expMenu.classList.remove('open'); exportCSV(); });
+      document.getElementById('expPrint').addEventListener('click', () => { expMenu.classList.remove('open'); printLog(); });
+    }
+  }
+
+  async function load() {
+    centers = await fetchCenters();
+    render();
     applyFilter();
   }
 
