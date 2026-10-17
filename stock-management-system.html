@@ -819,7 +819,7 @@ async function fetchItemsFull() {
   const pageSize = 1000;
   for (let offset = 0; ; offset += pageSize) {
     const { data, error } = await sb.from('items')
-      .select('id, name, code, standardName, description, category, subcategory, unit, brand, model, status, createdAt')
+      .select('id, name, code, standardName, description, category, subcategory, unit, brand, model, status, createdAt, classification, is_sensitive, asset_tag, serial_no, location, custodian, condition, acquisition_date, acquisition_value, depreciation_method, warranty_expiry, remarks')
       .order('name', { ascending: true })
       .range(offset, offset + pageSize - 1);
     if (error) throw new Error(error.message);
@@ -840,7 +840,19 @@ async function createStockItem(fields) {
     unit: (fields.unit || '').trim(),
     brand: (fields.brand || '').trim(),
     model: (fields.model || '').trim(),
-    status: fields.status || 'Active'
+    status: fields.status || 'Active',
+    classification: (fields.classification || 'unclassified').trim(),
+    is_sensitive: !!fields.is_sensitive,
+    asset_tag: (fields.asset_tag || '').trim(),
+    serial_no: (fields.serial_no || '').trim(),
+    location: (fields.location || '').trim(),
+    custodian: (fields.custodian || '').trim(),
+    condition: (fields.condition || '').trim(),
+    acquisition_date: (fields.acquisition_date || '').trim() || null,
+    acquisition_value: fields.acquisition_value != null && fields.acquisition_value !== '' ? Number(fields.acquisition_value) : null,
+    depreciation_method: (fields.depreciation_method || '').trim(),
+    warranty_expiry: (fields.warranty_expiry || '').trim() || null,
+    remarks: (fields.remarks || '').trim()
   });
   if (error) throw new Error(error.message);
 }
@@ -856,7 +868,19 @@ async function updateItemRecord(id, fields, previousName) {
     unit: (fields.unit || '').trim(),
     brand: (fields.brand || '').trim(),
     model: (fields.model || '').trim(),
-    status: fields.status || 'Active'
+    status: fields.status || 'Active',
+    classification: (fields.classification || 'unclassified').trim(),
+    is_sensitive: !!fields.is_sensitive,
+    asset_tag: (fields.asset_tag || '').trim(),
+    serial_no: (fields.serial_no || '').trim(),
+    location: (fields.location || '').trim(),
+    custodian: (fields.custodian || '').trim(),
+    condition: (fields.condition || '').trim(),
+    acquisition_date: (fields.acquisition_date || '').trim() || null,
+    acquisition_value: fields.acquisition_value != null && fields.acquisition_value !== '' ? Number(fields.acquisition_value) : null,
+    depreciation_method: (fields.depreciation_method || '').trim(),
+    warranty_expiry: (fields.warranty_expiry || '').trim() || null,
+    remarks: (fields.remarks || '').trim()
   }).eq('id', Number(id));
   if (error) throw new Error(error.message);
   if (name && previousName && name !== previousName) {
@@ -3269,7 +3293,7 @@ function renderMastersPage(user, focus) {
         if (first !== itemLetter) return false;
       }
       if (!term) return true;
-      return (r.name || '').toLowerCase().includes(term) || (r.standardName || '').toLowerCase().includes(term) || (r.code || '').toLowerCase().includes(term) || (r.description || '').toLowerCase().includes(term) || (r.category || '').toLowerCase().includes(term) || (r.subcategory || '').toLowerCase().includes(term) || (r.unit || '').toLowerCase().includes(term) || (r.brand || '').toLowerCase().includes(term) || (r.model || '').toLowerCase().includes(term);
+      return (r.name || '').toLowerCase().includes(term) || (r.standardName || '').toLowerCase().includes(term) || (r.code || '').toLowerCase().includes(term) || (r.description || '').toLowerCase().includes(term) || (r.category || '').toLowerCase().includes(term) || (r.subcategory || '').toLowerCase().includes(term) || (String(r.classification || '')).toLowerCase().includes(term) || (String(r.asset_tag || '')).toLowerCase().includes(term) || (String(r.serial_no || '')).toLowerCase().includes(term) || (String(r.location || '')).toLowerCase().includes(term) || (String(r.custodian || '')).toLowerCase().includes(term) || (String(r.condition || '')).toLowerCase().includes(term) || (r.unit || '').toLowerCase().includes(term) || (r.brand || '').toLowerCase().includes(term) || (r.model || '').toLowerCase().includes(term);
     });
   }
 
@@ -3304,6 +3328,14 @@ function renderMastersPage(user, focus) {
     { key: 'description', label: 'Description', sortable: true },
     { key: 'category', label: 'Category', sortable: true },
     { key: 'subcategory', label: 'Subcategory', sortable: true },
+    { key: 'classification', label: 'Classification', sortable: true },
+    { key: 'is_sensitive', label: 'Sensitive', sortable: true },
+    { key: 'asset_tag', label: 'Asset Tag', sortable: true },
+    { key: 'serial_no', label: 'Serial No.', sortable: true },
+    { key: 'location', label: 'Location', sortable: true },
+    { key: 'custodian', label: 'Custodian', sortable: true },
+    { key: 'acquisition_value', label: 'Acq. Value', sortable: true, align: 'right' },
+    { key: 'condition', label: 'Condition', sortable: true },
     { key: 'unit', label: 'Unit', sortable: true },
     { key: 'brand', label: 'Brand', sortable: true },
     { key: 'model', label: 'Model', sortable: true },
@@ -3324,6 +3356,14 @@ function renderMastersPage(user, focus) {
         <td><span class="item-sub">${esc(r.description || '-')}</span></td>
         <td><span class="item-plain">${esc(r.category || '-')}</span></td>
         <td><span class="item-plain">${esc(r.subcategory || '-')}</span></td>
+        <td><span class="item-plain">${esc(r.classification || 'unclassified')}</span></td>
+        <td><span class="item-plain">${r.is_sensitive ? 'Yes' : 'No'}</span></td>
+        <td><span class="item-plain">${esc(r.asset_tag || '-')}</span></td>
+        <td><span class="item-plain">${esc(r.serial_no || '-')}</span></td>
+        <td><span class="item-plain">${esc(r.location || '-')}</span></td>
+        <td><span class="item-plain">${esc(r.custodian || '-')}</span></td>
+        <td class="num">${r.acquisition_value != null && r.acquisition_value !== '' ? esc(Number(r.acquisition_value)) : '-'}</td>
+        <td><span class="item-plain">${esc(r.condition || '-')}</span></td>
         <td><span class="item-plain">${esc(r.unit || '-')}</span></td>
         <td><span class="item-plain">${esc(r.brand || '-')}</span></td>
         <td><span class="item-plain">${esc(r.model || '-')}</span></td>
@@ -3360,8 +3400,8 @@ function renderMastersPage(user, focus) {
         const s = v == null ? '' : String(v);
         return /[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
       };
-      const rows = filteredItems().map((r) => [r.code || 'ITM-###', r.name || '', r.standardName || '', r.description || '', r.category || '', r.subcategory || '', r.unit || '', r.brand || '', r.model || '', r.status || 'Active', r.createdAt ? String(r.createdAt).slice(0, 10) : '']);
-      const header = ['Code', 'Item Name', 'Standard Name', 'Description', 'Category', 'Subcategory', 'Unit', 'Brand', 'Model', 'Status', 'Created Date'];
+      const rows = filteredItems().map((r) => [r.code || 'ITM-###', r.name || '', r.standardName || '', r.description || '', r.category || '', r.subcategory || '', r.classification || 'unclassified', r.is_sensitive ? 'Yes' : 'No', r.asset_tag || '', r.serial_no || '', r.location || '', r.custodian || '', r.acquisition_value != null && r.acquisition_value !== '' ? String(r.acquisition_value) : '', r.condition || '', r.unit || '', r.brand || '', r.model || '', r.status || 'Active', r.createdAt ? String(r.createdAt).slice(0, 10) : '']);
+      const header = ['Code', 'Item Name', 'Standard Name', 'Description', 'Category', 'Subcategory', 'Classification', 'Sensitive', 'Asset Tag', 'Serial No.', 'Location', 'Custodian', 'Acq. Value', 'Condition', 'Unit', 'Brand', 'Model', 'Status', 'Created Date'];
       const csv = [header.map(csvCell).join(',')].concat(rows.map((r) => r.map(csvCell).join(','))).join('\r\n');
       const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
       const url = URL.createObjectURL(blob);
@@ -3463,6 +3503,14 @@ function renderMastersPage(user, focus) {
             <div class="modal-grid">
               <div class="field"><label for="imCategory">Category</label><input id="imCategory" type="text" maxlength="100" placeholder="e.g. Electronics" value="${esc(itemVal(record, 'category'))}"></div>
               <div class="field"><label for="imSub">Subcategory</label><input id="imSub" type="text" maxlength="100" placeholder="e.g. Audio" value="${esc(itemVal(record, 'subcategory'))}"></div>
+              <div class="field"><label for="imClassification">Classification</label><select id="imClassification"><option value="unclassified"${(itemVal(record,'classification')||'unclassified')==='unclassified'?' selected':''}>Unclassified</option><option value="capital"${(itemVal(record,'classification')||'')==='capital'?' selected':''}>Capital</option><option value="general"${(itemVal(record,'classification')||'')==='general'?' selected':''}>General</option></select></div>
+              <div class="field"><label for="imSensitive">Sensitive / AV</label><select id="imSensitive"><option value="false"${!itemVal(record,'is_sensitive')?' selected':''}>No</option><option value="true"${itemVal(record,'is_sensitive')?' selected':''}>Yes</option></select></div>
+              <div class="field"><label for="imAssetTag">Asset Tag</label><input id="imAssetTag" type="text" maxlength="80" placeholder="e.g. AST-001" value="${esc(itemVal(record,'asset_tag'))}"></div>
+              <div class="field"><label for="imSerial">Serial No.</label><input id="imSerial" type="text" maxlength="120" placeholder="Serial number" value="${esc(itemVal(record,'serial_no'))}"></div>
+              <div class="field"><label for="imLocation">Location</label><input id="imLocation" type="text" maxlength="120" placeholder="Location" value="${esc(itemVal(record,'location'))}"></div>
+              <div class="field"><label for="imCustodian">Custodian</label><input id="imCustodian" type="text" maxlength="120" placeholder="Custodian" value="${esc(itemVal(record,'custodian'))}"></div>
+              <div class="field"><label for="imAcqValue">Acquisition Value</label><input id="imAcqValue" type="number" min="0" step="0.01" placeholder="0.00" value="${itemVal(record,'acquisition_value') ?? ''}"></div>
+              <div class="field"><label for="imCondition">Condition</label><input id="imCondition" type="text" maxlength="60" placeholder="New/Good/Fair/Repair/Condemned" value="${esc(itemVal(record,'condition'))}"></div>
               <div class="field"><label for="imUnit">Unit</label><input id="imUnit" type="text" maxlength="40" placeholder="e.g. Nos" value="${esc(itemVal(record, 'unit'))}"></div>
               <div class="field"><label for="imBrand">Brand</label><input id="imBrand" type="text" maxlength="100" placeholder="e.g. Sony" value="${esc(itemVal(record, 'brand'))}"></div>
               <div class="field full"><label for="imModel">Model</label><input id="imModel" type="text" maxlength="100" placeholder="Model / capacity / rating" value="${esc(itemVal(record, 'model'))}"></div>
@@ -3499,7 +3547,19 @@ function renderMastersPage(user, focus) {
       unit: field('#imUnit').value.trim(),
       brand: field('#imBrand').value.trim(),
       model: field('#imModel').value.trim(),
-      status: field('#imStatus').value || 'Active'
+      status: field('#imStatus').value || 'Active',
+      classification: (field('#imClassification') && field('#imClassification').value) || 'unclassified',
+      is_sensitive: (field('#imSensitive') && field('#imSensitive').value === 'true') || false,
+      asset_tag: (field('#imAssetTag') && field('#imAssetTag').value.trim()) || '',
+      serial_no: (field('#imSerial') && field('#imSerial').value.trim()) || '',
+      location: (field('#imLocation') && field('#imLocation').value.trim()) || '',
+      custodian: (field('#imCustodian') && field('#imCustodian').value.trim()) || '',
+      condition: (field('#imCondition') && field('#imCondition').value.trim()) || '',
+      acquisition_date: (field('#imAcqDate') && field('#imAcqDate').value.trim()) || '',
+      acquisition_value: (field('#imAcqValue') && field('#imAcqValue').value) || '',
+      depreciation_method: (field('#imDepMethod') && field('#imDepMethod').value.trim()) || '',
+      warranty_expiry: (field('#imWarrExp') && field('#imWarrExp').value.trim()) || '',
+      remarks: (field('#imRemarks') && field('#imRemarks').value.trim()) || ''
     });
 
     function useExisting(m) {
