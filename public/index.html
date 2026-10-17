@@ -6,7 +6,7 @@
 <title>Stock Management System</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%231F5D50'/%3E%3Ctext x='16' y='22' font-family='Arial' font-size='18' font-weight='bold' fill='%23fff' text-anchor='middle'%3ES%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600;8..60,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
 <style>
 :root{
   --bg:#F3F5F4;
@@ -1821,16 +1821,52 @@ function renderDashboardPage(user, routeParams) {
     return new Set(out.map((c) => String(c.id)));
   }
 
+  let dashSort = { key: null, dir: 'asc' };
+
+  function dashVal(f, k) {
+    switch (k) {
+      case 'date': return String(f.submittedAt || '');
+      case 'form': return String(f.formType || '').toLowerCase();
+      case 'centre': return String(f.centreName || '').toLowerCase();
+      case 'sewadar': return String(f.sewadarName || '').toLowerCase();
+      case 'badge': return String(f.sewadarBadge || '').toLowerCase();
+      case 'approval': return String((f.details && f.details.approvalNo) || '').toLowerCase();
+      case 'destination': return String(f.destinationCentreName || '').toLowerCase();
+      case 'amount': return Number(String(f.amount || '').replace(/[^0-9.-]/g, '')) || 0;
+      case 'status': return String(f.status || '');
+      default: return '';
+    }
+  }
+
   function renderFormList() {
     const ids = scopedIds();
     let forms = allForms.filter((f) => ids.has(String(f.centreId)));
     if (dashFilter !== 'all') forms = forms.filter((f) => f.status === dashFilter);
+    if (dashSort.key) {
+      const dir = dashSort.dir === 'asc' ? 1 : -1;
+      forms = forms.slice().sort((a, b) => {
+        const va = dashVal(a, dashSort.key); const vb = dashVal(b, dashSort.key);
+        if (va < vb) return -1 * dir;
+        if (va > vb) return 1 * dir;
+        return 0;
+      });
+    }
     const cnt = document.getElementById('dashCount');
     if (cnt) cnt.textContent = `${forms.length} form${forms.length === 1 ? '' : 's'}`;
     const table = document.getElementById('dashTable');
+    const dcols = [
+      ['date', 'Date'], ['form', 'Form'], ['centre', 'Centre'], ['sewadar', 'Sewadar'], ['badge', 'Badge No.'],
+      ['approval', 'Approval No.'], ['destination', 'Destination'], ['amount', 'Amount'], ['file', 'File'], ['status', 'Status']
+    ];
+    const head = dcols.map(([k, label]) => {
+      if (k === 'file') return '<th><span class="th-label">' + label + '</span></th>';
+      const active = dashSort.key === k;
+      const ic = active ? (dashSort.dir === 'asc' ? '&#9650;' : '&#9660;') : '&#8645;';
+      return '<th><span class="th-label" data-sort="' + k + '">' + label + '<span class="sort-ic' + (active ? ' active' : '') + '">' + ic + '</span></span></th>';
+    }).join('') + '<th class="col-sticky"><span class="th-label">Action</span></th>';
     table.innerHTML = `
-      <table>
-        <thead><tr><th>Date</th><th>Form</th><th>Centre</th><th>Sewadar</th><th>Badge No.</th><th>Approval No.</th><th>Destination</th><th>Amount</th><th>File</th><th>Status</th><th>Action</th></tr></thead>
+      <table class="dt">
+        <thead><tr>${head}</tr></thead>
         <tbody>${forms.length ? forms.map((f) => `
           <tr title="Click to open the full form" data-form-id="${esc(f.id)}">
             <td>${esc((f.submittedAt || '').slice(0, 10))}</td>
@@ -1838,15 +1874,21 @@ function renderDashboardPage(user, routeParams) {
             <td>${esc(f.centreName)}</td>
             <td>${esc(f.sewadarName)}</td>
             <td class="mono">${esc(f.sewadarBadge)}</td>
-            <td>${esc((f.details && f.details.approvalNo) || 'â€”')}</td>
-            <td>${esc(f.destinationCentreName || 'â€”')}</td>
-            <td>${esc(f.amount || 'â€”')}</td>
+            <td>${esc((f.details && f.details.approvalNo) || '-')}</td>
+            <td>${esc(f.destinationCentreName || '-')}</td>
+            <td>${esc(f.amount || '-')}</td>
             <td>${documentLink(f)}</td>
             <td>${badge(f.status)}</td>
-            <td>${isAdmin() && f.status === 'pending' ? `<button class="btn green sm" data-form-action="approve" data-id="${esc(f.id)}">Approve</button> <button class="btn red sm" data-form-action="reject" data-id="${esc(f.id)}">Reject</button>` : 'â€”'}</td>
+            <td class="col-sticky">${isAdmin() && f.status === 'pending' ? `<button class="btn green sm" data-form-action="approve" data-id="${esc(f.id)}">Approve</button> <button class="btn red sm" data-form-action="reject" data-id="${esc(f.id)}">Reject</button>` : '-'}</td>
           </tr>`).join('') : '<tr><td colspan="11" class="empty">No SCI forms found</td></tr>'}</tbody>
       </table>
       <div style="padding:10px 14px;border-top:1px solid var(--line);color:var(--muted);font-size:12.5px"><b>${forms.length}</b> forms shown</div>`;
+    table.querySelectorAll('[data-sort]').forEach((el) => el.addEventListener('click', () => {
+      const k = el.dataset.sort;
+      if (dashSort.key === k) dashSort.dir = dashSort.dir === 'asc' ? 'desc' : 'asc';
+      else { dashSort.key = k; dashSort.dir = 'asc'; }
+      renderFormList();
+    }));
     table.onclick = (e) => {
       if (e.target.closest('[data-form-action], a, button')) return;
       const tr = e.target.closest('tr[data-form-id]');
