@@ -2953,7 +2953,13 @@ function renderMastersPage(user, focus) {
         <p>Centre master (create Satsang places), item catalogue with auto-generated codes, and document master for GRN &amp; SCI form PDFs.</p>
       </div>
       <div class="sr-actions">
-        <button class="btn sm" id="maExport" title="Download the item catalogue as CSV">Export</button>
+        <div class="dropdown">
+          <button class="btn sm" id="maExport" title="Export or print the item catalogue">Export &#9662;</button>
+          <div class="dropdown-menu" id="maExpMenu">
+            <button type="button" id="maExpCsv">Export as CSV</button>
+            <button type="button" id="maExpPrint">Print / PDF</button>
+          </div>
+        </div>
         <button class="btn primary" id="maAddItem" title="Add a new stock item">ï¼‹ Add Item</button>
       </div>
     </div>
@@ -2969,8 +2975,8 @@ function renderMastersPage(user, focus) {
           </div>
         </div>
         <div class="table-wrap">
-          <table class="ma-tbl">
-            <thead><tr><th>Centre</th><th>Type</th><th>Parent Centre</th>${isAdmin() ? '<th></th>' : ''}</tr></thead>
+          <table class="ma-tbl dt">
+            <thead id="maCentreHead"></thead>
             <tbody id="maCentreList"></tbody>
           </table>
         </div>
@@ -2988,8 +2994,8 @@ function renderMastersPage(user, focus) {
           </div>
         </div>
         <div class="table-wrap">
-          <table class="ma-tbl">
-            <thead><tr><th>Code</th><th>Item Name</th><th>Standard Name</th><th>Description</th><th>Category</th><th>Subcategory</th><th>Unit</th><th>Brand</th><th>Model</th><th>Status</th><th>Created Date</th><th></th></tr></thead>
+          <table class="ma-tbl dt">
+            <thead id="maItemHead"></thead>
             <tbody id="maItemList"></tbody>
           </table>
         </div>
@@ -3004,8 +3010,8 @@ function renderMastersPage(user, focus) {
           </div>
         </div>
         <div class="table-wrap">
-          <table class="ma-tbl">
-            <thead><tr><th>Document</th><th>Doc No.</th><th>PDF</th>${isAdmin() ? '<th></th>' : ''}</tr></thead>
+          <table class="ma-tbl dt">
+            <thead id="maDocHead"></thead>
             <tbody id="maDocList"></tbody>
           </table>
         </div>
@@ -3023,6 +3029,37 @@ function renderMastersPage(user, focus) {
 
   const q = (id) => document.getElementById(id);
 
+  /* ----- Shared masters table helpers (Phase 4) ----- */
+  function buildHead(headId, cols, state, onSort) {
+    const el = document.getElementById(headId);
+    if (!el) return;
+    el.innerHTML = '<tr>' + cols.map((c) => {
+      const label = esc(c.label);
+      if (!c.sortable) return '<th class="' + (c.cls || '') + '"><span class="th-label">' + label + '</span></th>';
+      const active = state.key === c.key;
+      const ic = active ? (state.dir === 'asc' ? '&#9650;' : '&#9660;') : '&#8645;';
+      return '<th class="' + (c.cls || '') + '"><span class="th-label" data-sort="' + c.key + '">' + label + '<span class="sort-ic' + (active ? ' active' : '') + '">' + ic + '</span></span></th>';
+    }).join('') + '</tr>';
+    el.querySelectorAll('[data-sort]').forEach((b) => b.addEventListener('click', () => {
+      const k = b.dataset.sort;
+      if (state.key === k) state.dir = state.dir === 'asc' ? 'desc' : 'asc';
+      else { state.key = k; state.dir = 'asc'; }
+      onSort();
+    }));
+  }
+  function sortList(list, state, getVal) {
+    if (!state.key) return list;
+    const dir = state.dir === 'asc' ? 1 : -1;
+    return list.slice().sort((a, b) => {
+      const va = String(getVal(a, state.key) == null ? '' : getVal(a, state.key)).toLowerCase();
+      const vb = String(getVal(b, state.key) == null ? '' : getVal(b, state.key)).toLowerCase();
+      if (va < vb) return -1 * dir;
+      if (va > vb) return 1 * dir;
+      return 0;
+    });
+  }
+
+
   /* -------- Centre master -------- */
   const centreList = q('maCentreList');
   let centreRows = [];
@@ -3034,11 +3071,24 @@ function renderMastersPage(user, focus) {
     return p ? p.name : '';
   }
 
+  const centreSort = { key: null, dir: 'asc' };
+  const CENTRE_COLS = [
+    { key: 'name', label: 'Centre', sortable: true },
+    { key: 'type', label: 'Type', sortable: true },
+    { key: 'parent', label: 'Parent Centre', sortable: true }
+  ];
+  if (isAdmin()) CENTRE_COLS.push({ key: 'actions', label: '', sortable: false, cls: 'col-sticky' });
+
+  function renderCentreHead() {
+    buildHead('maCentreHead', CENTRE_COLS, centreSort, () => { renderCentreHead(); renderCentreRows(); });
+  }
+
   function renderCentreRows() {
     const cnt = q('maCentreCount');
     const term = centreSearch.trim().toLowerCase();
-    const list = centreRows.filter((c) => !term || (c.name || '').toLowerCase().includes(term) || (c.type || '').toLowerCase().includes(term));
-    if (cnt) cnt.textContent = centreRows.length ? `${list.length} of ${centreRows.length}` : '';
+    const filtered = centreRows.filter((c) => !term || (c.name || '').toLowerCase().includes(term) || (c.type || '').toLowerCase().includes(term));
+    const list = sortList(filtered, centreSort, (c, k) => k === 'parent' ? parentName(c.parentId) : (k === 'type' ? (c.type || 'CENTRE') : c.name));
+    if (cnt) cnt.textContent = centreRows.length ? `${filtered.length} of ${centreRows.length}` : '';
     if (!list.length) {
       centreList.innerHTML = `<tr><td colspan="${isAdmin() ? 4 : 3}" class="empty">${centreRows.length ? 'No centres match your search.' : 'No centres yet.'}</td></tr>`;
       return;
@@ -3048,14 +3098,14 @@ function renderMastersPage(user, focus) {
       return `<tr>
         <td><span class="item-name">${esc(c.name)}</span></td>
         <td><span class="ma-status ${(c.type || 'CENTRE') === 'CENTRE' ? 'on' : 'sub'}">${esc(c.type || 'CENTRE')}</span></td>
-        <td>${par ? esc(par) : '<span style="color:var(--muted)">â€”</span>'}</td>
-        ${isAdmin() ? `<td><div class="doc-row-actions"><button class="btn sm" data-cact="edit" data-id="${c.id}" title="Rename or move this centre">Edit</button><button class="btn red sm" data-cact="del" data-id="${c.id}" title="Delete this centre">Ã—</button></div></td>` : ''}
+        <td>${par ? esc(par) : '<span style="color:var(--muted)">-</span>'}</td>
+        ${isAdmin() ? `<td class="col-sticky"><div class="doc-row-actions"><button class="btn sm" data-cact="edit" data-id="${c.id}" title="Rename or move this centre">Edit</button><button class="btn red sm" data-cact="del" data-id="${c.id}" title="Delete this centre">&times;</button></div></td>` : ''}
       </tr>`;
     }).join('');
   }
 
   function loadCentres() {
-    return fetchCenters().then((rows) => { centreRows = rows; renderCentreRows(); });
+    return fetchCenters().then((rows) => { centreRows = rows; renderCentreHead(); renderCentreRows(); });
   }
 
   function openCentreModal(existing) {
@@ -3204,14 +3254,51 @@ function renderMastersPage(user, focus) {
     }));
   }
 
+  const itemSort = { key: null, dir: 'asc' };
+  const ITEM_COLS = [
+    { key: 'code', label: 'Code', sortable: true },
+    { key: 'name', label: 'Item Name', sortable: true },
+    { key: 'standardName', label: 'Standard Name', sortable: true },
+    { key: 'description', label: 'Description', sortable: true },
+    { key: 'category', label: 'Category', sortable: true },
+    { key: 'subcategory', label: 'Subcategory', sortable: true },
+    { key: 'unit', label: 'Unit', sortable: true },
+    { key: 'brand', label: 'Brand', sortable: true },
+    { key: 'model', label: 'Model', sortable: true },
+    { key: 'status', label: 'Status', sortable: true },
+    { key: 'createdAt', label: 'Created Date', sortable: true },
+    { key: 'actions', label: '', sortable: false, cls: 'col-sticky' }
+  ];
+
+  function renderItemHead() {
+    buildHead('maItemHead', ITEM_COLS, itemSort, () => { itemPage = 0; renderItemHead(); renderItemRows(); });
+  }
+
+  function itemRowHtml(r) {
+    return `<tr>
+        <td><span class="item-code">${esc(r.code || 'ITM-###')}</span></td>
+        <td><span class="item-name">${esc(r.name)}</span></td>
+        <td><span class="item-plain">${esc(r.standardName || '-')}</span></td>
+        <td><span class="item-sub">${esc(r.description || '-')}</span></td>
+        <td><span class="item-plain">${esc(r.category || '-')}</span></td>
+        <td><span class="item-plain">${esc(r.subcategory || '-')}</span></td>
+        <td><span class="item-plain">${esc(r.unit || '-')}</span></td>
+        <td><span class="item-plain">${esc(r.brand || '-')}</span></td>
+        <td><span class="item-plain">${esc(r.model || '-')}</span></td>
+        <td><span class="ma-status ${(r.status || 'Active') === 'Inactive' ? 'off' : 'on'}">${esc(r.status || 'Active')}</span></td>
+        <td><span class="ma-created">${r.createdAt ? esc(String(r.createdAt).slice(0, 10)) : '-'}</span></td>
+        <td class="col-sticky"><div class="doc-row-actions"><button class="btn sm" data-act="edit" data-id="${r.id}">Edit</button><button class="btn red sm" data-act="del" data-id="${r.id}">Delete</button></div></td>
+      </tr>`;
+  }
+
   function renderItemRows() {
-    const list = filteredItems();
+    const list = sortList(filteredItems(), itemSort, (r, k) => r[k]);
     const totalPages = Math.max(1, Math.ceil(list.length / itemPageSize));
     if (itemPage >= totalPages) itemPage = totalPages - 1;
     const cnt = q('maCount');
     if (cnt) cnt.textContent = items.length ? `${list.length} of ${items.length} items` : '';
     if (!items.length) {
-      itemList.innerHTML = '<tr><td colspan="12" class="empty">No items yet â€” click Add Item.</td></tr>';
+      itemList.innerHTML = '<tr><td colspan="12" class="empty">No items yet - click Add Item.</td></tr>';
       renderItemPagination(totalPages, 0);
       return;
     }
@@ -3221,21 +3308,7 @@ function renderMastersPage(user, focus) {
       return;
     }
     const pageRows = list.slice(itemPage * itemPageSize, (itemPage + 1) * itemPageSize);
-    itemList.innerHTML = pageRows.map((r) => `
-      <tr>
-        <td><span class="item-code">${esc(r.code || 'ITM-###')}</span></td>
-        <td><span class="item-name">${esc(r.name)}</span></td>
-        <td><span class="item-plain">${esc(r.standardName || 'â€”')}</span></td>
-        <td><span class="item-sub">${esc(r.description || 'â€”')}</span></td>
-        <td><span class="item-plain">${esc(r.category || 'â€”')}</span></td>
-        <td><span class="item-plain">${esc(r.subcategory || 'â€”')}</span></td>
-        <td><span class="item-plain">${esc(r.unit || 'â€”')}</span></td>
-        <td><span class="item-plain">${esc(r.brand || 'â€”')}</span></td>
-        <td><span class="item-plain">${esc(r.model || 'â€”')}</span></td>
-        <td><span class="ma-status ${(r.status || 'Active') === 'Inactive' ? 'off' : 'on'}">${esc(r.status || 'Active')}</span></td>
-        <td><span class="ma-created">${r.createdAt ? esc(String(r.createdAt).slice(0, 10)) : 'â€”'}</span></td>
-        <td><div class="doc-row-actions"><button class="btn sm" data-act="edit" data-id="${r.id}">Edit</button><button class="btn red sm" data-act="del" data-id="${r.id}">Delete</button></div></td>
-      </tr>`).join('');
+    itemList.innerHTML = pageRows.map(itemRowHtml).join('');
     renderItemPagination(totalPages, list.length);
   }
 
@@ -3264,7 +3337,7 @@ function renderMastersPage(user, focus) {
   }
 
   function loadItems() {
-    return fetchItemsFull().then((rows) => { items = rows; populateLetterOptions(); renderItemRows(); });
+    return fetchItemsFull().then((rows) => { items = rows; populateLetterOptions(); renderItemHead(); renderItemRows(); });
   }
 
   const maSearch = q('maSearch');
@@ -3283,7 +3356,19 @@ function renderMastersPage(user, focus) {
   });
   if (maPgSize) maPgSize.addEventListener('change', () => { itemPageSize = Number(maPgSize.value) || 50; itemPage = 0; renderItemRows(); });
   if (maAddItem) maAddItem.addEventListener('click', () => openItemModal('create'));
-  if (maExport) maExport.addEventListener('click', exportItems);
+  const maExpMenu = q('maExpMenu');
+  if (maExport && maExpMenu) {
+    maExport.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const open = maExpMenu.classList.toggle('open');
+      if (open) setTimeout(() => document.addEventListener('click', () => maExpMenu.classList.remove('open'), { once: true }), 0);
+    });
+    maExpMenu.addEventListener('click', (e) => e.stopPropagation());
+    const maExpCsv = q('maExpCsv');
+    if (maExpCsv) maExpCsv.addEventListener('click', () => { maExpMenu.classList.remove('open'); exportItems(); });
+    const maExpPrint = q('maExpPrint');
+    if (maExpPrint) maExpPrint.addEventListener('click', () => { maExpMenu.classList.remove('open'); window.print(); });
+  }
 
   itemList.addEventListener('click', (e) => {
     const btn = e.target.closest('[data-act]');
@@ -3465,14 +3550,27 @@ function renderMastersPage(user, focus) {
   const docList = document.getElementById('maDocList');
   let docs = [];
 
+  const docSort = { key: null, dir: 'asc' };
+  const DOC_COLS = [
+    { key: 'name', label: 'Document', sortable: true },
+    { key: 'docNo', label: 'Doc No.', sortable: true },
+    { key: 'pdf', label: 'PDF', sortable: false }
+  ];
+  if (isAdmin()) DOC_COLS.push({ key: 'actions', label: '', sortable: false, cls: 'col-sticky' });
+
+  function renderDocHead() {
+    buildHead('maDocHead', DOC_COLS, docSort, () => { renderDocHead(); renderDocRows(); });
+  }
+
   function renderDocRows() {
     const cnt = q('maDocCount');
     if (cnt) cnt.textContent = docs.length ? `${docs.length} documents` : '';
     if (!docs.length) {
-      docList.innerHTML = `<tr><td colspan="${isAdmin() ? 5 : 4}" class="empty">No documents yet.</td></tr>`;
+      docList.innerHTML = `<tr><td colspan="${isAdmin() ? 4 : 3}" class="empty">No documents yet.</td></tr>`;
       return;
     }
-    docList.innerHTML = docs.map((d) => `
+    const list = sortList(docs, docSort, (d, k) => d[k]);
+    docList.innerHTML = list.map((d) => `
       <tr>
         <td><span class="item-name">${esc(d.name)}</span><div class="doc-desc">${esc(d.description || '')}</div></td>
         <td style="min-width:200px"><input class="doc-no" id="docNo_${d.id}" value="${esc(d.docNo || '')}" placeholder="Enter number"><button class="btn sm" data-act="savedoc" data-id="${d.id}" style="margin-left:6px">Save</button></td>
@@ -3484,12 +3582,12 @@ function renderMastersPage(user, focus) {
             ${d.document ? `<a class="file-link" href="${storageFileUrl(d.document)}" target="_blank" title="${esc(d.documentName || '')}">View PDF</a>` : ''}
           </div>
         </td>
-        ${isAdmin() ? `<td><button class="btn red sm" data-act="deldoc" data-id="${d.id}">Delete</button></td>` : ''}
+        ${isAdmin() ? `<td class="col-sticky"><button class="btn red sm" data-act="deldoc" data-id="${d.id}">Delete</button></td>` : ''}
       </tr>`).join('');
   }
 
   function loadDocs() {
-    return fetchDocuments().then((rows) => { docs = rows; renderDocRows(); });
+    return fetchDocuments().then((rows) => { docs = rows; renderDocHead(); renderDocRows(); });
   }
 
   const maAddDoc = q('maAddDoc');
