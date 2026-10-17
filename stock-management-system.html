@@ -354,6 +354,23 @@ td.empty,tr td.empty{color:var(--muted);text-align:center;padding:26px;white-spa
 .reg-table .diff.neg{color:var(--red);font-weight:700}
 .reg-table .diff.pos{color:var(--amber);font-weight:700}
 .row-actions{display:flex;gap:6px;flex-wrap:nowrap}
+/* ---------- Data-table engine (Phase 2) ---------- */
+.dt{font-size:13px}
+.dt thead tr.grp-row th{text-align:center;letter-spacing:.05em;top:0;height:34px;box-sizing:border-box;z-index:7}
+.dt thead tr.grp-row th.grp{border-left:1px solid var(--line)}
+.dt thead tr.sub-row th{top:34px;height:34px;box-sizing:border-box;z-index:6;border-bottom:1px solid var(--line)}
+.dt thead th span.th-label{display:inline-flex;align-items:center;gap:6px}
+.dt thead th span.th-label[data-sort]{cursor:pointer;user-select:none}
+.dt thead th span.th-label[data-sort]:hover{color:var(--primary)}
+.dt .sort-ic{font-size:9px;opacity:.45;line-height:1}
+.dt .sort-ic.active{opacity:1;color:var(--primary)}
+.dt td.num,.dt th.num{text-align:right;font-variant-numeric:tabular-nums}
+.dt tbody tr:hover td{background:#f6faf8}
+.dt th.col-sticky,.dt td.col-sticky{position:sticky;right:0}
+.dt th.col-sticky{z-index:11 !important;background:var(--primary-tint);box-shadow:-8px 0 8px -8px rgba(0,0,0,.18)}
+.dt td.col-sticky{z-index:2;background:var(--surface);box-shadow:-8px 0 8px -8px rgba(0,0,0,.12)}
+.dt tbody tr:hover td.col-sticky{background:#f6faf8}
+
 
 /* ---------- Buttons ---------- */
 .btn{
@@ -619,7 +636,7 @@ td.empty,tr td.empty{color:var(--muted);text-align:center;padding:26px;white-spa
   .stock-table th{background:#fff !important;color:#000 !important;position:static}
   .row-actions{display:none}
   th.actions-cell,td.actions-cell{display:none}
-  .reg-table th:last-child,.reg-table td:last-child{display:none}
+  .reg-table .col-sticky{display:none !important}
 }
 </style>
 </head>
@@ -2099,6 +2116,94 @@ function renderStockPage(user, routeParams) {
 
   const diffTxt = (d) => (d > 0 ? '+' : '') + d;
   const diffCls = (d) => d < 0 ? 'neg' : (d > 0 ? 'pos' : 'zero');
+  /* ----- Data-table engine (Phase 2) ----- */
+  const COLS = [
+    { key: 'sno',          label: 'S. No.',                            group: null,                 sortable: false, cls: 'sno', always: true },
+    { key: 'centre',       label: 'Satsang Place',                     group: 'Centre & Item',      sortable: true,  always: true },
+    { key: 'item',         label: 'Name of Item',                      group: 'Centre & Item',      sortable: true },
+    { key: 'approvalNo',   label: 'Approval Number',                   group: 'Approval',           sortable: true },
+    { key: 'approvalDate', label: 'Approval Date',                     group: 'Approval',           sortable: true },
+    { key: 'qtyA',         label: 'Quantity as per Stock Register (A)', group: 'Stock Verification', sortable: true, align: 'right' },
+    { key: 'qtyB',         label: 'Physically Available Quantity (B)',  group: 'Stock Verification', sortable: true, align: 'right' },
+    { key: 'difference',   label: 'Difference (if any) (A\u2212B)',     group: 'Stock Verification', sortable: true, align: 'right' },
+    { key: 'reason',       label: 'Reason for Difference',             group: 'Notes',              sortable: false },
+    { key: 'remarks',      label: 'Remarks',                           group: 'Notes',              sortable: false },
+    { key: 'pageNo',       label: 'Stock Register Page No.',           group: 'Notes',              sortable: true },
+    { key: 'actions',      label: 'Actions',                           group: null,                 sortable: false, cls: 'col-sticky', always: true },
+  ];
+  const COLS_KEY = 'ims.cols.stock';
+  let hiddenCols = [];
+  try { hiddenCols = JSON.parse(localStorage.getItem(COLS_KEY) || '[]'); } catch (e) { hiddenCols = []; }
+  if (!Array.isArray(hiddenCols)) hiddenCols = [];
+  let sortState = { key: null, dir: 'asc' };
+
+  function visibleCols() { return COLS.filter((c) => c.always || hiddenCols.indexOf(c.key) === -1); }
+  function isHidden(key) { const c = COLS.find((x) => x.key === key); return c && !c.always && hiddenCols.indexOf(key) !== -1; }
+  function saveHidden() { try { localStorage.setItem(COLS_KEY, JSON.stringify(hiddenCols)); } catch (e) {} }
+
+  function sortVal(en, key) {
+    switch (key) {
+      case 'centre': return String(centerName(en.centreId)).toLowerCase();
+      case 'item': return String(en.item || '').toLowerCase();
+      case 'approvalNo': return String(en.approvalNo || '').toLowerCase();
+      case 'approvalDate': return en.approvalDate ? String(en.approvalDate) : '';
+      case 'qtyA': return Number(en.qtyA) || 0;
+      case 'qtyB': return Number(en.qtyB) || 0;
+      case 'difference': return Number(en.difference) || 0;
+      case 'reason': return String(en.reason || '').toLowerCase();
+      case 'remarks': return String(en.remarks || '').toLowerCase();
+      case 'pageNo': return String(en.pageNo || '').toLowerCase();
+      default: return '';
+    }
+  }
+  function sortRows(list) {
+    if (!sortState.key) return list.slice().reverse();
+    const k = sortState.key;
+    const dir = sortState.dir === 'asc' ? 1 : -1;
+    return list.slice().sort((a, b) => {
+      const va = sortVal(a, k); const vb = sortVal(b, k);
+      if (va < vb) return -1 * dir;
+      if (va > vb) return 1 * dir;
+      return 0;
+    });
+  }
+
+  function thClass(c) { return [c.cls || '', c.align === 'right' ? 'num' : ''].filter(Boolean).join(' '); }
+  function sortHead(c) {
+    if (!c.sortable) return '<span class="th-label">' + esc(c.label) + '</span>';
+    const active = sortState.key === c.key;
+    const ic = active ? (sortState.dir === 'asc' ? '&#9650;' : '&#9660;') : '&#8645;';
+    return '<span class="th-label" data-sort="' + c.key + '">' + esc(c.label) + '<span class="sort-ic' + (active ? ' active' : '') + '">' + ic + '</span></span>';
+  }
+  function groupSpans() {
+    const v = visibleCols();
+    const spans = [];
+    let i = 0;
+    while (i < v.length) {
+      const g = v[i].group;
+      if (g == null) { spans.push({ type: 'solo', col: v[i] }); i++; continue; }
+      let j = i;
+      while (j < v.length && v[j].group === g) j++;
+      spans.push({ type: 'group', label: g, cols: v.slice(i, j) });
+      i = j;
+    }
+    return spans;
+  }
+  function theadHtml() {
+    const spans = groupSpans();
+    const grp = spans.map((s) => s.type === 'solo'
+      ? '<th rowspan="2" class="' + thClass(s.col) + '">' + sortHead(s.col) + '</th>'
+      : '<th class="grp" colspan="' + s.cols.length + '">' + esc(s.label) + '</th>').join('');
+    const sub = spans.map((s) => s.type === 'group'
+      ? s.cols.map((c) => '<th class="' + thClass(c) + '">' + sortHead(c) + '</th>').join('')
+      : '').join('');
+    return '<tr class="grp-row">' + grp + '</tr><tr class="sub-row">' + sub + '</tr>';
+  }
+  function tbodyHtml(rows, pg) {
+    if (!rows.length) return '<tr><td class="empty" colspan="' + visibleCols().length + '">No verification entries yet - click "New Verification Entry" to log the first physical count.</td></tr>';
+    return rows.map((en, i) => renderRegRow(en, pg * pageSize + i + 1)).join('');
+  }
+
 
   async function load() {
     const [centers, stockData, entries] = await Promise.all([fetchCenters(), fetchStock(), fetchStockRegister()]);
@@ -2142,7 +2247,7 @@ function renderStockPage(user, routeParams) {
     const shown = diffMode == null ? centreScope : centreScope.filter((en) => diffMode ? Number(en.difference) !== 0 : Number(en.difference) === 0);
     const totalPages = Math.max(1, Math.ceil(shown.length / pageSize));
     if (page >= totalPages) page = totalPages - 1;
-    const pageRows = [...shown].reverse().slice(page * pageSize, (page + 1) * pageSize);
+    const pageRows = sortRows(shown).slice(page * pageSize, (page + 1) * pageSize);
     const centreSel = skipCurrentCentre ? scopeCenters().find((x) => String(x.id) === String(skipCurrentCentre)) : null;
 
     function pgNumbers() {
@@ -2183,8 +2288,20 @@ function renderStockPage(user, routeParams) {
           <div class="rt-right">
             <span class="rt-size"><span>Show</span><select id="pgSize" title="Rows per page"><option value="5">5</option><option value="10" selected>10</option><option value="25">25</option><option value="50">50</option><option value="100">100</option></select><span>Entries</span></span>
             <span class="rt-count">${shown.length} records</span>
-            <button class="btn sm" id="btnPrint" title="Print the register">Print</button>
-            <button class="btn sm" id="btnExport" title="Download the verification register as CSV">Export</button>
+                        <div class="dropdown">
+              <button class="btn sm icon" id="btnCols" title="Show or hide columns">&#9881;</button>
+              <div class="dropdown-menu" id="colsMenu">
+                <div class="chead">Columns</div>
+                ${COLS.filter((c) => !c.always).map((c) => '<label><input type="checkbox" data-col="' + c.key + '"' + (isHidden(c.key) ? '' : ' checked') + '> ' + esc(c.label) + '</label>').join('')}
+              </div>
+            </div>
+            <div class="dropdown">
+              <button class="btn sm" id="btnExport" title="Export or print the register">Export &#9662;</button>
+              <div class="dropdown-menu" id="expMenu">
+                <button type="button" id="expCsv">Export as CSV</button>
+                <button type="button" id="expPrint">Print / PDF</button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -2194,22 +2311,9 @@ function renderStockPage(user, routeParams) {
       <!-- DIFF PILL COMMENTED OUT: filter locked to "No difference" (see code note near diffFilter default). 
            ${diffFilter != null ? `<span class="reg-pill">Filter : No difference</span>` : ''} -->
       <div class="table-wrap">
-        <table class="stock-table reg-table">
-          <thead><tr>
-            <th>S. No.</th>
-            <th class="stick-1">Satsang Place</th>
-            <th>Name of Item</th>
-            <th>Approval Number</th>
-            <th>Approval Date</th>
-            <th>Quantity as per Stock Register (A)</th>
-            <th>Physically Available Quantity (B)</th>
-            <th>Difference (if any) (Aâˆ’B)</th>
-            <th>Reason for Difference</th>
-            <th>Remarks</th>
-            <th>Stock Register Page No.</th>
-            <th>Actions</th>
-          </tr></thead>
-          <tbody>${pageRows.map((en, i) => renderRegRow(en, page * pageSize + i + 1)).join('') || '<tr><td class="empty" colspan="12">No verification entries yet â€” click "ï¼‹ New Verification Entry" to log the first physical count.</td></tr>'}</tbody>
+                <table class="stock-table reg-table dt">
+          <thead>${theadHtml()}</thead>
+          <tbody>${tbodyHtml(pageRows, page)}</tbody>
         </table>
       </div>
       ${pgHtml}
@@ -2220,10 +2324,42 @@ function renderStockPage(user, routeParams) {
     content.querySelector('#btnNew').addEventListener('click', () => openRegisterModal(null));
     const btnManage = content.querySelector('#btnManage');
     if (btnManage) btnManage.addEventListener('click', () => openItemsManager('list'));
-    const btnExport = content.querySelector('#btnExport');
-    if (btnExport) btnExport.addEventListener('click', exportStock);
-    const btnPrint = content.querySelector('#btnPrint');
-    if (btnPrint) btnPrint.addEventListener('click', printStock);
+        const btCols = content.querySelector('#btnCols');
+    const colsMenu = content.querySelector('#colsMenu');
+    if (btCols && colsMenu) {
+      btCols.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const open = colsMenu.classList.toggle('open');
+        if (open) setTimeout(() => document.addEventListener('click', () => colsMenu.classList.remove('open'), { once: true }), 0);
+      });
+      colsMenu.addEventListener('click', (e) => e.stopPropagation());
+      colsMenu.querySelectorAll('input[data-col]').forEach((cb) => cb.addEventListener('change', () => {
+        const key = cb.dataset.col;
+        if (cb.checked) hiddenCols = hiddenCols.filter((k) => k !== key);
+        else if (hiddenCols.indexOf(key) === -1) hiddenCols.push(key);
+        saveHidden();
+        render();
+      }));
+    }
+    const btExp = content.querySelector('#btnExport');
+    const expMenu = content.querySelector('#expMenu');
+    if (btExp && expMenu) {
+      btExp.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const open = expMenu.classList.toggle('open');
+        if (open) setTimeout(() => document.addEventListener('click', () => expMenu.classList.remove('open'), { once: true }), 0);
+      });
+      expMenu.addEventListener('click', (e) => e.stopPropagation());
+      content.querySelector('#expCsv').addEventListener('click', () => { expMenu.classList.remove('open'); exportStock(); });
+      content.querySelector('#expPrint').addEventListener('click', () => { expMenu.classList.remove('open'); printStock(); });
+    }
+    content.querySelectorAll('[data-sort]').forEach((el) => el.addEventListener('click', () => {
+      const k = el.dataset.sort;
+      if (sortState.key === k) sortState.dir = sortState.dir === 'asc' ? 'desc' : 'asc';
+      else { sortState.key = k; sortState.dir = 'asc'; }
+      page = 0;
+      render();
+    }));
     content.querySelectorAll('.reg-filter').forEach((b) => b.addEventListener('click', () => {
       diffFilter = 'clean';
       page = 0;
@@ -2283,29 +2419,28 @@ function renderStockPage(user, routeParams) {
 
   function renderRegRow(en, sno) {
     const d = Number(en.difference);
-    const fmtDate = (s) => { if (!s) return 'â€”'; const dt = new Date(s + (s.length === 10 ? 'T00:00:00' : '')); if (isNaN(dt)) return s; return dt.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }); };
+    const fmtDate = (s) => { if (!s) return '-'; const dt = new Date(s + (s.length === 10 ? 'T00:00:00' : '')); if (isNaN(dt)) return s; return dt.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }); };
     const centre = centerName(en.centreId);
     const unit = esc(en.unit || unitOf(en.centreId, en.item));
-    return `<tr data-id="${en.id}">
-      <td class="sno">${sno}</td>
-      <td class="centre stick-1"><b>${esc(centre)}</b></td>
-      <td>${esc(en.item)}</td>
-      <td>${esc(en.approvalNo || 'â€”')}</td>
-      <td>${fmtDate(en.approvalDate)}</td>
-      <td>${Number(en.qtyA)}${unit ? ' ' + unit : ''}</td>
-      <td>${Number(en.qtyB)}${unit ? ' ' + unit : ''}</td>
-      <td class="diff ${diffCls(d)}">${diffTxt(d)}</td>
-      <td class="wrap">${esc(en.reason || 'â€”')}</td>
-      <td class="wrap">${esc(en.remarks || 'â€”')}</td>
-      <td>${esc(en.pageNo || 'â€”')}</td>
-      <td>
-        <div class="row-actions">
+    const cell = {
+      sno: `<td class="sno">${sno}</td>`,
+      centre: `<td class="centre stick-1"><b>${esc(centre)}</b></td>`,
+      item: `<td>${esc(en.item)}</td>`,
+      approvalNo: `<td>${esc(en.approvalNo || '-')}</td>`,
+      approvalDate: `<td>${fmtDate(en.approvalDate)}</td>`,
+      qtyA: `<td class="num">${Number(en.qtyA)}${unit ? ' ' + unit : ''}</td>`,
+      qtyB: `<td class="num">${Number(en.qtyB)}${unit ? ' ' + unit : ''}</td>`,
+      difference: `<td class="diff num ${diffCls(d)}">${diffTxt(d)}</td>`,
+      reason: `<td class="wrap">${esc(en.reason || '-')}</td>`,
+      remarks: `<td class="wrap">${esc(en.remarks || '-')}</td>`,
+      pageNo: `<td>${esc(en.pageNo || '-')}</td>`,
+      actions: `<td class="col-sticky"><div class="row-actions">
           <button class="btn sm" data-reg="edit" data-id="${en.id}" title="Edit this entry">Edit</button>
           ${d !== 0 ? `<button class="btn sm" data-reg="apply" data-id="${en.id}" title="Write the physically counted quantity (B) into the book">Apply</button>` : ''}
-          ${canDeleteReg ? `<button class="btn red sm" data-reg="del" data-id="${en.id}" title="Delete this entry">Ã—</button>` : ''}
-        </div>
-      </td>
-    </tr>`;
+          ${canDeleteReg ? `<button class="btn red sm" data-reg="del" data-id="${en.id}" title="Delete this entry">&times;</button>` : ''}
+        </div></td>`
+    };
+    return `<tr data-id="${en.id}">${visibleCols().map((c) => cell[c.key]).join('')}</tr>`;
   }
 
   function centerName(id) {
