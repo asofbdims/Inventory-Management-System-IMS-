@@ -2622,11 +2622,19 @@ function renderStockPage(user, routeParams) {
     if (!sel) return;
     const counts = {};
     state.entries.forEach((en) => { counts[String(en.centreId)] = (counts[String(en.centreId)] || 0) + 1; });
-    const sorted = scopeCenters().slice().sort((a, b) => a.name.localeCompare(b.name));
-    const opts = ['<option value="">All Centres (all entries)</option>'].concat(sorted.map((c) => {
-      const cnt = counts[String(c.id)] || 0;
-      return `<option value="${esc(c.id)}">${esc(c.name)}${cnt ? ` (${cnt})` : ''}</option>`;
-    }));
+    const list = scopeCenters().slice();
+    const byParent = {};
+    list.forEach((c) => { (byParent[c.parentId || ''] = byParent[c.parentId || ''] || []).push(c); });
+    byParent[''].sort((a,b)=>a.name.localeCompare(b.name));
+    Object.values(byParent).forEach(arr => arr.sort((a,b)=>a.name.localeCompare(b.name)));
+    const opts = ['<option value="">All Centres (all entries)</option>'];
+    const walk = (node, depth=0) => {
+      const prefix = depth>0 ? ' '.repeat(depth*2)+'- ' : '';
+      const cnt = counts[String(node.id)]||0;
+      opts.push(`<option value="${esc(node.id)}">${esc(prefix+node.name)}${cnt ? ` (${cnt})` : ''}</option>`);
+      (byParent[node.id]||[]).forEach(n=>walk(n,depth+1));
+    };
+    (byParent['']||[]).forEach(n=>walk(n,0));
     sel.innerHTML = opts.join('');
     if (skipCurrentCentre) sel.value = String(skipCurrentCentre);
     sel.addEventListener('change', () => {
