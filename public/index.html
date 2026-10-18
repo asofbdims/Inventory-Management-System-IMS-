@@ -2471,13 +2471,26 @@ function renderStockPage(user, routeParams) {
   function render() {
     const ids = scopeIds();
     const scopedEntries = state.entries.filter((en) => ids.has(String(en.centreId)));
-    const centreScope = skipCurrentCentre ? scopedEntries.filter((en) => String(en.centreId) === String(skipCurrentCentre)) : scopedEntries;
+    let centreScope = scopedEntries;
+    let centreSel = null;
+    if (skipCurrentCentre) {
+      centreSel = scopeCenters().find((x) => String(x.id) === String(skipCurrentCentre));
+      if (centreSel) {
+        const byP = {};
+        state.centers.forEach((c) => { (byP[c.parentId || ''] = byP[c.parentId || ''] || []).push(c); });
+        const sub = [String(centreSel.id)];
+        const w = (n) => { (byP[n.id] || []).forEach((ch) => { sub.push(String(ch.id)); w(ch); }); };
+        w(centreSel);
+        centreScope = scopedEntries.filter((en) => sub.includes(String(en.centreId)));
+      } else {
+        centreScope = scopedEntries.filter((en) => String(en.centreId) === String(skipCurrentCentre));
+      }
+    }
     const diffMode = diffFilter === 'diff' ? true : (diffFilter === 'clean' ? false : null);
     const shown = diffMode == null ? centreScope : centreScope.filter((en) => diffMode ? Number(en.difference) !== 0 : Number(en.difference) === 0);
     const totalPages = Math.max(1, Math.ceil(shown.length / pageSize));
     if (page >= totalPages) page = totalPages - 1;
     const pageRows = sortRows(shown).slice(page * pageSize, (page + 1) * pageSize);
-    const centreSel = skipCurrentCentre ? scopeCenters().find((x) => String(x.id) === String(skipCurrentCentre)) : null;
 
     function pgNumbers() {
       const win = [];
