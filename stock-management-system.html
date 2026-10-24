@@ -1541,15 +1541,16 @@ function renderShell(user, activePage) {
     'log.html': { label: 'Forms Log', icon: 'log', href: '#/log' },
     'reset.html': { label: 'Pass Reset', icon: 'reset', href: '#/reset' }
   };
+  const canMaster = isAdmin() || isViewer();
   const GROUPS = [
     { label: 'Overview', items: ['dashboard.html'] },
-    { label: 'Masters', items: [{ key: 'master', label: 'Masters', icon: 'master', children: [
+    { label: 'Masters', items: canMaster ? [{ key: 'master', label: 'Masters', icon: 'master', children: [
       'masters-centre.html',
       'masters-item.html',
       'masters-doc.html',
       { key: 'sci', label: 'SCI Forms', icon: 'forms', children: ['sci45.html', 'sci53.html', 'sci76.html', 'sci43.html', 'sci15.html', 'sci34.html'] },
       'log.html'
-    ]}]},
+    ]}] : [] },
     { label: 'Inventory', items: ['stock.html'] },
     { label: 'Admin', items: isSuperAdmin() ? ['reset.html'] : [] }
   ];
@@ -1687,6 +1688,10 @@ function route() {
     if (path === '/masters/doc') { renderShell(user, 'masters-doc.html'); renderMastersPage(user, 'doc'); }
     else if (path === '/masters/centre') { renderShell(user, 'masters-centre.html'); renderMastersPage(user, 'centre'); }
     else { renderShell(user, 'masters-item.html'); renderMastersPage(user, 'item'); }
+  }
+  else if (path === '/masters/item' || path === '/masters' || path === '/masters/doc' || path === '/masters/centre' || path === '/log' || /^\/forms\/SCI\d+$/.test(path)) {
+    location.hash = '/dashboard';
+    return;
   }
   else if (path === '/forms' || /^\/forms\/SCI\d+$/.test(path)) {
     const code = /^\/forms\/(SCI\d+)$/.test(path) ? path.match(/^\/forms\/(SCI\d+)$/)[1] : 'SCI45';
