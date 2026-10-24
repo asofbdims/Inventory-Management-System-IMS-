@@ -22,7 +22,8 @@ let dlCount = 0;
 try {
   mkdirSync(dlOut, { recursive: true });
   for (const f of readdirSync(dlSrc)) {
-    if (f.toLowerCase().endsWith('.docx')) { copyFileSync(join(dlSrc, f), join(dlOut, f)); dlCount++; }
+    const lf = f.toLowerCase();
+    if (lf.endsWith('.docx') || lf.endsWith('.pdf')) { copyFileSync(join(dlSrc, f), join(dlOut, f)); dlCount++; }
   }
 } catch (e) {
   console.warn('downloads copy skipped:', e.message);

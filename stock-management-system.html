@@ -1218,14 +1218,14 @@ const SCI_STOCK_EFFECT = {
   SCI34: { src: 'centre', delta: -1 }
 };
 
-// Official SCI form templates (Word .docx) served from /downloads.
+// Official SCI form templates (PDF) served from /downloads.
 const SCI_DOWNLOADS = {
-  SCI45: 'SCI-45 - CONDEMNATION OF ARTICLES & REQUIREMENT OF ITEMS.docx',
-  SCI53: 'SCI-53 - REQUIREMENT OF ITEMS _ MATERIAL FROM BEAS.docx',
-  SCI76: 'SCI-76 - MATERIAL ISSUE VOUCHER.docx',
-  SCI43: 'SCI-43 - TRANSFER OF SURPLUS ITEMS FROM ONE CENTRE TO ANOTHER.docx',
-  SCI15: 'SCI-15 - OFFER OF ITEMS _ MATERIAL IN DONATION.docx',
-  SCI34: 'SCI-34 - SALE PROCEEDS OF CONDEMNED_SURPLUS ITEMS _ SCRAP ETC.docx'
+  SCI45: 'SCI-45 - CONDEMNATION OF ARTICLES & REQUIREMENT OF ITEMS.pdf',
+  SCI53: 'SCI-53 - REQUIREMENT OF ITEMS _ MATERIAL FROM BEAS.pdf',
+  SCI76: 'SCI-76 - MATERIAL ISSUE VOUCHER.pdf',
+  SCI43: 'SCI-43 - TRANSFER OF SURPLUS ITEMS FROM ONE CENTRE TO ANOTHER.pdf',
+  SCI15: 'SCI-15 - OFFER OF ITEMS _ MATERIAL IN DONATION.pdf',
+  SCI34: 'SCI-34 - SALE PROCEEDS OF CONDEMNED_SURPLUS ITEMS _ SCRAP ETC.pdf'
 };
 
 // ---------- SCI official paper-format builder ----------
@@ -3795,8 +3795,8 @@ function renderSCIDownloadPage(user, focus) {
       <div class="sci-dl-chip">${esc(code)}</div>
       <h3>${esc(meta.title)}</h3>
       <p>${esc(meta.hint || '')}</p>
-      <a class="btn primary sci-dl-btn" href="${href}" download rel="noopener">Download form (.docx)</a>
-      <p class="hint">Official Word template â€” open it in Word, fill in the details${isCentreUser ? '.' : ', then upload the filled .docx below.'}</p>
+      <a class="btn primary sci-dl-btn" href="${href}" download rel="noopener">Download form (.PDF)</a>
+      <p class="hint">Official PDF form${isCentreUser ? '.' : ' â€” open it, fill in the details, then upload the filled .docx below.'}</p>
     </div>
     ${isCentreUser ? '' : `<div class="card sci-up-card">
       <div class="sci-dl-chip">UPLOAD</div>
