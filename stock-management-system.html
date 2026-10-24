@@ -584,7 +584,7 @@ td.empty,tr td.empty{color:var(--muted);text-align:center;padding:26px;white-spa
 .sci-up-card{max-width:560px;margin:14px auto 0;text-align:center;padding:24px 26px}
 .sci-up-file{display:block;margin:14px auto 0;max-width:340px;font-size:13px}
 /*
-  SCI OFFICIAL-FORM EDITOR STYLES (commit 9720880) â€” COMMENTED OUT for now.
+  SCI OFFICIAL-FORM EDITOR STYLES (commit 9720880) - COMMENTED OUT for now.
   The register-style 4-column item row grid above stays active.
   Remove the outer marker to re-enable the official paper-format editor.
 
@@ -676,7 +676,7 @@ async function login(username, password) {
 }
 
 /* =========================================================================
-   Shared helpers â€” auth, api, ui utilities
+   Shared helpers - auth, api, ui utilities
    ========================================================================= */
 
 function esc(s) {
@@ -981,7 +981,7 @@ async function updateFormStatus(id, action) {
     if (fErr) throw new Error(fErr.message);
     if (form && form.status !== 'approved') {
       const adjusted = await applyApprovalStock(form);
-      if (adjusted) toast('Approved â€” stock auto-adjusted');
+      if (adjusted) toast('Approved - stock auto-adjusted');
     }
   }
   const { error } = await sb.from('sci_forms').update({ status }).eq('id', id);
@@ -1076,12 +1076,12 @@ async function applyApprovalStock(form) {
 function openSCIFormDetail(form, onChanged) {
   if (!form) return;
   const escH = (v) => v == null ? '' : String(v).replace(/[&<>"']/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
-  const nice = (v) => v == null || v === '' ? 'â€”' : escH(v);
+  const nice = (v) => v == null || v === '' ? '-' : escH(v);
   const fmtBadge = (s) => s === 'approved' ? '<span class="badge green">Approved</span>'
     : s === 'rejected' ? '<span class="badge red">Rejected</span>'
     : '<span class="badge amber">Pending</span>';
   const base = [
-    ['form', escH(form.formType) + ' â€” ' + escH(form.formTitle || '')],
+    ['form', escH(form.formType) + ' - ' + escH(form.formTitle || '')],
     ['date', nice(form.submittedAt && String(form.submittedAt).slice(0, 10))],
     ['centre', nice(form.centreName)],
     ['sewadar', nice(form.sewadarName)],
@@ -1095,7 +1095,7 @@ function openSCIFormDetail(form, onChanged) {
   if (form.details && typeof form.details === 'object') {
     const items = Array.isArray(form.details.items) ? form.details.items : null;
     if (items && items.length) {
-      detailsHtml = `<table class="sci-detail-tbl"><thead><tr><th>Item</th><th>Qty</th><th>Unit</th></tr></thead><tbody>${items.map((it) => `<tr><td>${escH(it.name || '')}</td><td>${escH(it.qty)}</td><td>${escH(it.unit || 'â€”')}</td></tr>`).join('')}</tbody></table>`;
+      detailsHtml = `<table class="sci-detail-tbl"><thead><tr><th>Item</th><th>Qty</th><th>Unit</th></tr></thead><tbody>${items.map((it) => `<tr><td>${escH(it.name || '')}</td><td>${escH(it.qty)}</td><td>${escH(it.unit || '-')}</td></tr>`).join('')}</tbody></table>`;
       const desc = String(form.details.description || '').trim();
       if (desc) detailsHtml += `<div class="f-d" style="margin-top:8px"><span>description</span><b>${escH(desc)}</b></div>`;
     } else {
@@ -1104,9 +1104,9 @@ function openSCIFormDetail(form, onChanged) {
         .map(([k, v]) => `<div class="f-d"><span>${k.replace(/([A-Z])/g, (m) => ' ' + m.toLowerCase())}</span><b>${escH(String(v))}</b></div>`).join('');
     }
     /*
-    // SCI OFFICIAL-FORM DETAIL BLOCKS (9720880) â€” COMMENTED OUT for now.
+    // SCI OFFICIAL-FORM DETAIL BLOCKS (9720880) - COMMENTED OUT for now.
     if (Array.isArray(form.details.replacement) && form.details.replacement.length) {
-      detailsHtml += `<div class="off-note" style="margin-top:10px">Replacement items against condemnation:</div><table class="sci-detail-tbl"><thead><tr><th>Item</th><th>Qty</th><th>Unit</th></tr></thead><tbody>${form.details.replacement.map((it) => `<tr><td>${escH(it.name || '')}</td><td>${escH(it.qty)}</td><td>${escH(it.unit || 'â€”')}</td></tr>`).join('')}</tbody></table>`;
+      detailsHtml += `<div class="off-note" style="margin-top:10px">Replacement items against condemnation:</div><table class="sci-detail-tbl"><thead><tr><th>Item</th><th>Qty</th><th>Unit</th></tr></thead><tbody>${form.details.replacement.map((it) => `<tr><td>${escH(it.name || '')}</td><td>${escH(it.qty)}</td><td>${escH(it.unit || '-')}</td></tr>`).join('')}</tbody></table>`;
     }
     const official = form.details.form && typeof form.details.form === 'object' ? form.details.form : null;
     if (official) {
@@ -1116,7 +1116,7 @@ function openSCIFormDetail(form, onChanged) {
         relevantType: 'Type', reqPlace: 'Required at', reqAttachedTo: 'Attached to', fromPlace: 'Transfer from', toPlace: 'Transfer to',
         workshopName: 'Workshop', workshopType: 'Workshop type', workshopAttachedTo: 'Workshop attached to', zone: 'Zone', indentNo: 'Indent no.', indentDate: 'Indent date', indentType: 'Indent type',
         issuedPlace: 'Issued to', issuedArea: 'Issued area', issuedZone: 'Issued zone', boardPlace: 'Board at', boardDate: 'Board on',
-        boardAreaSecretary: 'Board â€” Area Secy', boardPresident: 'Board â€” President', boardSecretary: 'Board â€” Secretary', examinedCentreType: 'Centre examined',
+        boardAreaSecretary: 'Board - Area Secy', boardPresident: 'Board - President', boardSecretary: 'Board - Secretary', examinedCentreType: 'Centre examined',
         cashSewa: 'Offer against cash Sewa?'
       };
       const rows = Object.entries(official).filter(([, v]) => v !== null && v !== '' && v !== undefined).map(([k, v]) => `<div class="f-d"><span>${escH(labels[k] || k.replace(/([A-Z])/g, (m) => ' ' + m.toLowerCase()))}</span><b>${escH(Array.isArray(v) ? v.map((x) => String(x == null ? '' : x).replace(/"/g, '""')).join(', ') : String(v))}</b></div>`).join('');
@@ -1135,7 +1135,7 @@ function openSCIFormDetail(form, onChanged) {
       <div class="fd-grid">${base}</div>
       ${detailsHtml ? `<div class="fd-box"><div class="fd-title">Items / Material Details</div>${detailsHtml}</div>` : ''}
       ${form.remarks ? `<div class="fd-box"><div class="fd-title">Remarks</div><div class="f-d"><b>${escH(String(form.remarks))}</b></div></div>` : ''}
-      <div class="fd-box"><div class="fd-title">Document</div><div class="f-d"><b>${form.document ? `<a class="file-link" href="${storageFileUrl(form.document)}" target="_blank">${escH(form.documentName || 'View File')}</a>` : 'â€”'}</b></div></div>
+      <div class="fd-box"><div class="fd-title">Document</div><div class="f-d"><b>${form.document ? `<a class="file-link" href="${storageFileUrl(form.document)}" target="_blank">${escH(form.documentName || 'View File')}</a>` : '-'}</b></div></div>
       <div class="fd-actions">${isAdmin() && form.status === 'pending' ? '<button class="btn green" id="fdApprove">Approve</button><button class="btn red" id="fdReject">Reject</button>' : ''}</div>
     </div>`;
   document.body.appendChild(overlay);
@@ -1232,7 +1232,7 @@ const SCI_DOWNLOADS = {
 // Column config for each SCI item grid. 'name' is the article; 'qty' is always
 // the quantity used for the stock effect; 'unit' shows register sync.
 /*
-  SCI OFFICIAL PAPER-FORMAT BUILDER (commit 9720880) â€” COMMENTED OUT for now.
+  SCI OFFICIAL PAPER-FORMAT BUILDER (commit 9720880) - COMMENTED OUT for now.
   ITEM_COLS, offFld/offSel/offCentreSel/offTick/offPara/offSign/offSec/offLetterhead,
   officialSections, itemRowHtml and tableHead below are inert.
   Re-enable together with the matching CSS + renderEditor/submitForm/modal code.
@@ -1310,7 +1310,7 @@ function offFld(key, label, o = {}) {
 }
 
 function offSel(key, label, options, o = {}) {
-  const opts = (o.allowEmpty ? '<option value="">â€” select â€”</option>' : '') +
+  const opts = (o.allowEmpty ? '<option value="">- select -</option>' : '') +
     options.map((opt) => `<option value="${esc(opt[0])}">${esc(opt[1] == null ? opt[0] : opt[1])}</option>`).join('');
   return `<div class="field"><label>${label}</label><select data-official="${key}"${o.required ? ' required' : ''}>${opts}</select></div>`;
 }
@@ -1332,7 +1332,7 @@ function offPara(parts, o = {}) {
 }
 
 function offSign(title, fields, noteHtml) {
-  const inp = (fields || []).map((k) => `<div class="field"><label>${k[0]}</label><input type="text" data-official="${k[1]}" placeholder="â€”"></div>`).join('');
+  const inp = (fields || []).map((k) => `<div class="field"><label>${k[0]}</label><input type="text" data-official="${k[1]}" placeholder="-"></div>`).join('');
   return `<div class="off-sign"><div class="off-sign-title">${title}</div>${noteHtml ? `<div class="off-note">${noteHtml}</div>` : ''}<div class="sci-grid">${inp || '<span class="off-note">Signature</span>'}</div></div>`;
 }
 
@@ -1351,7 +1351,7 @@ function offLetterhead(o, extraFields) {
 
 // Build the non-items sections of a form editor to mirror the official format.
 function officialSections(code, o) {
-  const lock = `<div class="off-note">Locked from the stock register â€” the digital copy is a mirror of the filled paper form, which you upload below.</div>`;
+  const lock = `<div class="off-note">Locked from the stock register - the digital copy is a mirror of the filled paper form, which you upload below.</div>`;
   switch (code) {
     case 'SCI34': return offLetterhead(o) +
       offSec('Permission &amp; Sale Proceeds',
@@ -1360,7 +1360,7 @@ function officialSections(code, o) {
         offTick('relevantType', [['CONDEMNED', 'Condemned'], ['SURPLUS', 'Surplus'], ['SCRAP', 'Scrap']], '* PLEASE TICK (âˆš) THE RELEVANT TYPE', { required: true }) + lock) +
       offSec('Signature Blocks',
         offSign('SECRETARY', [['NO.', 'noRef'], ['DATE', 'dateRef']]) +
-        offSign('FORWARDED â€” AREA SECRETARY', [['NO.', 'areaSecNo'], ['DATE', 'areaSecDate']]) +
+        offSign('FORWARDED - AREA SECRETARY', [['NO.', 'areaSecNo'], ['DATE', 'areaSecDate']]) +
         offSign('ZONAL SECRETARY', [['NO.', 'zonalNo'], ['DATE', 'zonalDate']]) +
         offSign('DECISION BY BEAS', [['NO.', 'beasNo'], ['DATE', 'beasDate']], 'Receipt of above cheque/DD for Rs. <span class="off-note"><input class="off-inline" type="number" step="any" min="0" data-official="beasRcptAmt" style="min-width:120px"></span> is hereby acknowledged.') +
         offSign('SIC SATSANG CENTRES IN INDIA')) +
@@ -1371,27 +1371,27 @@ function officialSections(code, o) {
         `<div class="off-para">Dear Brother,<br>An offer of the following items is being sent, for which approval may please be accorded. ${lock}</div>` +
         offSec('Recommendations &amp; Approvals',
           offSign('INCHARGE/CT/SECRETARY') +
-          offSign('RECOMMENDATIONS OF â€” ZONAL SECRETARY', [['NO.', 'zonalNo'], ['DATE', 'zonalDate']]) +
+          offSign('RECOMMENDATIONS OF - ZONAL SECRETARY', [['NO.', 'zonalNo'], ['DATE', 'zonalDate']]) +
           offSign('APPROVAL OF SECRETARY, RSSB', [['NO.', 'secNo'], ['DATE', 'secDate']],
             'The sewa material being offered in donation is as per Beas Design &amp; will be used as per Beas Drawings.') +
-          `<div class="off-tick"><label style="text-transform:none;font-weight:600">Specify whether Offer of Donation is against acceptance of cash Sewa â€”</label> ${(['YES', 'NO'].map((v) => `<label style="text-transform:none"><input type="radio" name="off_tick_cashSewa" value="${v}" data-official="cashSewa"> ${v}</label>`).join(''))}</div>` +
+          `<div class="off-tick"><label style="text-transform:none;font-weight:600">Specify whether Offer of Donation is against acceptance of cash Sewa -</label> ${(['YES', 'NO'].map((v) => `<label style="text-transform:none"><input type="radio" name="off_tick_cashSewa" value="${v}" data-official="cashSewa"> ${v}</label>`).join(''))}</div>` +
           `<div class="off-note">If yes, the information of Sewa in cash/bank should be reported to sewa@rssb.in</div>` +
           offSign('ZONAL SECRETARY', [['NO.', 'zonalNo2'], ['DATE', 'zonalDate2']]) +
-          offSign('AREA SECRETARY â€” RECOMMENDED', [['NO.', 'areaSecNo'], ['DATE', 'areaSecDate']], 'Note: 1. The Sewa material approved is to be used as per Beas approved design/drawing. 2. No collection whatsoever is to be made at any Satsang Place.') +
+          offSign('AREA SECRETARY - RECOMMENDED', [['NO.', 'areaSecNo'], ['DATE', 'areaSecDate']], 'Note: 1. The Sewa material approved is to be used as per Beas approved design/drawing. 2. No collection whatsoever is to be made at any Satsang Place.') +
           offSign('SIC SATSANG CENTRES IN INDIA Â· SECRETARY, RSSB, BEAS Â· RETURNED TO SIC')) +
-          offSec('DISTRIBUTION â€” CC CAO',
-            offPara(['DISTRIBUTION â€” INCHARGE/CT/SECRETARY/AREA SECRETARY/ZONAL SECRETARY. CC â€” CAO for necessary adjustment of Rs. ', { key: 'amountCc', type: 'number', w: 110 }, '.'])));
+          offSec('DISTRIBUTION - CC CAO',
+            offPara(['DISTRIBUTION - INCHARGE/CT/SECRETARY/AREA SECRETARY/ZONAL SECRETARY. CC - CAO for necessary adjustment of Rs. ', { key: 'amountCc', type: 'number', w: 110 }, '.'])));
     case 'SCI43': return offLetterhead(o) +
       offSec('Transfer Request',
         `<div class="off-para">THE ZONAL SECRETARY:</div>` +
         offPara(['1. The following items, which are surplus with the above Centre, are required at ', { key: 'reqPlace', w: 200 }, ' (C/SC/SP) attached to ', { key: 'reqAttachedTo', w: 160 }, '.']) +
-        offPara(['2. Form No. SCI/09/53 in respect of ', { key: 'reqPlace2', w: 200 }, ' (C/SC/SP â€” where the items are required) duly completed is enclosed.']) +
+        offPara(['2. Form No. SCI/09/53 in respect of ', { key: 'reqPlace2', w: 200 }, ' (C/SC/SP - where the items are required) duly completed is enclosed.']) +
         offPara(['3. You are requested to allow the transfer of above items from ', { key: 'fromPlace', w: 160 }, ' to ', { key: 'toPlace', w: 160 }, ' Satsang Place.'])) +
       offSec('Signature Blocks',
         offSign('INCHARGE/CT/SECRETARY') +
-        offSign('RECOMMENDATIONS OF â€” AREA SECRETARY', [['NO.', 'areaSecNo'], ['DATE', 'areaSecDate']]) +
+        offSign('RECOMMENDATIONS OF - AREA SECRETARY', [['NO.', 'areaSecNo'], ['DATE', 'areaSecDate']]) +
         offSign('DECISION GIVEN BY ZONAL SECRETARY', [['NO.', 'zonalNo'], ['DATE', 'zonalDate']], 'Transfer of the above items is approved as proposed.') +
-        offSign('DISTRIBUTION â€” AREA SECRETARY / INCHARGE-CT / SECRETARY'));
+        offSign('DISTRIBUTION - AREA SECRETARY / INCHARGE-CT / SECRETARY'));
     case 'SCI76': return offSec('Workshop',
       `<div class="sci-grid">
         ${offFld('workshopName', 'NAME OF WORKSHOP')}
@@ -1403,7 +1403,7 @@ function officialSections(code, o) {
         ${offFld('indentDate', 'INDENT DATE')}
         ${offSel('indentType', 'INDENT TYPE', [['CAPITAL'], ['REVENUE']], { allowEmpty: true })}
       </div>${lock}`) +
-      offSec('Material Issued To â€” Book Debit Adjustment (Amt. in Rs.)',
+      offSec('Material Issued To - Book Debit Adjustment (Amt. in Rs.)',
         `<div class="off-tick"><label style="text-transform:none;font-weight:600">MATERIAL ISSUED TO</label></div>
         <div class="sci-grid">
           ${offCentreSel('issuedPlace', 'NAME OF SATSANG PLACE', o.centres)}
@@ -1421,7 +1421,7 @@ function officialSections(code, o) {
         `<div class="off-para">DEAR BROTHER,<br>Requirement of items/material in respect of above Satsang place is submitted as under for necessary action at your end. ${lock}</div>` +
         offSec('Signature Blocks',
           offSign('INCHARGE / CT / SECRETARY') +
-          offSign('RECOMMENDATIONS OF â€” AREA SECRETARY', [['NO.', 'areaSecNo'], ['DATE', 'areaSecDate']]) +
+          offSign('RECOMMENDATIONS OF - AREA SECRETARY', [['NO.', 'areaSecNo'], ['DATE', 'areaSecDate']]) +
           offSign('ZONAL SECRETARY', [['NO.', 'zonalNo'], ['DATE', 'zonalDate']])));
     case 'SCI45': return offLetterhead(o, [offFld('avgAttendance', 'AVERAGE WEEKLY ATTENDANCE', { placeholder: 'e.g. 250' })]) +
       offSec('Condemnation Board', `<div class="off-para">THE ZONAL SECRETARY:</div>` +
@@ -1433,7 +1433,7 @@ function officialSections(code, o) {
       offSec('Signature Blocks',
         offSign('AREA SECRETARY Â· SECRETARY Â· PRESIDENT') +
         offSign('INCHARGE/CT/SECRETARY') +
-        offSign('RECOMMENDATIONS OF â€” AREA SECRETARY', [['NO.', 'areaSecNo'], ['DATE', 'areaSecDate']]) +
+        offSign('RECOMMENDATIONS OF - AREA SECRETARY', [['NO.', 'areaSecNo'], ['DATE', 'areaSecDate']]) +
         offSign('ZONAL SECRETARY', [['NO.', 'zonalNo'], ['DATE', 'zonalDate']], 'Please arrange to collect the above mentioned items against condemnation from Area Depot.'));
     default: return '';
   }
@@ -1447,7 +1447,7 @@ function itemRowHtml(cols, hasRegister, itemOptions) {
       ? `<select class="sci-item-name" title="Item from the centre stock register">${itemOptions}</select>`
       : `<input class="sci-item-name" type="text" placeholder="Item / material name" list="sciManualItems" maxlength="200">`);
     if (c.type === 'unit') return cell('', hasRegister ? '<span class="sci-unit"></span>' : `<input class="sci-unit" type="text" placeholder="Unit" maxlength="20">`);
-    if (c.type === 'select') return cell('', `<select class="sci-sel" data-col="${c.key}"><option value="">â€” ${esc(c.label)} â€”</option>${c.options.map((opt) => `<option value="${esc(opt)}">${esc(opt)}</option>`).join('')}</select>`);
+    if (c.type === 'select') return cell('', `<select class="sci-sel" data-col="${c.key}"><option value="">- ${esc(c.label)} -</option>${c.options.map((opt) => `<option value="${esc(opt)}">${esc(opt)}</option>`).join('')}</select>`);
     if (c.type === 'calc') return cell('', `<input type="number" class="sci-calc" data-col="${c.key}" readonly placeholder="Auto" title="Auto-computed">`);
     return cell(cls, c.type === 'number'
       ? `<input type="number" class="sci-num" data-col="${c.key}" placeholder="${esc(c.label)}" title="${esc(c.label)}" step="any" min="${c.key === 'qty' ? '1' : '0'}">`
@@ -1753,7 +1753,7 @@ function renderLoginPage() {
 
   sb.from('org_users').select('username, name, type').order('name', { ascending: true }).then(({ data, error }) => {
     if (error) return;
-    document.getElementById('rp_user').innerHTML = data.map((c) => `<option value="${esc(c.username)}">${esc(c.name)} â€” ${esc(c.type)}</option>`).join('');
+    document.getElementById('rp_user').innerHTML = data.map((c) => `<option value="${esc(c.username)}">${esc(c.name)} - ${esc(c.type)}</option>`).join('');
   }).catch(() => {});
 
   document.getElementById('toggleReset').addEventListener('click', () => {
@@ -1829,7 +1829,7 @@ function renderDashboardPage(user, routeParams) {
   function documentLink(form) {
     return form.document
       ? `<a class="file-link" href="${storageFileUrl(form.document)}" target="_blank">${esc(form.documentName || 'View File')}</a>`
-      : 'â€”';
+      : '-';
   }
 
   function scopedIds() {
@@ -2512,7 +2512,7 @@ function renderStockPage(user, routeParams) {
       <div class="logo-banner">
         <div>
           <h2>Stock Register</h2>
-          <p>${isAdmin() ? 'Physical-stock verification ledger for every centre â€” log each verified count, spot any difference from the book figure, and adjust stock when needed.' : 'Verification ledger for your centre + allocated sub centres & points â€” log each verified count and spot differences from the book figure.'}</p>
+          <p>${isAdmin() ? 'Physical-stock verification ledger for every centre - log each verified count, spot any difference from the book figure, and adjust stock when needed.' : 'Verification ledger for your centre + allocated sub centres & points - log each verified count and spot differences from the book figure.'}</p>
         </div>
         <div class="sr-actions">
           <button class="btn sm" id="btnManage" title="Add, edit or delete stock items">Manage Items</button>
@@ -2703,7 +2703,7 @@ function renderStockPage(user, routeParams) {
         <div class="modal-head">
           <div>
             <h3>${entry ? 'Edit Verification Entry' : 'New Verification Entry'}</h3>
-            <p class="hint">${entry ? 'Update this row of the paper-style verification register.' : 'Rows are appended to the paper-style register â€” enter the counted quantity as (B); the Difference is computed automatically.'}</p>
+            <p class="hint">${entry ? 'Update this row of the paper-style verification register.' : 'Rows are appended to the paper-style register - enter the counted quantity as (B); the Difference is computed automatically.'}</p>
           </div>
           <button class="btn sm" id="rmCancel">Close</button>
         </div>
@@ -2827,12 +2827,12 @@ function renderStockPage(user, routeParams) {
     if (!en) return;
     if (btn.dataset.reg === 'edit') { openRegisterModal(en); return; }
     if (btn.dataset.reg === 'del' && canDeleteReg) {
-      if (!confirm('Delete this verification entry for ' + centerName(en.centreId) + ' â€” ' + en.item + '?')) return;
+      if (!confirm('Delete this verification entry for ' + centerName(en.centreId) + ' - ' + en.item + '?')) return;
       deleteStockRegisterEntry(id).then(() => { toast('Entry deleted'); load(); }).catch((err) => toast(err.message, true));
       return;
     }
     if (btn.dataset.reg === 'apply') {
-      if (!confirm('Set the book figure for ' + centerName(en.centreId) + ' â€” ' + en.item + ' to the physically counted quantity ' + en.qtyB + '?')) return;
+      if (!confirm('Set the book figure for ' + centerName(en.centreId) + ' - ' + en.item + ' to the physically counted quantity ' + en.qtyB + '?')) return;
       btn.disabled = true;
       updateStock(en.centreId, { [en.item]: Number(en.qtyB) }, { [en.item]: en.unit || unitOf(en.centreId, en.item) }).then(() => { toast('Book figure updated to ' + en.qtyB); load(); }).catch((err) => { btn.disabled = false; toast(err.message, true); });
     }
@@ -2921,7 +2921,7 @@ function renderStockPage(user, routeParams) {
 
     function render() {
       if (!rows.length) {
-        listEl.innerHTML = '<div class="card hint" style="padding:16px;text-align:center">No items yet â€” add the first one above.</div>';
+        listEl.innerHTML = '<div class="card hint" style="padding:16px;text-align:center">No items yet - add the first one above.</div>';
         return;
       }
       listEl.innerHTML = rows.map((r, i) => r.editing ? `
@@ -3013,7 +3013,7 @@ function renderStockPage(user, routeParams) {
 }
 
 /* =========================================================================
-   Masters page â€” item master (auto codes) + document master (GRN, uploads)
+   Masters page - item master (auto codes) + document master (GRN, uploads)
    ========================================================================= */
 function renderMastersPage(user, focus) {
   document.body.classList.remove('login-page');
@@ -3256,7 +3256,7 @@ function renderMastersPage(user, focus) {
       if (btn.dataset.cact === 'edit') openCentreModal(c);
       else if (btn.dataset.cact === 'del') {
         const kids = centreRows.filter((x) => String(x.parentId) === String(c.id));
-        if (kids.length) return toast('Cannot delete "' + c.name + '" â€” ' + kids.length + ' sub centre(s) are under it. Move or delete them first.', true);
+        if (kids.length) return toast('Cannot delete "' + c.name + '" - ' + kids.length + ' sub centre(s) are under it. Move or delete them first.', true);
         if (!confirm('Delete centre "' + c.name + '"? Its stock rows and SCI forms will also be removed. This cannot be undone.')) return;
         sb.from('centres').delete().eq('id', c.id)
           .then(({ error }) => {
@@ -3581,7 +3581,7 @@ function renderMastersPage(user, focus) {
       field('#imModel').value = m.model || '';
       field('#imStatus').value = m.status || 'Active';
       simBox.innerHTML = `<div class="im-selected">âœ“ Using existing item <b>${esc(m.name)}</b>${m.code ? ' (' + esc(m.code) + ')' : ''}. No new record will be created.</div>`;
-      saveBtn.textContent = 'Done â€” Using Existing Item';
+      saveBtn.textContent = 'Done - Using Existing Item';
       nameEl.focus();
     }
 
@@ -3633,7 +3633,7 @@ function renderMastersPage(user, focus) {
       if (!f.name) return toast('Item name is required', true);
       if (existingId) {
         const m = items.find((x) => String(x.id) === String(existingId));
-        if (m) toast('Using existing item "' + m.name + '" â€” no new record created');
+        if (m) toast('Using existing item "' + m.name + '" - no new record created');
         close();
         return;
       }
@@ -3787,7 +3787,7 @@ function renderSCIDownloadPage(user, focus) {
   content.innerHTML = `
     <div class="logo-banner">
       <div>
-        <h2>${esc(code)} â€” ${esc(meta.title)}</h2>
+        <h2>${esc(code)} - ${esc(meta.title)}</h2>
         <p>${esc(meta.hint || '')}</p>
       </div>
     </div>
@@ -3796,12 +3796,12 @@ function renderSCIDownloadPage(user, focus) {
       <h3>${esc(meta.title)}</h3>
       <p>${esc(meta.hint || '')}</p>
       <a class="btn primary sci-dl-btn" href="${href}" download rel="noopener">Download form (.PDF)</a>
-      <p class="hint">Official PDF form${isCentreUser ? '.' : ' â€” open it, fill in the details, then upload the filled .docx below.'}</p>
+      <p class="hint">Official PDF form${isCentreUser ? '.' : ' - open it, fill in the details, then upload the filled .docx below.'}</p>
     </div>
     ${isCentreUser ? '' : `<div class="card sci-up-card">
       <div class="sci-dl-chip">UPLOAD</div>
       <h3>Upload Filled Form</h3>
-      <p>Upload the ${esc(code)} form you filled in Word. The items and quantities are read out of the document â€” you can check and fix them before submitting. Stock changes only after an admin approves the form.</p>
+      <p>Upload the ${esc(code)} form you filled in Word. The items and quantities are read out of the document - you can check and fix them before submitting. Stock changes only after an admin approves the form.</p>
       <input id="sciFillFile" class="sci-up-file" type="file" accept=".docx">
       <p class="hint">Word (.docx) only, up to 2 MB.</p>
     </div>`}`;
@@ -3824,7 +3824,7 @@ function loadJSZip() {
     const s = document.createElement('script');
     s.src = 'https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js';
     s.onload = () => window.JSZip ? resolve(window.JSZip) : reject(new Error('Could not start the .docx reader'));
-    s.onerror = () => reject(new Error('Could not load the .docx reader â€” check your internet connection'));
+    s.onerror = () => reject(new Error('Could not load the .docx reader - check your internet connection'));
     document.head.appendChild(s);
   });
 }
@@ -3904,13 +3904,13 @@ async function openSCIUploadModal(file, expectedCode) {
       <div class="modal-head">
         <div>
           <h3>Review &amp; Submit Form</h3>
-          <p class="hint">File: <b>${esc(file.name)}</b> â€” check the items read from your document, fix anything wrong, then submit for admin approval.</p>
+          <p class="hint">File: <b>${esc(file.name)}</b> - check the items read from your document, fix anything wrong, then submit for admin approval.</p>
         </div>
         <button class="btn sm" id="suClose">Close</button>
       </div>
       <div class="modal-body">
         <div class="modal-grid" style="margin-top:10px">
-          <div class="field"><label>Form Type *</label><select id="suType">${SCI_FORM_META.map((m) => `<option value="${m.code}"${m.code === expectedCode ? ' selected' : ''}>${esc(m.code)} â€” ${esc(m.title)}</option>`).join('')}</select></div>
+          <div class="field"><label>Form Type *</label><select id="suType">${SCI_FORM_META.map((m) => `<option value="${m.code}"${m.code === expectedCode ? ' selected' : ''}>${esc(m.code)} - ${esc(m.title)}</option>`).join('')}</select></div>
           <div class="field"><label>Centre ${isCentre ? '' : '*'}</label>${isCentre
             ? `<input type="text" value="${esc(me.centreName || '')}" readonly>`
             : '<select id="suCentre"><option value="">Select centreâ€¦</option></select>'}</div>
@@ -3977,7 +3977,7 @@ async function openSCIUploadModal(file, expectedCode) {
       </div>
       <input class="sci-item-qty" type="number" min="1" step="1" value="${item.qty || ''}" placeholder="Qty">
       <input class="sci-item-unit" type="text" value="${esc(item.unit || '')}" placeholder="Unit">
-      <button class="btn sm su-del" type="button" title="Remove row">Ã—</button>
+      <button class="btn sm su-del" type="button" title="Remove row">Ã - </button>
     </div>`;
   }
 
@@ -4063,7 +4063,7 @@ async function openSCIUploadModal(file, expectedCode) {
       typeSel.value = detected;
       syncType();
       const note = n('suClose').closest('.modal-head').querySelector('.hint');
-      if (note) note.innerHTML = esc(note.textContent) + ` <b style="color:var(--amber,#b8860b)">Detected form type ${esc(detected)} â€” different from this page (${esc(expectedCode)}). Please verify.</b>`;
+      if (note) note.innerHTML = esc(note.textContent) + ` <b style="color:var(--amber,#b8860b)">Detected form type ${esc(detected)} - different from this page (${esc(expectedCode)}). Please verify.</b>`;
     }
     if (parsed.sewadar) n('suSewadar').value = parsed.sewadar.slice(0, 120);
     if (parsed.badge) n('suBadge').value = parsed.badge;
@@ -4073,7 +4073,7 @@ async function openSCIUploadModal(file, expectedCode) {
       itemsEl.querySelectorAll('.sci-item-row').forEach(syncRowHint);
     } else {
       addRow();
-      toast('Could not read items automatically â€” please add them below', true);
+      toast('Could not read items automatically - please add them below', true);
     }
   })();
 
@@ -4122,7 +4122,7 @@ async function openSCIUploadModal(file, expectedCode) {
         status: 'pending'
       });
       if (insErr) throw new Error('Submission failed: ' + insErr.message);
-      toast(type + ' submitted â€” stock will change when an admin approves it');
+      toast(type + ' submitted - stock will change when an admin approves it');
       close();
     } catch (err) { btn.disabled = false; toast(err.message, true); }
   }
@@ -4130,7 +4130,7 @@ async function openSCIUploadModal(file, expectedCode) {
 
 function renderSCIFormsPage(user, focus) {
   return renderSCIDownloadPage(user, focus);
-  /* SCI form editor disabled â€” download-only page (see renderSCIDownloadPage above). */
+  /* SCI form editor disabled - download-only page (see renderSCIDownloadPage above). */
   document.body.classList.remove('login-page');
   const content = document.getElementById('content');
   const state = { forms: [], destinations: [], stock: null };
@@ -4145,11 +4145,11 @@ function renderSCIFormsPage(user, focus) {
   function documentLink(form) {
     return form.document
       ? `<a class="file-link" href="${storageFileUrl(form.document)}" target="_blank">${esc(form.documentName || 'View File')}</a>`
-      : 'â€”';
+      : '-';
   }
 
   /*
-  SCI OFFICIAL-FORM PAGE HELPERS (9720880) â€” tableTitle / initItemsGrid / collectGrid COMMENTED OUT for now.
+  SCI OFFICIAL-FORM PAGE HELPERS (9720880) - tableTitle / initItemsGrid / collectGrid COMMENTED OUT for now.
 
   function tableTitle(code) {
     return {
@@ -4157,7 +4157,7 @@ function renderSCIFormsPage(user, focus) {
       SCI43: 'Items to be transferred',
       SCI53: 'Requirement of Items / Material',
       SCI15: 'Offer of Items / Material in Donation',
-      SCI76: 'Items issued â€” Book Debit Adjustment',
+      SCI76: 'Items issued - Book Debit Adjustment',
       SCI45: 'Articles examined for Condemnation'
     }[code] || 'Items / Material';
   }
@@ -4285,7 +4285,7 @@ END SCI PAGE HELPERS */
         <input class="sci-item-unit" type="text" placeholder="Unit" title="Unit, e.g. pcs / kg / mtr">
         <button type="button" class="btn-del" title="Remove this item" aria-label="Remove item"></button>
       </div>`;
-    // SCI official-format builder (9720880) â€” commented out:
+    // SCI official-format builder (9720880) - commented out:
     // const cols = form.code === 'SCI45' ? ITEM_COLS.SCI45c : (ITEM_COLS[form.code] || ITEM_COLS.SCI43);
     // const destOptions = state.destinations.map((centre) => `<option value="${esc(centre.id)}">${esc(centre.name)} (${esc(centre.type)})</option>`).join('');
     // const oreq = { me, today, centres: state.destinations };
@@ -4293,13 +4293,13 @@ END SCI PAGE HELPERS */
 
     document.getElementById('sciEditor').innerHTML = `
       <div class="sci-meta-bar reg-toolbar" style="margin-bottom:14px">
-        <div class="sci-meta"><span>Date: <b>${today}</b></span><span>Satsang Place / Centre: <b>${esc(me.centreName || 'â€”')}</b></span><span>Form No.: <b>${form.code}</b></span></div>
+        <div class="sci-meta"><span>Date: <b>${today}</b></span><span>Satsang Place / Centre: <b>${esc(me.centreName || '-')}</b></span><span>Form No.: <b>${form.code}</b></span></div>
         <span class="rt-right"><span class="badge navy">Fill like the paper form, then upload the signed hardcopy</span></span>
       </div>
       <div class="card" style="padding:0">
         <div class="sci-section-head">
           <div>
-            <h3>${form.code} â€” ${esc(form.title)}</h3>
+            <h3>${form.code} - ${esc(form.title)}</h3>
             <p>${esc(form.hint)}</p>
           </div>
         </div>
@@ -4310,7 +4310,7 @@ END SCI PAGE HELPERS */
               <div class="field"><label>1. Sewadar Name (in block letters)</label><input id="sci_sewadar" type="text" maxlength="200" required placeholder="Full name"></div>
               <div class="field"><label>2. Sewadar Badge No.</label><input id="sci_badge" type="text" maxlength="12" minlength="12" pattern="[A-Za-z0-9]{12}" required placeholder="e.g. AB12CD34EF56" autocomplete="off"></div>
               <div class="field"><label>Approval No.</label><input id="sci_approval" type="text" maxlength="40" placeholder="Approval number for this form" title="Approval number printed on the approved form"></div>
-              ${form.code === 'SCI43' ? `<div class="field"><label>3. Destination Centre</label><select id="sci_destination" required><option value="">â€” select destination centre â€”</option>${destinationOptions}</select></div>` : ''}
+              ${form.code === 'SCI43' ? `<div class="field"><label>3. Destination Centre</label><select id="sci_destination" required><option value="">- select destination centre -</option>${destinationOptions}</select></div>` : ''}
               ${form.code === 'SCI34' ? '<div class="field"><label>3. Sale Proceeds Amount</label><input id="sci_amount" type="number" min="0" step="0.01" required placeholder="0.00"></div>' : ''}
             </div>
           </div>
@@ -4331,7 +4331,7 @@ END SCI PAGE HELPERS */
           <div class="sci-section">
             <div class="sci-sec-title">Upload the filled hardcopy (${form.code} PDF)</div>
             <input id="sci_document" type="file" accept="application/pdf,.pdf" required>
-            <span class="hint">SCAN the hardcopy you filled in the paper format and upload it here â€” PDF only, maximum 200 KB.</span>
+            <span class="hint">SCAN the hardcopy you filled in the paper format and upload it here - PDF only, maximum 200 KB.</span>
           </div>
           <div class="sci-submit-bar">
             <button type="submit" class="btn primary">Submit ${form.code}</button>
@@ -4345,7 +4345,7 @@ END SCI PAGE HELPERS */
         </form>
       </div>
     `;
-    // SCI official-format priming loop (9720880) â€” commented out:
+    // SCI official-format priming loop (9720880) - commented out:
     // document.querySelectorAll('#sciSubmitForm [data-official]').forEach((el) => {
     //   if (el.dataset.official === 'date' && !el.value) el.value = today;
     //   if (el.dataset.official === 'placeName' && !el.value && me.centreName) el.value = me.centreName;
@@ -4377,7 +4377,7 @@ END SCI PAGE HELPERS */
       items.addEventListener('input', (e) => { if (hasRegister && e.target.classList.contains('sci-item-name')) syncUnit(e.target.closest('.sci-item-row')); });
       document.getElementById('sciAddItem').addEventListener('click', addRow);
     }
-    // SCI official-format grid wiring + destination prefill (9720880) â€” commented out:
+    // SCI official-format grid wiring + destination prefill (9720880) - commented out:
     // initItemsGrid('sciItems', cols, hasRegister, registerItems, itemOptions);
     // if (form.code === 'SCI45') initItemsGrid('sciItemsRepl', ITEM_COLS.SCI45r, hasRegister, registerItems, itemOptions);
     // const destSel = document.getElementById('sci_destination');
@@ -4406,7 +4406,7 @@ END SCI PAGE HELPERS */
     const destEl = document.getElementById('sci_destination');
     const destId = destEl && destEl.value ? Number(destEl.value) : null;
     const destName = destId ? (state.destinations.find((c) => Number(c.id) === destId) || {}).name || '' : '';
-    // SCI official-format collection (9720880) â€” commented out:
+    // SCI official-format collection (9720880) - commented out:
     // const cols = selectedCode === 'SCI45' ? ITEM_COLS.SCI45c : (ITEM_COLS[selectedCode] || ITEM_COLS.SCI43);
     // const official = {};
     // document.querySelectorAll('#sciSubmitForm [data-official]').forEach((el) => {
@@ -4490,10 +4490,10 @@ END SCI PAGE HELPERS */
           <td>${esc(form.centreName)}</td>
           <td>${esc(form.sewadarName)}</td>
           <td class="mono">${esc(form.sewadarBadge)}</td>
-          <td>${esc((form.details && form.details.approvalNo) || 'â€”')}</td>
+          <td>${esc((form.details && form.details.approvalNo) || '-')}</td>
           <td>${documentLink(form)}</td>
           <td>${badge(form.status)}</td>
-          <td>${isAdmin() && form.status === 'pending' ? `<button class="btn green sm" data-form-action="approve" data-id="${esc(form.id)}">Approve</button> <button class="btn red sm" data-form-action="reject" data-id="${esc(form.id)}">Reject</button>` : 'â€”'}</td>
+          <td>${isAdmin() && form.status === 'pending' ? `<button class="btn green sm" data-form-action="approve" data-id="${esc(form.id)}">Approve</button> <button class="btn red sm" data-form-action="reject" data-id="${esc(form.id)}">Reject</button>` : '-'}</td>
         </tr>`).join('') : '<tr><td colspan="9" class="empty">No SCI forms submitted yet</td></tr>'}</tbody>
       </table>
       ${state.forms.length > 20 ? '<div style="padding:10px 14px;border-top:1px solid var(--line);color:var(--muted);font-size:12.5px"><b>Showing the 20 most recent submissions.</b> Open the Forms Log for the full list.</div>' : ''}
@@ -4553,7 +4553,7 @@ function renderResetPage() {
 
   const loadUsers = () => sb.from('org_users').select('username, name, type').order('name', { ascending: true }).then(({ data, error }) => {
     if (error) throw new Error(error.message);
-    document.getElementById('rp_user').innerHTML = data.map((c) => `<option value="${esc(c.username)}">${esc(c.name)} â€” ${esc(c.type)}</option>`).join('');
+    document.getElementById('rp_user').innerHTML = data.map((c) => `<option value="${esc(c.username)}">${esc(c.name)} - ${esc(c.type)}</option>`).join('');
   });
   loadUsers().catch((err) => showResetMsg(err.message, true));
 
