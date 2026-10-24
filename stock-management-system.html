@@ -3782,8 +3782,8 @@ function renderSCIDownloadPage(user, focus) {
   const meta = SCI_FORM_META.find((m) => m.code === code) || SCI_FORM_META[0];
   const file = SCI_DOWNLOADS[code] || '';
   const href = file ? encodeURI('downloads/' + file) : '#';
-  const user = getUser();
-  const isCentreUser = user && typeof user.id === 'number' && !(isAdmin() || isViewer());
+  const u2 = getUser();
+  const isCentreUser = u2 && typeof u2.id === 'number' && !(isAdmin() || isViewer());
   content.innerHTML = `
     <div class="logo-banner">
       <div>
