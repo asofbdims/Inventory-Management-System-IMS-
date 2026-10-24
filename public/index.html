@@ -2516,6 +2516,7 @@ function renderStockPage(user, routeParams) {
         </div>
         <div class="sr-actions">
           <button class="btn sm" id="btnManage" title="Add, edit or delete stock items">Manage Items</button>
+          <button class="btn sm" id="btnUploadSupport" title="Upload support documents (PDF, max 2 MB)">Upload Support Document</button>
           <button class="btn primary" id="btnNew" title="Enter a new physical verification entry">+ New Verification Entry</button>
         </div>
       </div>
@@ -2562,6 +2563,8 @@ function renderStockPage(user, routeParams) {
     content.querySelector('#btnNew').addEventListener('click', () => openRegisterModal(null));
     const btnManage = content.querySelector('#btnManage');
     if (btnManage) btnManage.addEventListener('click', () => openItemsManager('list'));
+    const btnUploadSupport = content.querySelector('#btnUploadSupport');
+    if (btnUploadSupport) btnUploadSupport.addEventListener('click', () => openSupportUploadModal());
         const btCols = content.querySelector('#btnCols');
     const colsMenu = content.querySelector('#colsMenu');
     if (btCols && colsMenu) {
