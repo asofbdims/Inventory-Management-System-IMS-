@@ -1544,13 +1544,11 @@ function renderShell(user, activePage) {
   const canMaster = isAdmin() || isViewer();
   const GROUPS = [
     { label: 'Overview', items: ['dashboard.html'] },
-    { label: 'Masters', items: canMaster ? [{ key: 'master', label: 'Masters', icon: 'master', children: [
-      'masters-centre.html',
-      'masters-item.html',
-      'masters-doc.html',
+    { label: 'Masters', items: [{ key: 'master', label: 'Masters', icon: 'master', children: [
+      ...(canMaster ? ['masters-centre.html', 'masters-item.html', 'masters-doc.html'] : []),
       { key: 'sci', label: 'SCI Forms', icon: 'forms', children: ['sci45.html', 'sci53.html', 'sci76.html', 'sci43.html', 'sci15.html', 'sci34.html'] },
-      'log.html'
-    ]}] : [] },
+      ...(canMaster ? ['log.html'] : [])
+    ].filter(Boolean) }] },
     { label: 'Inventory', items: ['stock.html'] },
     { label: 'Admin', items: isSuperAdmin() ? ['reset.html'] : [] }
   ];
@@ -1689,7 +1687,7 @@ function route() {
     else if (path === '/masters/centre') { renderShell(user, 'masters-centre.html'); renderMastersPage(user, 'centre'); }
     else { renderShell(user, 'masters-item.html'); renderMastersPage(user, 'item'); }
   }
-  else if (path === '/masters/item' || path === '/masters' || path === '/masters/doc' || path === '/masters/centre' || path === '/log' || /^\/forms\/SCI\d+$/.test(path)) {
+  else if (path === '/masters/item' || path === '/masters' || path === '/masters/doc' || path === '/masters/centre') {
     location.hash = '/dashboard';
     return;
   }
@@ -1699,7 +1697,7 @@ function route() {
     renderShell(user, 'sci' + ok.replace('SCI', '') + '.html');
     renderSCIFormsPage(user, ok);
   }
-  else if (path === '/log') { renderShell(user, 'log.html'); renderSCIFormsLogPage(user); }
+  else if (path === '/log') { if (isAdmin() || isViewer()) { renderShell(user, 'log.html'); renderSCIFormsLogPage(user); } else { location.hash = '/dashboard'; } }
   else if (path === '/reset' && isSuperAdmin()) { renderShell(user, 'reset.html'); renderResetPage(user); }
   else { location.hash = '/dashboard'; }
 }
