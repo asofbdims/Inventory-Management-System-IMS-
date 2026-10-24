@@ -2735,7 +2735,7 @@ function renderStockPage(user, routeParams) {
               <div class="field"><label>Quantity as per Stock Register (A)</label><input type="number" id="rm_qtyA" min="0" value="${entry ? Number(entry.qtyA) : 0}" readonly></div>
               <div class="field"><label>Physically Available Quantity (B)</label><input type="number" id="rm_qtyB" min="0" value="${entry ? Number(entry.qtyB) : 0}"></div>
               <div class="field"><label>Unit</label><input id="rm_unit" placeholder="e.g. mtr, nos, KG" value="${esc(entry ? entry.unit || unitOf(entry.centreId, entry.item) : '')}"></div>
-              <div class="field"><label>Difference (A âˆ’ B)</label><input type="text" id="rm_diff" readonly value="${entry ? diffTxt(Number(entry.difference)) : 0}"></div>
+              <div class="field"><label>Difference (A-B)</label><input type="text" id="rm_diff" readonly value="${entry ? diffTxt(Number(entry.difference)) : 0}"></div>
             </div>
           </div>
           <div class="modal-sec">
