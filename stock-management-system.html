@@ -1544,11 +1544,17 @@ function renderShell(user, activePage) {
   const canMaster = isAdmin() || isViewer();
   const GROUPS = [
     { label: 'Overview', items: ['dashboard.html'] },
-    { label: 'Masters', items: [{ key: 'master', label: 'Masters', icon: 'master', children: [
-      ...(canMaster ? ['masters-centre.html', 'masters-item.html', 'masters-doc.html'] : []),
-      { key: 'sci', label: 'SCI Forms', icon: 'forms', children: ['sci45.html', 'sci53.html', 'sci76.html', 'sci43.html', 'sci15.html', 'sci34.html'] },
-      ...(canMaster ? ['log.html'] : [])
-    ].filter(Boolean) }] },
+    ...(canMaster ? [
+      { label: 'Masters', items: [{ key: 'master', label: 'Masters', icon: 'master', children: [
+        'masters-centre.html',
+        'masters-item.html',
+        'masters-doc.html',
+        { key: 'sci', label: 'SCI Forms', icon: 'forms', children: ['sci45.html', 'sci53.html', 'sci76.html', 'sci43.html', 'sci15.html', 'sci34.html'] },
+        'log.html'
+      ]}] }
+    ] : [
+      { label: 'Forms', items: [{ key: 'sci', label: 'SCI Forms', icon: 'forms', children: ['sci45.html', 'sci53.html', 'sci76.html', 'sci43.html', 'sci15.html', 'sci34.html'] }] }
+    ]),
     { label: 'Inventory', items: ['stock.html'] },
     { label: 'Admin', items: isSuperAdmin() ? ['reset.html'] : [] }
   ];
