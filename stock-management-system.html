@@ -3782,6 +3782,8 @@ function renderSCIDownloadPage(user, focus) {
   const meta = SCI_FORM_META.find((m) => m.code === code) || SCI_FORM_META[0];
   const file = SCI_DOWNLOADS[code] || '';
   const href = file ? encodeURI('downloads/' + file) : '#';
+  const user = getUser();
+  const isCentreUser = user && typeof user.id === 'number' && !(isAdmin() || isViewer());
   content.innerHTML = `
     <div class="logo-banner">
       <div>
@@ -3794,24 +3796,26 @@ function renderSCIDownloadPage(user, focus) {
       <h3>${esc(meta.title)}</h3>
       <p>${esc(meta.hint || '')}</p>
       <a class="btn primary sci-dl-btn" href="${href}" download rel="noopener">Download form (.docx)</a>
-      <p class="hint">Official Word template â€” open it in Word, fill in the details, then upload the filled .docx below.</p>
+      <p class="hint">Official Word template â€” open it in Word, fill in the details${isCentreUser ? '.' : ', then upload the filled .docx below.'}</p>
     </div>
-    <div class="card sci-up-card">
+    ${isCentreUser ? '' : `<div class="card sci-up-card">
       <div class="sci-dl-chip">UPLOAD</div>
       <h3>Upload Filled Form</h3>
       <p>Upload the ${esc(code)} form you filled in Word. The items and quantities are read out of the document â€” you can check and fix them before submitting. Stock changes only after an admin approves the form.</p>
       <input id="sciFillFile" class="sci-up-file" type="file" accept=".docx">
       <p class="hint">Word (.docx) only, up to 2 MB.</p>
-    </div>`;
-  const input = document.getElementById('sciFillFile');
-  if (input) input.addEventListener('change', () => {
-    const f = input.files && input.files[0];
-    input.value = '';
-    if (!f) return;
-    if (!/\.docx$/i.test(f.name)) return toast('Please choose a Word (.docx) file', true);
-    if (f.size > 2 * 1024 * 1024) return toast('File is too large (max 2 MB)', true);
-    openSCIUploadModal(f, code);
-  });
+    </div>`}`;
+  if (!isCentreUser) {
+    const input = document.getElementById('sciFillFile');
+    if (input) input.addEventListener('change', () => {
+      const f = input.files && input.files[0];
+      input.value = '';
+      if (!f) return;
+      if (!/\.docx$/i.test(f.name)) return toast('Please choose a Word (.docx) file', true);
+      if (f.size > 2 * 1024 * 1024) return toast('File is too large (max 2 MB)', true);
+      openSCIUploadModal(f, code);
+    });
+  }
 }
 
 function loadJSZip() {
