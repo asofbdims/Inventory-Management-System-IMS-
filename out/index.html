@@ -2497,10 +2497,10 @@ function renderStockPage(user, routeParams) {
     if (shown.length) {
       pgHtml = `
         <div class="reg-pagination">
-          <span class="pg-info">${page * pageSize + 1}â€“${Math.min(shown.length, (page + 1) * pageSize)} of ${shown.length}</span>
-          <button class="pg-btn" data-pg="prev"${page === 0 ? ' disabled' : ''}>â€¹ Prev</button>
-          ${pgLinks.map((n) => n === -1 ? '<span class="pg-btn" style="border:none;background:none;cursor:default">â€¦</span>' : `<button class="pg-btn${n === page ? ' active' : ''}" data-pg="${n}">${n + 1}</button>`).join('')}
-          <button class="pg-btn" data-pg="next"${page >= totalPages - 1 ? ' disabled' : ''}>Next â€º</button>
+          <span class="pg-info">${page * pageSize + 1} - ${Math.min(shown.length, (page + 1) * pageSize)} of ${shown.length}</span>
+          <button class="pg-btn" data-pg="prev"${page === 0 ? ' disabled' : ''}>Prev</button>
+          ${pgLinks.map((n) => n === -1 ? '<span class="pg-btn" style="border:none;background:none;cursor:default">...</span>' : `<button class="pg-btn${n === page ? ' active' : ''}" data-pg="${n}">${n + 1}</button>`).join('')}
+          <button class="pg-btn" data-pg="next"${page >= totalPages - 1 ? ' disabled' : ''}>Next</button>
         </div>`;
     }
 
