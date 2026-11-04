@@ -2552,7 +2552,7 @@ function renderStockPage(user, routeParams) {
         </table>
       </div>
       ${pgHtml}
-      <p style="margin-top:12px;color:var(--muted);font-size:12px">${shown.length} of ${centreScope.length} entries in scope${skipCurrentCentre ? ' Â· filtered to one centre' : ''}${diffFilter ? ' Â· filtered by difference' : ''}. The Difference column is computed automatically as (A âˆ’ B); use <b>Apply</b> to write the physically counted quantity back into the book figure.</p>
+      <p style="margin-top:12px;color:var(--muted);font-size:12px">${shown.length} of ${centreScope.length} entries in scope${skipCurrentCentre ? ' - filtered to one centre' : ''}${diffFilter ? ' - filtered by difference' : ''}. The Difference column is computed automatically as (A - B); use <b>Apply</b> to write the physically counted quantity back into the book figure.</p>
     `;
 
     bindSearch();
