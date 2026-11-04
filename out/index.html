@@ -1064,7 +1064,7 @@ async function applyApprovalStock(form) {
       qtyA: before,
       qtyB: after,
       reason: `SCI ${form.formType} approved - stock auto-adjusted`,
-      remarks: `Approved form ${form.id} Â· ${form.formType} â†’ ${centreName}`,
+      remarks: `Approved form ${form.id} - ${form.formType} -> ${centreName}`,
       verifiedBy: approver
     });
   }
@@ -1177,9 +1177,9 @@ function sciDetailsText(f) {
     const parts = d.items.filter((it) => it && it.name).map((it) => `${it.name} x${it.qty || 0}${it.unit ? ' ' + it.unit : ''}`);
     const desc = String(d.description || '').trim();
     if (desc) parts.push(desc);
-    return parts.join(' Â· ');
+    return parts.join(' - ');
   }
-  return Object.values(d).filter((v) => v !== null && v !== '').join(' Â· ');
+  return Object.values(d).filter((v) => v !== null && v !== '').join(' - ');
 }
 
 async function downloadSCIForms(qs) {
@@ -1267,7 +1267,7 @@ const ITEM_COLS = {
   SCI15: [
     { key: 'name', label: 'NAME OF ARTICLE', type: 'name' },
     { key: 'qty', label: 'PRESENT OFFER QTY', type: 'number' },
-    { key: 'cost', label: 'COST OF ITEM (â‚¹)', type: 'number' },
+    { key: 'cost', label: 'COST OF ITEM (Rs)', type: 'number' },
     { key: 'justification', label: 'JUSTIFICATION FOR ACCEPTANCE OR PURPOSE', type: 'text' },
     { key: 'existingQty', label: 'EXISTING HOLDING QTY', type: 'number' },
     { key: 'existingDate', label: 'EXISTING HOLDING DATE', type: 'text' },
@@ -1278,8 +1278,8 @@ const ITEM_COLS = {
   SCI76: [
     { key: 'name', label: 'ITEM', type: 'name' },
     { key: 'qty', label: 'QUANTITY', type: 'number' },
-    { key: 'rate', label: 'RATE (â‚¹)', type: 'number' },
-    { key: 'totalCost', label: 'TOTAL COST (â‚¹)', type: 'calc' },
+    { key: 'rate', label: 'RATE (Rs)', type: 'number' },
+    { key: 'totalCost', label: 'TOTAL COST (Rs)', type: 'calc' },
     { key: 'workProject', label: 'NAME OF WORK / PROJECT', type: 'text' },
     { key: 'beasNo', label: 'BEAS APPROVAL LTR NO.', type: 'text' },
     { key: 'beasDate', label: 'BEAS APPROVAL DATE', type: 'text' },
@@ -1291,7 +1291,7 @@ const ITEM_COLS = {
     { key: 'acqDate', label: 'ACQUISITION DATE', type: 'text' },
     { key: 'condition', label: 'CONDITION', type: 'select', options: ['UNSERVICEABLE', 'REPAIRABLE', 'SERVICEABLE'] },
     { key: 'signatures', label: 'SIGNATURES', type: 'text' },
-    { key: 'approxValue', label: 'APPROX. VALUE (â‚¹)', type: 'number' },
+    { key: 'approxValue', label: 'APPROX. VALUE (Rs)', type: 'number' },
     { key: 'unit', label: 'UNIT', type: 'unit' }
   ],
   SCI45r: [
@@ -1351,7 +1351,7 @@ function offLetterhead(o, extraFields) {
     .concat(offCentreSel('placeName', 'NAME OF SATSANG PLACE (C/SC/SP)', o.centres))
     .concat(offFld('area', 'AREA'))
     .concat(extraFields || []);
-  return offSec('Letterhead', `<div class="off-addr">THE SEWADAR I/C SATSANG CENTRES IN INDIA &nbsp;Â·&nbsp; RSSB, DERA BABA JAIMAL SINGH, DISTT. AMRITSAR</div><div class="sci-grid">${g.join('')}</div>`);
+  return offSec('Letterhead', `<div class="off-addr">THE SEWADAR I/C SATSANG CENTRES IN INDIA &nbsp;-&nbsp; RSSB, DERA BABA JAIMAL SINGH, DISTT. AMRITSAR</div><div class="sci-grid">${g.join('')}</div>`);
 }
 
 // Build the non-items sections of a form editor to mirror the official format.
@@ -1362,7 +1362,7 @@ function officialSections(code, o) {
       offSec('Permission &amp; Sale Proceeds',
         offPara(['1. Permission was granted to dispose of ', { key: 'disposeOf', w: 260 }, ' by Zonal Secretary.']) +
         offPara(['2. The Sale proceeds amounting to Rs. ', { key: 'amount', type: 'number', w: 120 }, ' of the said items are sent herewith vide DD no. ', { key: 'ddNo', w: 130 }, ' dated ', { key: 'ddDate', w: 120 }, '.']) +
-        offTick('relevantType', [['CONDEMNED', 'Condemned'], ['SURPLUS', 'Surplus'], ['SCRAP', 'Scrap']], '* PLEASE TICK (âˆš) THE RELEVANT TYPE', { required: true }) + lock) +
+        offTick('relevantType', [['CONDEMNED', 'Condemned'], ['SURPLUS', 'Surplus'], ['SCRAP', 'Scrap']], '* PLEASE TICK (CHECK) THE RELEVANT TYPE', { required: true }) + lock) +
       offSec('Signature Blocks',
         offSign('SECRETARY', [['NO.', 'noRef'], ['DATE', 'dateRef']]) +
         offSign('FORWARDED - AREA SECRETARY', [['NO.', 'areaSecNo'], ['DATE', 'areaSecDate']]) +
@@ -1383,7 +1383,7 @@ function officialSections(code, o) {
           `<div class="off-note">If yes, the information of Sewa in cash/bank should be reported to sewa@rssb.in</div>` +
           offSign('ZONAL SECRETARY', [['NO.', 'zonalNo2'], ['DATE', 'zonalDate2']]) +
           offSign('AREA SECRETARY - RECOMMENDED', [['NO.', 'areaSecNo'], ['DATE', 'areaSecDate']], 'Note: 1. The Sewa material approved is to be used as per Beas approved design/drawing. 2. No collection whatsoever is to be made at any Satsang Place.') +
-          offSign('SIC SATSANG CENTRES IN INDIA Â· SECRETARY, RSSB, BEAS Â· RETURNED TO SIC')) +
+          offSign('SIC SATSANG CENTRES IN INDIA - SECRETARY, RSSB, BEAS - RETURNED TO SIC')) +
           offSec('DISTRIBUTION - CC CAO',
             offPara(['DISTRIBUTION - INCHARGE/CT/SECRETARY/AREA SECRETARY/ZONAL SECRETARY. CC - CAO for necessary adjustment of Rs. ', { key: 'amountCc', type: 'number', w: 110 }, '.'])));
     case 'SCI43': return offLetterhead(o) +
@@ -1420,7 +1420,7 @@ function officialSections(code, o) {
         offSign('INDENT AUTHORIZED BY WORKSHOP I/C', [['SIGNATURE (NAME)', 'wsSignature'], ['NAME', 'wsName']]) +
         offSign('MATERIAL RECEIVED BY', [['SIGNATURE (NAME)', 'rcvSignature'], ['NAME', 'rcvName']]) +
         offSign('SIGNATURE OF SECRETARY FOR RECEIPT OF MATERIAL (WITH RUBBER SEAL)' ) +
-        `<div class="off-note">NOTE: * PLEASE TICK (âˆš) THE TYPE OF WORKSHOP</div>`);
+        `<div class="off-note">NOTE: * PLEASE TICK (CHECK) THE TYPE OF WORKSHOP</div>`);
     case 'SCI53': return offLetterhead(o, [offFld('avgAttendance', 'AVERAGE WEEKLY ATTENDANCE', { placeholder: 'e.g. 250' })]) +
       offSec('Requirement',
         `<div class="off-para">DEAR BROTHER,<br>Requirement of items/material in respect of above Satsang place is submitted as under for necessary action at your end. ${lock}</div>` +
@@ -1436,7 +1436,7 @@ function officialSections(code, o) {
       offSec('Condemnation List', `<div class="off-note" style="margin-bottom:8px">Please enter the condemned articles below.</div>`) +
       offSec('Replacement (if required)', `<div class="off-note">Note: In case replacement against condemnation is required, please fill the following details.</div>`) +
       offSec('Signature Blocks',
-        offSign('AREA SECRETARY Â· SECRETARY Â· PRESIDENT') +
+        offSign('AREA SECRETARY - SECRETARY - PRESIDENT') +
         offSign('INCHARGE/CT/SECRETARY') +
         offSign('RECOMMENDATIONS OF - AREA SECRETARY', [['NO.', 'areaSecNo'], ['DATE', 'areaSecDate']]) +
         offSign('ZONAL SECRETARY', [['NO.', 'zonalNo'], ['DATE', 'zonalDate']], 'Please arrange to collect the above mentioned items against condemnation from Area Depot.'));
@@ -1470,7 +1470,7 @@ function createCenterSearch(opts) {
   const wrap = document.createElement('div');
   wrap.className = 'cs-wrap';
   wrap.innerHTML = `
-    <input class="cs-input" type="text" placeholder="${esc(opts.placeholder || 'Searchâ€¦')}" autocomplete="off">
+    <input class="cs-input" type="text" placeholder="${esc(opts.placeholder || 'Search...')}" autocomplete="off">
     <div class="cs-drop"></div>`;
   const input = wrap.querySelector('.cs-input');
   const drop = wrap.querySelector('.cs-drop');
@@ -2541,7 +2541,7 @@ function renderStockPage(user, routeParams) {
         </div>
       </div>
       ${(centreSel) ? `<div class="reg-pills">
-        ${`<span class="reg-pill">Centre : ${esc(centreSel.name)}<button data-clearf="centre" title="Remove filter">âœ•</button></span>`}
+        ${`<span class="reg-pill">Centre : ${esc(centreSel.name)}<button data-clearf="centre" title="Remove filter">x</button></span>`}
       </div>` : ''}
       <!-- DIFF PILL COMMENTED OUT: filter locked to "No difference" (see code note near diffFilter default). 
            ${diffFilter != null ? `<span class="reg-pill">Filter : No difference</span>` : ''} -->
@@ -2852,7 +2852,7 @@ function renderStockPage(user, routeParams) {
           const fmtDate = (s) => { if (!s) return ''; const dt = new Date(s + (s.length === 10 ? 'T00:00:00' : '')); return isNaN(dt) ? s : dt.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }); };
           return [centerName(en.centreId), en.item, en.approvalNo || '', fmtDate(en.approvalDate), Number(en.qtyA), Number(en.qtyB), en.unit || unitOf(en.centreId, en.item), Number(en.difference), en.reason || '', en.remarks || '', en.pageNo || ''];
         });
-      const header = ['S.No', 'Satsang Place', 'Name of Item', 'Approval Number', 'Approval Date', 'Quantity as per Stock Register (A)', 'Physically Available Quantity (B)', 'Unit', 'Difference (if any) (Aâˆ’B)', 'Reason for Difference', 'Remarks', 'Stock Register Page No.'];
+      const header = ['S.No', 'Satsang Place', 'Name of Item', 'Approval Number', 'Approval Date', 'Quantity as per Stock Register (A)', 'Physically Available Quantity (B)', 'Unit', 'Difference (if any) (A-B)', 'Reason for Difference', 'Remarks', 'Stock Register Page No.'];
       const csv = [header.map((h) => csvCell(h)).join(',')].concat(rows.map((r, i) => [i + 1].concat(r).map(csvCell).join(','))).join('\r\n');
       const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
       const url = URL.createObjectURL(blob);
@@ -2938,7 +2938,7 @@ function renderStockPage(user, routeParams) {
         <div class="item-row">
           <div style="flex:1">
             <b>${esc(r.name)}</b>
-            <div class="meta">${esc(r.description || '')}${(r.category ? ' Â· ' + esc(r.category) : (r.description ? '' : 'No description'))}</div>
+            <div class="meta">${esc(r.description || '')}${(r.category ? ' - ' + esc(r.category) : (r.description ? '' : 'No description'))}</div>
           </div>
           <div class="item-actions">
             <button class="btn sm" data-act="edit" data-id="${r.id}">Edit</button>
@@ -3042,7 +3042,7 @@ function renderMastersPage(user, focus) {
             <div class="rt-right"><span class="rt-count" id="maCentreCount"></span><button class="btn primary sm" id="maAddCentre" title="Add a new centre / sub centre">+ Add Centre</button></div>
           </div>
           <div class="rt-row">
-            <input id="maCentreSearch" type="text" placeholder="Search centresâ€¦" autocomplete="off">
+            <input id="maCentreSearch" type="text" placeholder="Search centres..." autocomplete="off">
           </div>
         </div>
         <div class="table-wrap">
@@ -3055,7 +3055,7 @@ function renderMastersPage(user, focus) {
       <div id="maPanel-item">
         <div class="reg-toolbar">
           <div class="rt-row">
-            <input id="maSearch" type="text" placeholder="Search items by name, code, category, brand or modelâ€¦" autocomplete="off">
+            <input id="maSearch" type="text" placeholder="Search items by name, code, category, brand or model..." autocomplete="off">
             <select id="maLetter" class="ma-letter" title="Filter items by the first letter of their name"><option value="">All letters</option></select>
             <button class="btn sm" id="maClear" title="Clear all filters">Clear All</button>
             <div class="rt-right">
@@ -3312,10 +3312,10 @@ function renderMastersPage(user, focus) {
       else if (win[win.length - 1] !== -1) win.push(-1);
     }
     pg.innerHTML = `
-      <span class="pg-info">${itemPage * itemPageSize + 1}â€“${Math.min(n, (itemPage + 1) * itemPageSize)} of ${n}</span>
-      <button class="pg-btn" data-mpg="prev"${itemPage === 0 ? ' disabled' : ''}>â€¹ Prev</button>
-      ${win.map((p) => p === -1 ? '<span class="pg-btn" style="border:none;background:none;cursor:default">â€¦</span>' : `<button class="pg-btn${p === itemPage ? ' active' : ''}" data-mpg="${p}">${p + 1}</button>`).join('')}
-      <button class="pg-btn" data-mpg="next"${itemPage >= totalPages - 1 ? ' disabled' : ''}>Next â€º</button>`;
+      <span class="pg-info">${itemPage * itemPageSize + 1}-${Math.min(n, (itemPage + 1) * itemPageSize)} of ${n}</span>
+      <button class="pg-btn" data-mpg="prev"${itemPage === 0 ? ' disabled' : ''}>Prev</button>
+      ${win.map((p) => p === -1 ? '<span class="pg-btn" style="border:none;background:none;cursor:default">...</span>' : `<button class="pg-btn${p === itemPage ? ' active' : ''}" data-mpg="${p}">${p + 1}</button>`).join('')}
+      <button class="pg-btn" data-mpg="next"${itemPage >= totalPages - 1 ? ' disabled' : ''}>Next</button>`;
     pg.querySelectorAll('.pg-btn').forEach((b) => b.addEventListener('click', () => {
       if (b.disabled) return;
       if (b.dataset.mpg === 'prev') itemPage = Math.max(0, itemPage - 1);
@@ -3486,7 +3486,7 @@ function renderMastersPage(user, focus) {
           <div>
             <h3>${isEdit ? 'Edit Item' : 'Add New Item'}</h3>
             <p class="hint">${isEdit
-              ? `Editing <b>${esc(record.name)}</b>${record.code ? ' (' + esc(record.code) + ')' : ''} Â· created ${record.createdAt ? esc(String(record.createdAt).slice(0, 10)) : 'unknown'}`
+              ? `Editing <b>${esc(record.name)}</b>${record.code ? ' (' + esc(record.code) + ')' : ''} - created ${record.createdAt ? esc(String(record.createdAt).slice(0, 10)) : 'unknown'}`
               : 'New catalogue entry gets an auto-generated item code (ITM-###).'}</p>
           </div>
           <button class="btn sm" id="imClose">Close</button>
@@ -3579,7 +3579,7 @@ function renderMastersPage(user, focus) {
       field('#imBrand').value = m.brand || '';
       field('#imModel').value = m.model || '';
       field('#imStatus').value = m.status || 'Active';
-      simBox.innerHTML = `<div class="im-selected">âœ“ Using existing item <b>${esc(m.name)}</b>${m.code ? ' (' + esc(m.code) + ')' : ''}. No new record will be created.</div>`;
+      simBox.innerHTML = `<div class="im-selected">[OK] Using existing item <b>${esc(m.name)}</b>${m.code ? ' (' + esc(m.code) + ')' : ''}. No new record will be created.</div>`;
       saveBtn.textContent = 'Done - Using Existing Item';
       nameEl.focus();
     }
@@ -3592,14 +3592,14 @@ function renderMastersPage(user, focus) {
       if (!exact && !sims.length) { simBox.innerHTML = ''; return; }
       simBox.innerHTML = `<div class="im-sim">
         ${exact ? `
-          <div class="im-sim-hi">â“˜ This item already exists as <b>${esc(exact.name)}</b> <span class="sim-meta">${esc(exact.code || 'ITM-###')} â€¢ ${esc(exact.category || 'no category')}</span></div>
+          <div class="im-sim-hi">Info: This item already exists as <b>${esc(exact.name)}</b> <span class="sim-meta">${esc(exact.code || 'ITM-###')} - ${esc(exact.category || 'no category')}</span></div>
           <div class="im-sim-row"><span>Join the existing record instead of creating a duplicate.</span><button class="btn primary sm" data-use-exact="1">Use Existing Item</button></div>
           <div class="im-sim-row"><span>You can still create a separate record.</span><button class="btn sm" data-new-any="1">Create New Item</button></div>` : ''}
         ${sims.length ? `
           <div class="im-sim-note">Similar existing items</div>
           ${sims.map((m) => `
             <div class="im-sim-row">
-              <span><b>${esc(m.item.name)}</b> <span class="sim-meta">${esc(m.item.code || 'ITM-###')} â€¢ ${esc(m.item.category || 'no category')}</span></span>
+              <span><b>${esc(m.item.name)}</b> <span class="sim-meta">${esc(m.item.code || 'ITM-###')} - ${esc(m.item.category || 'no category')}</span></span>
               <button class="btn primary sm" data-use-idx="${m.item.id}">Use Existing Item</button>
             </div>`).join('')}
           <div class="im-sim-row"><span>None of these match? Create a new record.</span><button class="btn sm" data-new-any="1">Create New Item</button></div>` : ''}
@@ -3912,17 +3912,17 @@ async function openSCIUploadModal(file, expectedCode) {
           <div class="field"><label>Form Type *</label><select id="suType">${SCI_FORM_META.map((m) => `<option value="${m.code}"${m.code === expectedCode ? ' selected' : ''}>${esc(m.code)} - ${esc(m.title)}</option>`).join('')}</select></div>
           <div class="field"><label>Centre ${isCentre ? '' : '*'}</label>${isCentre
             ? `<input type="text" value="${esc(me.centreName || '')}" readonly>`
-            : '<select id="suCentre"><option value="">Select centreâ€¦</option></select>'}</div>
+            : '<select id="suCentre"><option value="">Select centre...</option></select>'}</div>
           <div class="field"><label>Sewadar Name *</label><input id="suSewadar" type="text" maxlength="120" autocomplete="off" placeholder="Name of sewadar"></div>
           <div class="field"><label>Badge No. * (12 letters/numbers)</label><input id="suBadge" type="text" maxlength="12" autocomplete="off" placeholder="e.g. AB12CD34EF56"></div>
-          <div class="field" id="suDestField" style="display:none"><label>Transfer To Centre *</label><select id="suDest"><option value="">Select destinationâ€¦</option></select></div>
+          <div class="field" id="suDestField" style="display:none"><label>Transfer To Centre *</label><select id="suDest"><option value="">Select destination...</option></select></div>
           <div class="field" id="suAmtField" style="display:none"><label>Sale Amount</label><input id="suAmount" type="number" min="0" step="0.01" placeholder="0.00"></div>
           <div class="field"><label>Approval No.</label><input id="suApproval" type="text" maxlength="60" autocomplete="off" placeholder="If any"></div>
           <div class="field"><label>Remarks</label><input id="suRemarks" type="text" maxlength="400" autocomplete="off" placeholder="Optional"></div>
         </div>
         <div class="field full" style="margin-top:14px">
           <label>Items from the form (edit name, quantity or unit as needed)</label>
-          <div id="suItems" class="sci-items"><div class="hint" style="padding:14px">Reading the .docx fileâ€¦</div></div>
+          <div id="suItems" class="sci-items"><div class="hint" style="padding:14px">Reading the .docx file...</div></div>
           <button class="btn sm" id="suAddRow" type="button">+ Add Row</button>
         </div>
         <datalist id="suItemNames"></datalist>
@@ -3976,7 +3976,7 @@ async function openSCIUploadModal(file, expectedCode) {
       </div>
       <input class="sci-item-qty" type="number" min="1" step="1" value="${item.qty || ''}" placeholder="Qty">
       <input class="sci-item-unit" type="text" value="${esc(item.unit || '')}" placeholder="Unit">
-      <button class="btn sm su-del" type="button" title="Remove row">Ã - </button>
+      <button class="btn sm su-del" type="button" title="Remove row">x</button>
     </div>`;
   }
 
@@ -4047,9 +4047,9 @@ async function openSCIUploadModal(file, expectedCode) {
     stockLoading = false;
     const type = n('suType');
     const centreSel = n('suCentre');
-    if (centreSel) centreSel.innerHTML = '<option value="">Select centreâ€¦</option>' + centres.map((c) => `<option value="${c.id}">${esc(c.name)}${c.type && c.type !== 'CENTRE' ? ' (' + esc(c.type) + ')' : ''}</option>`).join('');
+    if (centreSel) centreSel.innerHTML = '<option value="">Select centre...</option>' + centres.map((c) => `<option value="${c.id}">${esc(c.name)}${c.type && c.type !== 'CENTRE' ? ' (' + esc(c.type) + ')' : ''}</option>`).join('');
     const destSel = n('suDest');
-    if (destSel) destSel.innerHTML = '<option value="">Select destinationâ€¦</option>' + centres.map((c) => `<option value="${c.id}">${esc(c.name)}</option>`).join('');
+    if (destSel) destSel.innerHTML = '<option value="">Select destination...</option>' + centres.map((c) => `<option value="${c.id}">${esc(c.name)}</option>`).join('');
     refreshDatalist();
   });
 
