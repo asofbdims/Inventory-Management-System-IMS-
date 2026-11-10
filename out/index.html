@@ -722,6 +722,30 @@ function isViewer() {
   return !!u && (u.role === 'viewer' || u.type === 'ASO VIEWER');
 }
 
+function isCentreLogin(user) {
+  const u = user || getUser();
+  return !!u && u.role === 'centre' && u.centreId != null;
+}
+
+function centreScopeRows(rows, user) {
+  if (!isCentreLogin(user) || isAdmin() || isViewer()) return rows || [];
+  const rootId = String(user.centreId);
+  const byParent = {};
+  (rows || []).forEach((row) => {
+    const key = row.parentId == null ? '' : String(row.parentId);
+    (byParent[key] = byParent[key] || []).push(row);
+  });
+  const allowed = new Set();
+  const visit = (id) => {
+    const key = String(id);
+    if (allowed.has(key)) return;
+    allowed.add(key);
+    (byParent[key] || []).forEach((child) => visit(child.id));
+  };
+  visit(rootId);
+  return (rows || []).filter((row) => allowed.has(String(row.id)));
+}
+
 async function fetchCenters() {
   const { data, error } = await sb.from('centres').select('id, name, type, parentId').order('name', { ascending: true });
   if (error) throw new Error(error.message);
@@ -3039,7 +3063,7 @@ function renderMastersPage(user, focus) {
         <div class="reg-toolbar">
           <div class="rt-row">
             <span class="ma-badge item">Centre Master</span>
-            <div class="rt-right"><span class="rt-count" id="maCentreCount"></span><button class="btn primary sm" id="maAddCentre" title="Add a new centre / sub centre">+ Add Centre</button></div>
+            <div class="rt-right"><span class="rt-count" id="maCentreCount"></span><button class="btn primary sm" id="maAddCentre" title="Add a sub centre or point">${isCentreLogin(user) ? '+ Add Sub Centre / Point' : '+ Add Centre'}</button></div>
           </div>
           <div class="rt-row">
             <input id="maCentreSearch" type="text" placeholder="Search centres..." autocomplete="off">
@@ -3099,6 +3123,7 @@ function renderMastersPage(user, focus) {
   panelDoc.style.display = view === 'doc' ? '' : 'none';
 
   const q = (id) => document.getElementById(id);
+  const centreLogin = isCentreLogin(user);
 
   /* ----- Shared masters table helpers (Phase 4) ----- */
   function buildHead(headId, cols, state, onSort) {
@@ -3148,7 +3173,9 @@ function renderMastersPage(user, focus) {
     { key: 'type', label: 'Type', sortable: true },
     { key: 'parent', label: 'Parent Centre', sortable: true }
   ];
-   CENTRE_COLS.push({ key: 'actions', label: '', sortable: false, cls: 'col-sticky' });
+  CENTRE_COLS.push({ key: 'actions', label: '', sortable: false, cls: 'col-sticky' });
+
+  const canManageCentreRow = (row) => isAdmin() || isViewer() || (centreLogin && String(row.id) !== String(user.centreId));
 
   function renderCentreHead() {
     buildHead('maCentreHead', CENTRE_COLS, centreSort, () => { renderCentreHead(); renderCentreRows(); });
@@ -3165,25 +3192,38 @@ function renderMastersPage(user, focus) {
       return;
     }
     centreList.innerHTML = list.map((c) => {
-      const par = parentName(c.parentId);
-      return `<tr>
-        <td><span class="item-name">${esc(c.name)}</span></td>
-        <td><span class="ma-status ${(c.type || 'CENTRE') === 'CENTRE' ? 'on' : 'sub'}">${esc(c.type || 'CENTRE')}</span></td>
-        <td>${par ? esc(par) : '<span style="color:var(--muted)">-</span>'}</td>
-         <td class="col-sticky"><div class="doc-row-actions"><button class="btn sm" data-cact="edit" data-id="${c.id}" title="Rename or move this centre">Edit</button><button class="btn red sm" data-cact="del" data-id="${c.id}" title="Delete this centre">&times;</button></div></td>
-      </tr>`;
+       const par = parentName(c.parentId);
+       const actions = canManageCentreRow(c)
+         ? '<button class="btn sm" data-cact="edit" data-id="' + c.id + '" title="Rename or move this centre">Edit</button><button class="btn red sm" data-cact="del" data-id="' + c.id + '" title="Delete this centre">&times;</button>'
+         : '<span style="color:var(--muted)">-</span>';
+       return `<tr>
+         <td><span class="item-name">${esc(c.name)}</span></td>
+         <td><span class="ma-status ${(c.type || 'CENTRE') === 'CENTRE' ? 'on' : 'sub'}">${esc(c.type || 'CENTRE')}</span></td>
+         <td>${par ? esc(par) : '<span style="color:var(--muted)">-</span>'}</td>
+          <td class="col-sticky"><div class="doc-row-actions">${actions}</div></td>
+       </tr>`;
     }).join('');
   }
 
   function loadCentres() {
-    return fetchCenters().then((rows) => { centreRows = rows; renderCentreHead(); renderCentreRows(); });
+    return fetchCenters().then((rows) => { centreRows = centreScopeRows(rows, user); renderCentreHead(); renderCentreRows(); });
   }
 
   function openCentreModal(existing) {
     const overlay = document.createElement('div');
     overlay.className = 'modal-overlay';
     const isEdit = !!existing;
+    if (centreLogin && isEdit && String(existing.id) === String(user.centreId)) {
+      toast('Your centre is the scope root and cannot be edited here', true);
+      return;
+    }
     const typeVal = isEdit ? (existing.type || 'CENTRE') : 'CENTRE';
+    const typeOptions = centreLogin
+      ? `<option value="SUB CENTRE"${typeVal === 'SUB CENTRE' ? ' selected' : ''}>SUB CENTRE</option><option value="POINT"${typeVal === 'POINT' ? ' selected' : ''}>POINT</option>`
+      : `<option value="CENTRE"${typeVal === 'CENTRE' ? ' selected' : ''}>CENTRE</option><option value="SUB CENTRE"${typeVal === 'SUB CENTRE' ? ' selected' : ''}>SUB CENTRE</option><option value="POINT"${typeVal === 'POINT' ? ' selected' : ''}>POINT</option>`;
+    const parentRows = centreLogin
+      ? centreRows.filter((c) => !isEdit || String(c.id) !== String(existing.id))
+      : centreRows.filter((c) => (c.type || 'CENTRE') === 'CENTRE' && (!isEdit || String(c.id) !== String(existing.id)));
     overlay.innerHTML = `
       <div class="modal" style="width:min(460px,94vw);max-width:none">
         <div class="modal-head">
@@ -3197,10 +3237,9 @@ function renderMastersPage(user, focus) {
           <div class="modal-grid" style="margin-top:12px">
             <div class="field full"><label>Name *</label><input id="cmName" maxlength="120" placeholder="e.g. GURGAON" autocomplete="off" value="${isEdit ? esc(existing.name) : ''}"></div>
             <div class="field"><label>Type</label><select id="cmType">
-              <option value="CENTRE"${typeVal === 'CENTRE' ? ' selected' : ''}>CENTRE</option>
-              <option value="SUB CENTRE"${typeVal === 'SUB CENTRE' ? ' selected' : ''}>SUB CENTRE</option>
+              ${typeOptions}
             </select></div>
-            <div class="field" id="cmParentField"><label>Parent Centre</label><select id="cmParent"><option value="">(none)</option>${centreRows.filter((c) => (c.type || 'CENTRE') === 'CENTRE' && (!isEdit || String(c.id) !== String(existing.id))).map((c) => `<option value="${c.id}"${isEdit && String(existing.parentId) === String(c.id) ? ' selected' : ''}>${esc(c.name)}</option>`).join('')}</select></div>
+            <div class="field" id="cmParentField"><label>Parent Centre</label><select id="cmParent"><option value="">(none)</option>${parentRows.map((c) => `<option value="${c.id}"${isEdit && String(existing.parentId) === String(c.id) ? ' selected' : ''}>${esc(c.name)}</option>`).join('')}</select></div>
           </div>
           <div class="m-actions">
             <button class="btn" id="cmCancel">Cancel</button>
@@ -3227,8 +3266,9 @@ function renderMastersPage(user, focus) {
       const name = n('cmName').value.trim();
       if (!name) return toast('Centre name is required', true);
       const type = n('cmType').value;
-      const parentId = type === 'CENTRE' ? null : (n('cmParent').value || null);
-      if (type === 'SUB CENTRE' && !parentId) return toast('Choose the parent centre for this sub centre', true);
+       const parentId = type === 'CENTRE' ? null : (n('cmParent').value || null);
+       if (type !== 'CENTRE' && !parentId) return toast('Choose a parent centre', true);
+       if (centreLogin && (type === 'CENTRE' || !centreRows.some((c) => String(c.id) === String(parentId)))) return toast('Centre logins can manage only sub centres and points in their own hierarchy', true);
       const clash = centreRows.find((c) => String(c.id) !== String(isEdit ? existing.id : '') && (c.name || '').trim().toLowerCase() === name.toLowerCase() && (c.type || 'CENTRE') === type);
       if (clash) return toast('A ' + type.toLowerCase() + ' named "' + clash.name + '" already exists', true);
       const btn = n('cmSave');
@@ -3250,9 +3290,10 @@ function renderMastersPage(user, focus) {
     centreList.addEventListener('click', (e) => {
       const btn = e.target.closest('[data-cact]');
       if (!btn) return;
-      const c = centreRows.find((x) => String(x.id) === String(btn.dataset.id));
-      if (!c) return;
-      if (btn.dataset.cact === 'edit') openCentreModal(c);
+       const c = centreRows.find((x) => String(x.id) === String(btn.dataset.id));
+       if (!c) return;
+       if (!canManageCentreRow(c)) return toast('Your centre is the scope root and cannot be changed here', true);
+       if (btn.dataset.cact === 'edit') openCentreModal(c);
       else if (btn.dataset.cact === 'del') {
         const kids = centreRows.filter((x) => String(x.parentId) === String(c.id));
         if (kids.length) return toast('Cannot delete "' + c.name + '" - ' + kids.length + ' sub centre(s) are under it. Move or delete them first.', true);
