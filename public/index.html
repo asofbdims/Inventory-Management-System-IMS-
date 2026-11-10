@@ -2543,6 +2543,7 @@ function renderStockPage(user, routeParams) {
       <div class="reg-toolbar">
         <div class="rt-row">
           <select id="regCentre" title="Filter the register to one centre"></select>
+          <button class="btn sm" id="btnSearchStock" title="Find which centres hold an item and how much">Search Stock</button>
           <button class="btn sm" id="btnClear" title="Clear all filters">Clear All</button>
           <div class="rt-right">
             <span class="rt-size"><span>Show</span><select id="pgSize" title="Rows per page"><option value="5">5</option><option value="10" selected>10</option><option value="25">25</option><option value="50">50</option><option value="100">100</option></select><span>Entries</span></span>
@@ -2631,6 +2632,8 @@ function renderStockPage(user, routeParams) {
       page = 0;
       render();
     }));
+    const btnSearchStock = content.querySelector('#btnSearchStock');
+    if (btnSearchStock) btnSearchStock.addEventListener('click', () => openStockSearch());
     const btnClear = content.querySelector('#btnClear');
     if (btnClear) btnClear.addEventListener('click', () => { skipCurrentCentre = null; page = 0; render(); });
     const pgSize = content.querySelector('#pgSize');
@@ -2674,6 +2677,88 @@ function renderStockPage(user, routeParams) {
       page = 0;
       render();
     });
+  }
+
+  function openStockSearch() {
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    overlay.innerHTML = `
+      <div class="modal" style="width:min(680px,94vw);max-width:none">
+        <div class="modal-head">
+          <div>
+            <h3>Search Stock</h3>
+            <p class="hint">Type an item name to see which centres hold it and how much. Click a result to filter the register to that centre.</p>
+          </div>
+          <button class="btn sm" id="ssClose">Close</button>
+        </div>
+        <div class="modal-body">
+          <input id="ssInput" class="cs-input" type="text" placeholder="Search by item name..." autocomplete="off" style="font-size:14px">
+          <div id="ssResults" style="margin-top:12px;max-height:52vh;overflow:auto"></div>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+    setTimeout(() => { try { overlay.querySelector('#ssInput').focus(); } catch (e) {} }, 80);
+
+    const input = overlay.querySelector('#ssInput');
+    const listEl = overlay.querySelector('#ssResults');
+    const close = () => { document.body.removeChild(overlay); document.removeEventListener('keydown', escClose, true); };
+    const escClose = (e) => { if (e.key === 'Escape') close(); };
+    document.addEventListener('keydown', escClose, true);
+    overlay.querySelector('#ssClose').addEventListener('click', close);
+    overlay.addEventListener('mousedown', (e) => { if (e.target === overlay) close(); });
+
+    const byId = {};
+    state.centers.forEach((c) => { byId[String(c.id)] = c; });
+
+    function renderResults() {
+      const q = input.value.trim().toLowerCase();
+      if (q.length < 2) {
+        listEl.innerHTML = '<div class="card hint" style="padding:16px;text-align:center">Type at least 2 letters of an item name to search.</div>';
+        return;
+      }
+      const ids = scopeIds();
+      const rows = [];
+      ids.forEach((cid) => {
+        const s = state.stock[cid] || {};
+        Object.keys(s).forEach((item) => {
+          const qty = Number(s[item]) || 0;
+          if (qty > 0 && String(item).toLowerCase().indexOf(q) !== -1) rows.push({ cid, item, qty, unit: unitOf(cid, item) });
+        });
+      });
+      rows.sort((a, b) => String(a.item).localeCompare(String(b.item)) || String((byId[a.cid] || {}).name || '').localeCompare(String((byId[b.cid] || {}).name || '')) || b.qty - a.qty);
+      if (!rows.length) {
+        listEl.innerHTML = '<div class="card hint" style="padding:16px;text-align:center">No centre in your scope currently holds a matching item.</div>';
+        return;
+      }
+      const total = rows.reduce((a, r) => a + r.qty, 0);
+      const shown = rows.slice(0, 200);
+      listEl.innerHTML = `
+        <div class="hint" style="margin:0 0 10px">${rows.length} matching stock row${rows.length === 1 ? '' : 's'} - total ${total} unit${total === 1 ? '' : 's'}</div>
+        ${shown.map((r) => {
+          const c = byId[r.cid];
+          const nm = c ? c.name : r.cid;
+          return `<div class="item-row" data-cid="${esc(r.cid)}" title="Filter the register to ${esc(nm)}" style="cursor:pointer">
+            <div style="flex:1;min-width:0">
+              <b>${esc(r.item)}</b>
+              <div class="meta">${c ? typeBadge(c.type) + ' ' : ''}${esc(nm)}</div>
+            </div>
+            <div style="font-weight:700;white-space:nowrap">${r.qty}${r.unit ? ' ' + esc(r.unit) : ''}</div>
+          </div>`;
+        }).join('')}
+        ${rows.length > 200 ? '<div class="hint" style="padding:4px 2px">Showing first 200 matches - refine the search to narrow results.</div>' : ''}`;
+    }
+
+    input.addEventListener('input', renderResults);
+    listEl.addEventListener('click', (e) => {
+      const row = e.target.closest('.item-row');
+      if (!row || !row.dataset.cid) return;
+      skipCurrentCentre = row.dataset.cid;
+      page = 0;
+      close();
+      render();
+    });
+    renderResults();
   }
 
   content.addEventListener('scroll', () => {
