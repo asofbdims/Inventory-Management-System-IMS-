@@ -2660,7 +2660,7 @@ function renderStockPage(user, routeParams) {
     const list = scopeCenters().slice();
     const byParent = {};
     list.forEach((c) => { (byParent[c.parentId || ''] = byParent[c.parentId || ''] || []).push(c); });
-    byParent[''].sort((a,b)=>a.name.localeCompare(b.name));
+    (byParent[''] || []).sort((a,b)=>a.name.localeCompare(b.name));
     Object.values(byParent).forEach(arr => arr.sort((a,b)=>a.name.localeCompare(b.name)));
     const opts = ['<option value="">All Centres (all entries)</option>'];
     const walk = (node, depth=0) => {
