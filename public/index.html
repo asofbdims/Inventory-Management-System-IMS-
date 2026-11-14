@@ -3806,8 +3806,8 @@ function renderMastersPage(user, focus, itemClass) {
 
   const docSort = { key: null, dir: 'asc' };
   const DOC_COLS = [
-    { key: 'name', label: 'Document', sortable: true },
     { key: 'docNo', label: 'Doc No.', sortable: true },
+    { key: 'name', label: 'Document', sortable: true },
     { key: 'pdf', label: 'PDF', sortable: false }
   ];
   DOC_COLS.push({ key: 'actions', label: '', sortable: false, cls: 'col-sticky' });
@@ -3826,8 +3826,8 @@ function renderMastersPage(user, focus, itemClass) {
     const list = sortList(docs, docSort, (d, k) => d[k]);
     docList.innerHTML = list.map((d) => `
       <tr>
-        <td><span class="item-name">${esc(d.name)}</span><div class="doc-desc">${esc(d.description || '')}</div></td>
         <td><span class="item-code">${esc(d.docNo || 'DOC-###')}</span></td>
+        <td><span class="item-name">${esc(d.name)}</span><div class="doc-desc">${esc(d.description || '')}</div></td>
         <td>
           <div class="doc-row-actions">
             <label class="btn sm" style="margin:0">${d.document ? 'Replace' : 'Upload PDF'}
