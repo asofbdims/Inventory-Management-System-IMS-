@@ -3841,7 +3841,26 @@ function renderMastersPage(user, focus, itemClass) {
   }
 
   function loadDocs() {
-    return fetchDocuments().then((rows) => { docs = rows; renderDocHead(); renderDocRows(); });
+    return fetchDocuments().then(async (rows) => {
+      docs = rows;
+      const missing = docs.filter((d) => !String(d.docNo || '').trim()).sort((a, b) => Number(a.id) - Number(b.id));
+      if (missing.length) {
+        let max = 0;
+        docs.forEach((d) => {
+          const m = /^DOC-(\d+)$/.exec(String(d.docNo || '').trim());
+          if (m) max = Math.max(max, Number(m[1]));
+        });
+        for (let i = 0; i < missing.length; i++) {
+          const next = 'DOC-' + String(max + i + 1).padStart(3, '0');
+          try {
+            await updateDocumentRecord(missing[i].id, { docNo: next });
+            missing[i].docNo = next;
+          } catch (e) { break; }
+        }
+      }
+      renderDocHead();
+      renderDocRows();
+    });
   }
 
   const maAddDoc = q('maAddDoc');
