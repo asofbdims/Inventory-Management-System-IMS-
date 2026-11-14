@@ -3096,7 +3096,7 @@ function renderMastersPage(user, focus) {
     <div class="logo-banner">
       <div>
         <h2>Inventory Masters</h2>
-        <p>Centre master (create Satsang places), item catalogue with auto-generated codes, and document master for GRN &amp; SCI form PDFs.</p>
+        <p>Centre master (create Satsang places), item catalogue with auto-generated codes, and document master for GRN &amp; SCI form Word files.</p>
       </div>
       ${view === 'item' ? `<div class="sr-actions">
         <div class="dropdown">
@@ -3151,7 +3151,7 @@ function renderMastersPage(user, focus) {
         <div class="reg-toolbar">
           <div class="rt-row">
             <span class="ma-badge doc">Document Master</span>
-            <span class="ma-sub">Upload SCI form PDFs &amp; document numbers are generated automatically</span>
+            <span class="ma-sub">Upload Word (.docx) files &amp; document numbers are generated automatically</span>
             <div class="rt-right"><span class="rt-count" id="maDocCount"></span><button class="btn primary sm" id="maAddDoc" title="Add a new document type">+ Add Document</button></div>
           </div>
         </div>
@@ -3691,7 +3691,7 @@ function renderMastersPage(user, focus) {
   const DOC_COLS = [
     { key: 'docNo', label: 'Doc No.', sortable: true },
     { key: 'name', label: 'Document', sortable: true },
-    { key: 'pdf', label: 'PDF', sortable: false }
+    { key: 'pdf', label: 'Word', sortable: false }
   ];
   DOC_COLS.push({ key: 'actions', label: '', sortable: false, cls: 'col-sticky' });
 
@@ -3717,10 +3717,10 @@ function renderMastersPage(user, focus) {
         <td><span class="item-name">${esc(d.name)}</span><div class="doc-desc">${esc(d.description || '')}</div></td>
         <td>
           <div class="doc-row-actions">
-            <label class="btn sm" style="margin:0">${d.document ? 'Replace' : 'Upload PDF'}
-              <input type="file" accept="application/pdf,.pdf" data-act="upload" data-id="${d.id}" style="display:none">
+            <label class="btn sm" style="margin:0">${d.document ? 'Replace' : 'Upload Word'}
+              <input type="file" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" data-act="upload" data-id="${d.id}" style="display:none">
             </label>
-            ${d.document ? `<a class="file-link" href="${storageFileUrl(d.document)}" target="_blank" title="${esc(d.documentName || '')}">View PDF</a>` : ''}
+            ${d.document ? `<a class="file-link" href="${storageFileUrl(d.document)}" target="_blank" title="${esc(d.documentName || '')}">Open Word</a>` : ''}
           </div>
         </td>
          <td class="col-sticky"><button class="btn red sm" data-act="deldoc" data-id="${d.id}">Delete</button></td>
@@ -3801,16 +3801,16 @@ function renderMastersPage(user, focus) {
     if (!input.matches('[data-act="upload"]')) return;
     const file = input.files[0];
     if (!file) return;
-    if (file.size > 200 * 1024 || !/\.pdf$/i.test(file.name)) return toast('Choose a PDF no larger than 200 KB', true);
+    if (file.size > 2 * 1024 * 1024 || !/\.docx$/i.test(file.name)) return toast('Choose a .docx Word file no larger than 2 MB', true);
     const id = input.dataset.id;
     const path = 'docs/' + Date.now() + '_' + file.name;
-    sb.storage.from('uploads').upload(path, file, { contentType: 'application/pdf', cacheControl: '3600', upsert: false })
+    sb.storage.from('uploads').upload(path, file, { contentType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', cacheControl: '3600', upsert: false })
       .then(async ({ error: upErr }) => {
-        if (upErr) throw new Error('PDF upload failed: ' + upErr.message);
+        if (upErr) throw new Error('Word upload failed: ' + upErr.message);
         const old = (docs.find((x) => String(x.id) === id) || {}).document;
         await updateDocumentRecord(id, { document: path, documentName: file.name });
         if (old) { try { await sb.storage.from('uploads').remove([old]); } catch (e) {} }
-        toast('PDF uploaded');
+        toast('Word file uploaded');
         loadDocs();
       })
       .catch((err) => toast(err.message, true));
