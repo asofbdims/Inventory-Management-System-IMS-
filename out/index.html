@@ -3755,15 +3755,15 @@ function renderMastersPage(user, focus) {
     const overlay = document.createElement('div');
     overlay.className = 'modal-overlay';
     overlay.innerHTML = `
-      <div class="modal" style="width:min(440px,94vw);max-width:none">
+      <div class="modal" style="width:min(640px,94vw);max-width:none;padding:28px 28px 24px">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
-          <h3 style="margin:0">Add Document</h3>
-          <button class="btn sm" id="adClose">Close</button>
+          <h3 style="margin:0;font-size:21px">Add Document</h3>
+          <button class="btn sm" id="adClose" style="padding:8px 14px;font-size:14px">Close</button>
         </div>
-        <div style="margin-top:14px;display:grid;gap:10px">
-          <input id="adName" placeholder="Document name (e.g. SCI55)" maxlength="100" autocomplete="off">
-          <input id="adDesc" placeholder="Description (optional)" maxlength="255" autocomplete="off">
-          <button class="btn primary" id="adSave">+ Create Document</button>
+        <div style="margin-top:18px;display:grid;gap:14px">
+          <input id="adName" placeholder="Document name (e.g. SCI55)" maxlength="100" autocomplete="off" style="padding:13px 15px;font-size:15.5px">
+          <input id="adDesc" placeholder="Description (optional)" maxlength="255" autocomplete="off" style="padding:13px 15px;font-size:15.5px">
+          <button class="btn primary" id="adSave" style="padding:14px;font-size:15.5px">+ Create Document</button>
         </div>
       </div>`;
     document.body.appendChild(overlay);
