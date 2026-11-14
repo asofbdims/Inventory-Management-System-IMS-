@@ -1532,6 +1532,8 @@ function renderShell(user, activePage) {
     'masters-centre.html': { label: 'Centre Master', icon: 'master', href: '#/masters/centre' },
     'masters-item.html': { label: 'Item Master', icon: 'master', href: '#/masters/item' },
 'masters-item-capital.html': { label: 'Capital Item', icon: 'master', href: '#/masters/item/capital' },
+    'masters-item-capital-av.html': { label: 'AV Item', icon: 'master', href: '#/masters/item/capital/av' },
+    'masters-item-capital-general.html': { label: 'General Item (₹2,000+)', icon: 'master', href: '#/masters/item/capital/general' },
     'masters-item-general.html': { label: 'General Item', icon: 'master', href: '#/masters/item/general' },
     'masters-doc.html': { label: 'Document Master', icon: 'master', href: '#/masters/doc' },
     'sci45.html': { label: 'SCI45', icon: 'forms', href: '#/forms/SCI45' },
@@ -1550,6 +1552,8 @@ const GROUPS = [
       'masters-centre.html',
       { key: 'masters-item', label: 'Item Master', icon: 'master', children: [
         'masters-item-capital.html',
+        'masters-item-capital-av.html',
+        'masters-item-capital-general.html',
         'masters-item-general.html'
       ]},
       'masters-doc.html'
