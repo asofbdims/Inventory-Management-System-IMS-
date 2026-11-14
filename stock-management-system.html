@@ -844,6 +844,12 @@ function formatItemCode(n) {
   return 'ITM-' + (num < 1000 ? String(num).padStart(3, '0') : String(num));
 }
 
+function itemClassificationForScope(scope) {
+  if (scope === 'capital/av') return { classification: 'capital', is_sensitive: true };
+  if (scope === 'capital' || scope === 'capital/general') return { classification: 'capital', is_sensitive: false };
+  return { classification: 'general', is_sensitive: false };
+}
+
 async function nextItemCode() {
   let max = 0;
   const pageSize = 1000;
@@ -868,7 +874,7 @@ async function fetchItemsFull() {
   const pageSize = 1000;
   for (let offset = 0; ; offset += pageSize) {
     const { data, error } = await sb.from('items')
-      .select('id, name, code, standardName, description, category, subcategory, brand, createdAt')
+      .select('id, name, code, standardName, description, category, subcategory, brand, classification, is_sensitive, createdAt')
       .order('name', { ascending: true })
       .range(offset, offset + pageSize - 1);
     if (error) throw new Error(error.message);
@@ -882,6 +888,8 @@ async function fetchItemsFull() {
 function itemFieldsPayload(fields) {
   const payload = { name: (fields.name || '').trim() };
   if (fields.code !== undefined) payload.code = String(fields.code || '').trim();
+  if (fields.classification !== undefined) payload.classification = String(fields.classification || '').trim();
+  if (fields.is_sensitive !== undefined) payload.is_sensitive = !!fields.is_sensitive;
   ['standardName', 'description', 'category', 'subcategory', 'brand'].forEach((k) => {
     if (fields[k] !== undefined) payload[k] = String(fields[k] || '').trim();
   });
@@ -891,6 +899,7 @@ function itemFieldsPayload(fields) {
 async function createStockItem(fields) {
   const payload = itemFieldsPayload(fields);
   if (!payload.code) payload.code = await nextItemCode();
+  if (!payload.classification) payload.classification = 'general';
   const { error } = await sb.from('items').insert(payload);
   if (error) throw new Error(error.message);
 }
@@ -1724,7 +1733,16 @@ async function route() {
   else if (path === '/masters' || path === '/masters/item' || path === '/masters/centre' || path === '/masters/doc' || path.startsWith('/masters/item/')) {
     if (path === '/masters/doc') { renderShell(user, 'masters-doc.html'); renderMastersPage(user, 'doc'); }
     else if (path === '/masters/centre') { renderShell(user, 'masters-centre.html'); renderMastersPage(user, 'centre'); }
-    else { renderShell(user, 'masters-item.html'); renderMastersPage(user, 'item'); }
+    else {
+      const scope = path.replace(/^\/masters\/?/, '').replace(/^item\/?/, '').replace(/\/+$/, '');
+      const pageKey = scope === 'capital' ? 'masters-item-capital.html'
+        : scope === 'capital/av' ? 'masters-item-capital-av.html'
+        : scope === 'capital/general' ? 'masters-item-capital-general.html'
+        : scope === 'general' ? 'masters-item-general.html'
+        : 'masters-item.html';
+      renderShell(user, pageKey);
+      renderMastersPage(user, scope ? 'item/' + scope : 'item');
+    }
   }
   else if (path === '/forms' || /^\/forms\/SCI\d+$/.test(path)) {
     const code = /^\/forms\/(SCI\d+)$/.test(path) ? path.match(/^\/forms\/(SCI\d+)$/)[1] : 'SCI45';
@@ -3415,6 +3433,17 @@ function renderMastersPage(user, focus) {
   let itemLetter = '';
   let itemPage = 0;
   let itemPageSize = 50;
+  const itemScope = (focus || '').startsWith('item/') ? focus.slice(5) : '';
+
+  function itemInScope(r) {
+    if (!itemScope) return true;
+    const cls = String(r.classification || '').toLowerCase();
+    if (itemScope === 'capital') return cls === 'capital';
+    if (itemScope === 'capital/av') return cls === 'capital' && !!r.is_sensitive;
+    if (itemScope === 'capital/general') return cls === 'capital' && !r.is_sensitive;
+    if (itemScope === 'general') return cls === 'general';
+    return true;
+  }
 
   function populateLetterOptions() {
     const sel = q('maLetter');
@@ -3428,6 +3457,7 @@ function renderMastersPage(user, focus) {
   function filteredItems() {
     const term = itemSearch.trim().toLowerCase();
     return items.filter((r) => {
+      if (!itemInScope(r)) return false;
       if (itemLetter) {
         const first = (r.name || '').trim().charAt(0).toUpperCase();
         if (first !== itemLetter) return false;
@@ -3556,7 +3586,7 @@ function renderMastersPage(user, focus) {
     renderItemRows();
   });
   if (maPgSize) maPgSize.addEventListener('change', () => { itemPageSize = Number(maPgSize.value) || 50; itemPage = 0; renderItemRows(); });
-  if (maAddItem) maAddItem.addEventListener('click', () => openItemModal('create'));
+  if (maAddItem) maAddItem.addEventListener('click', () => openItemModal('create', null, itemScope));
   const maExpMenu = q('maExpMenu');
   if (maExport && maExpMenu) {
     maExport.addEventListener('click', (e) => {
@@ -3578,7 +3608,7 @@ function renderMastersPage(user, focus) {
     const act = btn.dataset.act;
     if (act === 'edit') {
       const r = items.find((x) => String(x.id) === id);
-      if (r) openItemModal('edit', r);
+      if (r) openItemModal('edit', r, itemScope);
     } else if (act === 'del') {
       const r = items.find((x) => String(x.id) === id);
       if (!r || !confirm('Delete "' + r.name + '" and remove its stock rows from every centre?')) return;
@@ -3590,7 +3620,7 @@ function renderMastersPage(user, focus) {
 
   function itemVal(r, k) { return r && r[k] != null ? r[k] : ''; }
 
-  function openItemModal(mode, record) {
+  function openItemModal(mode, record, scope) {
     const isEdit = mode === 'edit';
     const overlay = document.createElement('div');
     overlay.className = 'modal-overlay';
@@ -3713,7 +3743,7 @@ function renderMastersPage(user, focus) {
       const clash = items.find((x) => String(x.id) !== String(isEdit ? record.id : '') && normItemName(x.name) === normItemName(f.name));
       if (clash) return toast('Item name already exists as "' + clash.name + '"', true);
       saveBtn.disabled = true;
-      const op = isEdit ? updateItemRecord(record.id, f, record.name) : createStockItem(f);
+      const op = isEdit ? updateItemRecord(record.id, f, record.name) : createStockItem(Object.assign({}, f, itemClassificationForScope(scope)));
       op.then(() => { toast(isEdit ? 'Item updated' : 'Item added with auto-generated code'); close(); loadItems(); })
         .catch((err) => { saveBtn.disabled = false; toast(err.message, true); });
     }
