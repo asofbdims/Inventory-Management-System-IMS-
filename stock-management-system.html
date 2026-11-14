@@ -1551,9 +1551,10 @@ const GROUPS = [
 { label: 'Masters', items: [{ key: 'master', label: 'Masters', icon: 'master', children: [
       'masters-centre.html',
       { key: 'masters-item', label: 'Item Master', icon: 'master', children: [
-        'masters-item-capital.html',
-        'masters-item-capital-av.html',
-        'masters-item-capital-general.html',
+        { key: 'masters-item-capital', label: 'Capital Item', icon: 'master', children: [
+          'masters-item-capital-av.html',
+          'masters-item-capital-general.html'
+        ]},
         'masters-item-general.html'
       ]},
       'masters-doc.html'

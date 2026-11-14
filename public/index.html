@@ -1548,18 +1548,19 @@ function renderShell(user, activePage) {
 const GROUPS = [
     { label: 'Overview', items: ['dashboard.html'] },
     { label: 'Inventory', items: ['stock.html'] },
-    { label: 'Masters', items: [{ key: 'master', label: 'Masters', icon: 'master', children: [
+{ label: 'Masters', items: [{ key: 'master', label: 'Masters', icon: 'master', children: [
       'masters-centre.html',
       { key: 'masters-item', label: 'Item Master', icon: 'master', children: [
-        'masters-item-capital.html',
-        'masters-item-capital-av.html',
-        'masters-item-capital-general.html',
+        { key: 'masters-item-capital', label: 'Capital Item', icon: 'master', children: [
+          'masters-item-capital-av.html',
+          'masters-item-capital-general.html'
+        ]},
         'masters-item-general.html'
       ]},
       'masters-doc.html'
     ]}] },
     { label: 'Reports', items: ['log.html'] },
-    { label: 'Admin', items: isSuperAdmin() ? ['reset.html'] : [] }
+    { label: 'Admin', items: ['reset.html'] }
   ];
   const navLeafHtml = (key) => `<a class="nav-sub-item${key === activePage ? ' active' : ''}" href="${PAGES[key].href}">${NAV_ICONS[PAGES[key].icon]}<span>${PAGES[key].label}</span></a>`;
   const navHasActive = (item) => {

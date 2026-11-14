@@ -1531,6 +1531,10 @@ function renderShell(user, activePage) {
     'stock.html': { label: 'Stock Register', icon: 'stock', href: '#/stock' },
     'masters-centre.html': { label: 'Centre Master', icon: 'master', href: '#/masters/centre' },
     'masters-item.html': { label: 'Item Master', icon: 'master', href: '#/masters/item' },
+'masters-item-capital.html': { label: 'Capital Item', icon: 'master', href: '#/masters/item/capital' },
+    'masters-item-capital-av.html': { label: 'AV Item', icon: 'master', href: '#/masters/item/capital/av' },
+    'masters-item-capital-general.html': { label: 'General Item', icon: 'master', href: '#/masters/item/capital/general' },
+    'masters-item-general.html': { label: 'General Item', icon: 'master', href: '#/masters/item/general' },
     'masters-doc.html': { label: 'Document Master', icon: 'master', href: '#/masters/doc' },
     'sci45.html': { label: 'SCI45', icon: 'forms', href: '#/forms/SCI45' },
     'sci53.html': { label: 'SCI53', icon: 'forms', href: '#/forms/SCI53' },
@@ -1541,19 +1545,32 @@ function renderShell(user, activePage) {
     'log.html': { label: 'Forms Log', icon: 'log', href: '#/log' },
     'reset.html': { label: 'Pass Reset', icon: 'reset', href: '#/reset' }
   };
-  const GROUPS = [
+const GROUPS = [
     { label: 'Overview', items: ['dashboard.html'] },
     { label: 'Inventory', items: ['stock.html'] },
-    { label: 'Masters', items: [{ key: 'master', label: 'Masters', icon: 'master', children: [
+{ label: 'Masters', items: [{ key: 'master', label: 'Masters', icon: 'master', children: [
       'masters-centre.html',
-      'masters-item.html',
+      { key: 'masters-item', label: 'Item Master', icon: 'master', children: [
+        { key: 'masters-item-capital', label: 'Capital Item', icon: 'master', children: [
+          'masters-item-capital-av.html',
+          'masters-item-capital-general.html'
+        ]},
+        'masters-item-general.html'
+      ]},
       'masters-doc.html'
     ]}] },
     { label: 'Reports', items: ['log.html'] },
-    { label: 'Admin', items: isSuperAdmin() ? ['reset.html'] : [] }
+    { label: 'Admin', items: ['reset.html'] }
   ];
   const navLeafHtml = (key) => `<a class="nav-sub-item${key === activePage ? ' active' : ''}" href="${PAGES[key].href}">${NAV_ICONS[PAGES[key].icon]}<span>${PAGES[key].label}</span></a>`;
-  const navHasActive = (item) => typeof item === 'string' ? item === activePage : item.children.some(navHasActive);
+  const navHasActive = (item) => {
+  if (typeof item === 'string') {
+    // Show Item Master children as active when on Item Master page
+    if (item.startsWith('masters-item')) return true;
+    return item === activePage;
+  }
+  return item.children.some(navHasActive);
+};
   const navDropHtml = (item, depth) => {
     const open = item.children.some(navHasActive);
     const dropCls = depth === 0 ? 'nav-drop' : depth === 1 ? 'nav-drop2' : 'nav-drop3';
