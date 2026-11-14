@@ -1558,7 +1558,14 @@ const GROUPS = [
     { label: 'Admin', items: isSuperAdmin() ? ['reset.html'] : [] }
   ];
   const navLeafHtml = (key) => `<a class="nav-sub-item${key === activePage ? ' active' : ''}" href="${PAGES[key].href}">${NAV_ICONS[PAGES[key].icon]}<span>${PAGES[key].label}</span></a>`;
-  const navHasActive = (item) => typeof item === 'string' ? item === activePage : item.children.some(navHasActive);
+  const navHasActive = (item) => {
+  if (typeof item === 'string') {
+    // Show Item Master children as active when on Item Master page
+    if (item.startsWith('masters-item')) return true;
+    return item === activePage;
+  }
+  return item.children.some(navHasActive);
+};
   const navDropHtml = (item, depth) => {
     const open = item.children.some(navHasActive);
     const dropCls = depth === 0 ? 'nav-drop' : depth === 1 ? 'nav-drop2' : 'nav-drop3';
