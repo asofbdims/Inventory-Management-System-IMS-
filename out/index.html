@@ -834,8 +834,33 @@ async function deleteStockRegisterEntry(id) {
 }
 
 async function addStockItem(name) {
-  const { error } = await sb.from('items').insert({ name: name.trim() });
+  const code = await nextItemCode();
+  const { error } = await sb.from('items').insert({ name: name.trim(), code });
   if (error) throw new Error(error.message);
+}
+
+function formatItemCode(n) {
+  const num = Number(n) || 0;
+  return 'ITM-' + (num < 1000 ? String(num).padStart(3, '0') : String(num));
+}
+
+async function nextItemCode() {
+  let max = 0;
+  const pageSize = 1000;
+  for (let offset = 0; ; offset += pageSize) {
+    const { data, error } = await sb.from('items')
+      .select('code')
+      .order('id', { ascending: true })
+      .range(offset, offset + pageSize - 1);
+    if (error) throw new Error(error.message);
+    if (!data || !data.length) break;
+    data.forEach((r) => {
+      const m = /^ITM-(\d+)$/i.exec(String(r.code || '').trim());
+      if (m) max = Math.max(max, Number(m[1]));
+    });
+    if (data.length < pageSize) break;
+  }
+  return formatItemCode(max + 1);
 }
 
 async function fetchItemsFull() {
@@ -856,6 +881,7 @@ async function fetchItemsFull() {
 
 function itemFieldsPayload(fields) {
   const payload = { name: (fields.name || '').trim() };
+  if (fields.code !== undefined) payload.code = String(fields.code || '').trim();
   ['standardName', 'description', 'category', 'subcategory', 'brand'].forEach((k) => {
     if (fields[k] !== undefined) payload[k] = String(fields[k] || '').trim();
   });
@@ -863,7 +889,9 @@ function itemFieldsPayload(fields) {
 }
 
 async function createStockItem(fields) {
-  const { error } = await sb.from('items').insert(itemFieldsPayload(fields));
+  const payload = itemFieldsPayload(fields);
+  if (!payload.code) payload.code = await nextItemCode();
+  const { error } = await sb.from('items').insert(payload);
   if (error) throw new Error(error.message);
 }
 
@@ -3432,7 +3460,7 @@ function renderMastersPage(user, focus) {
     }));
   }
 
-  const itemSort = { key: null, dir: 'asc' };
+  const itemSort = { key: 'code', dir: 'asc' };
   const ITEM_COLS = [
     { key: 'code', label: 'Code', sortable: true },
     { key: 'name', label: 'Item Name', sortable: true },
@@ -3461,7 +3489,11 @@ function renderMastersPage(user, focus) {
   }
 
   function renderItemRows() {
-    const list = sortList(filteredItems(), itemSort, (r, k) => r[k]);
+    const list = sortList(filteredItems(), itemSort, (r, k) => {
+      if (k !== 'code') return r[k];
+      const m = /^ITM-(\d+)$/i.exec(String(r.code || '').trim());
+      return m ? String(Number(m[1])).padStart(12, '0') : String(r.code || '');
+    });
     const totalPages = Math.max(1, Math.ceil(list.length / itemPageSize));
     if (itemPage >= totalPages) itemPage = totalPages - 1;
     const cnt = q('maCount');
