@@ -1560,6 +1560,8 @@ function renderShell(user, activePage) {
     'stock.html': { label: 'Stock Register', icon: 'stock', href: '#/stock' },
     'masters-centre.html': { label: 'Centre Master', icon: 'master', href: '#/masters/centre' },
     'masters-item.html': { label: 'Item Master', icon: 'master', href: '#/masters/item' },
+    'masters-item-capital.html': { label: 'Capital Item', icon: 'master', href: '#/masters/item/capital' },
+    'masters-item-general.html': { label: 'General Item', icon: 'master', href: '#/masters/item/general' },
     'masters-doc.html': { label: 'Document Master', icon: 'master', href: '#/masters/doc' },
     'sci45.html': { label: 'SCI45', icon: 'forms', href: '#/forms/SCI45' },
     'sci53.html': { label: 'SCI53', icon: 'forms', href: '#/forms/SCI53' },
@@ -1575,7 +1577,7 @@ function renderShell(user, activePage) {
     { label: 'Inventory', items: ['stock.html'] },
     { label: 'Masters', items: [{ key: 'master', label: 'Masters', icon: 'master', children: [
       'masters-centre.html',
-      'masters-item.html',
+      { key: 'masters-item', label: 'Item Master', icon: 'master', children: ['masters-item-capital.html', 'masters-item-general.html'] },
       'masters-doc.html'
     ]}] },
     { label: 'Forms', items: [{ key: 'sci', label: 'SCI Forms', icon: 'forms', children: ['sci45.html', 'sci53.html', 'sci76.html', 'sci43.html', 'sci15.html', 'sci34.html'] }] },
@@ -1720,10 +1722,11 @@ async function route() {
 
   if (path === '/dashboard') { renderShell(user, 'dashboard.html'); renderDashboardPage(user, params); }
   else if (path === '/stock') { renderShell(user, 'stock.html'); renderStockPage(user, params); }
-  else if ((path === '/masters/item' || path === '/masters' || path === '/masters/doc' || path === '/masters/centre')) {
+  else if (path === '/masters/item/capital' || path === '/masters/item/general' || path === '/masters/item' || path === '/masters' || path === '/masters/doc' || path === '/masters/centre') {
     if (path === '/masters/doc') { renderShell(user, 'masters-doc.html'); renderMastersPage(user, 'doc'); }
     else if (path === '/masters/centre') { renderShell(user, 'masters-centre.html'); renderMastersPage(user, 'centre'); }
-    else { renderShell(user, 'masters-item.html'); renderMastersPage(user, 'item'); }
+    else if (path === '/masters/item/capital') { renderShell(user, 'masters-item-capital.html'); renderMastersPage(user, 'item', 'capital'); }
+    else { renderShell(user, 'masters-item-general.html'); renderMastersPage(user, 'item', 'general'); }
   }
   else if (path === '/forms' || /^\/forms\/SCI\d+$/.test(path)) {
     const code = /^\/forms\/(SCI\d+)$/.test(path) ? path.match(/^\/forms\/(SCI\d+)$/)[1] : 'SCI45';
@@ -3131,10 +3134,11 @@ function renderStockPage(user, routeParams) {
 /* =========================================================================
    Masters page - item master (auto codes) + document master (GRN, uploads)
    ========================================================================= */
-function renderMastersPage(user, focus) {
+function renderMastersPage(user, focus, itemClass) {
   document.body.classList.remove('login-page');
   const content = document.getElementById('content');
   const view = focus === 'doc' ? 'doc' : focus === 'centre' ? 'centre' : 'item';
+  const itemClassFilter = itemClass === 'capital' || itemClass === 'general' ? itemClass : '';
   content.innerHTML = `
     <div class="logo-banner">
       <div>
@@ -3427,6 +3431,10 @@ function renderMastersPage(user, focus) {
   function filteredItems() {
     const term = itemSearch.trim().toLowerCase();
     return items.filter((r) => {
+      if (itemClassFilter) {
+        const cls = String(r.classification || '').toLowerCase();
+        if (itemClassFilter === 'capital' ? cls !== 'capital' : cls === 'capital') return false;
+      }
       if (itemLetter) {
         const first = (r.name || '').trim().charAt(0).toUpperCase();
         if (first !== itemLetter) return false;
@@ -3612,6 +3620,7 @@ function renderMastersPage(user, focus) {
 
   function openItemModal(mode, record) {
     const isEdit = mode === 'edit';
+    const defaultClass = (record && record.classification) || itemClassFilter || 'general';
     const overlay = document.createElement('div');
     overlay.className = 'modal-overlay';
     overlay.innerHTML = `
@@ -3642,7 +3651,7 @@ function renderMastersPage(user, focus) {
             <div class="modal-grid">
               <div class="field"><label for="imCategory">Category</label><input id="imCategory" type="text" maxlength="100" placeholder="e.g. Electronics" value="${esc(itemVal(record, 'category'))}"></div>
               <div class="field"><label for="imSub">Subcategory</label><input id="imSub" type="text" maxlength="100" placeholder="e.g. Audio" value="${esc(itemVal(record, 'subcategory'))}"></div>
-              <div class="field"><label for="imClassification">Classification</label><select id="imClassification"><option value="unclassified"${(itemVal(record,'classification')||'unclassified')==='unclassified'?' selected':''}>Unclassified</option><option value="capital"${(itemVal(record,'classification')||'')==='capital'?' selected':''}>Capital</option><option value="general"${(itemVal(record,'classification')||'')==='general'?' selected':''}>General</option></select></div>
+              <div class="field"><label for="imClassification">Classification</label><select id="imClassification"><option value="unclassified"${defaultClass==='unclassified'?' selected':''}>Unclassified</option><option value="capital"${defaultClass==='capital'?' selected':''}>Capital</option><option value="general"${defaultClass==='general'?' selected':''}>General</option></select></div>
               <div class="field"><label for="imSensitive">Sensitive / AV</label><select id="imSensitive"><option value="false"${!itemVal(record,'is_sensitive')?' selected':''}>No</option><option value="true"${itemVal(record,'is_sensitive')?' selected':''}>Yes</option></select></div>
               <div class="field"><label for="imAssetTag">Asset Tag</label><input id="imAssetTag" type="text" maxlength="80" placeholder="e.g. AST-001" value="${esc(itemVal(record,'asset_tag'))}"></div>
               <div class="field"><label for="imSerial">Serial No.</label><input id="imSerial" type="text" maxlength="120" placeholder="Serial number" value="${esc(itemVal(record,'serial_no'))}"></div>
