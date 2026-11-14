@@ -838,6 +838,21 @@ async function addStockItem(name) {
   if (error) throw new Error(error.message);
 }
 
+const ITEM_CAPITAL_THRESHOLD = 2000;
+function itemValueNumber(v) {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : 0;
+}
+function itemClassification(value) {
+  return itemValueNumber(value) >= ITEM_CAPITAL_THRESHOLD ? 'capital' : 'general';
+}
+function isAVItem(r) {
+  if (!r) return false;
+  if (r.is_sensitive) return true;
+  const text = [r.name, r.standardName, r.category, r.subcategory, r.description, r.model].join(' ').toLowerCase();
+  return /(^|[^a-z])(av|audio|visual|video|a\/v|projector|amplifier|speaker|microphone|mixer|camera|television|tv|monitor|display)([^a-z]|$)/.test(text);
+}
+
 async function fetchItemsFull() {
   const all = [];
   const pageSize = 1000;
@@ -865,7 +880,7 @@ async function createStockItem(fields) {
     brand: (fields.brand || '').trim(),
     model: (fields.model || '').trim(),
     status: fields.status || 'Active',
-    classification: (fields.classification || 'unclassified').trim(),
+    classification: itemClassification(fields.acquisition_value),
     is_sensitive: !!fields.is_sensitive,
     asset_tag: (fields.asset_tag || '').trim(),
     serial_no: (fields.serial_no || '').trim(),
@@ -893,7 +908,7 @@ async function updateItemRecord(id, fields, previousName) {
     brand: (fields.brand || '').trim(),
     model: (fields.model || '').trim(),
     status: fields.status || 'Active',
-    classification: (fields.classification || 'unclassified').trim(),
+    classification: itemClassification(fields.acquisition_value),
     is_sensitive: !!fields.is_sensitive,
     asset_tag: (fields.asset_tag || '').trim(),
     serial_no: (fields.serial_no || '').trim(),
@@ -3431,11 +3446,11 @@ function renderMastersPage(user, focus, itemClass) {
     const term = itemSearch.trim().toLowerCase();
     return items.filter((r) => {
       if (itemClassFilter) {
-        const cls = String(r.classification || '').toLowerCase();
-        const isCapital = cls === 'capital';
+        const isCapital = itemValueNumber(r.acquisition_value) >= ITEM_CAPITAL_THRESHOLD;
+        const isAV = isAVItem(r);
         if (itemClassFilter === 'capital' && !isCapital) return false;
-        if (itemClassFilter === 'capital-av' && (!isCapital || !r.is_sensitive)) return false;
-        if (itemClassFilter === 'capital-general' && (!isCapital || r.is_sensitive)) return false;
+        if (itemClassFilter === 'capital-av' && (!isCapital || !isAV)) return false;
+        if (itemClassFilter === 'capital-general' && (!isCapital || isAV)) return false;
         if (itemClassFilter === 'general' && isCapital) return false;
       }
       if (itemLetter) {
@@ -3443,7 +3458,7 @@ function renderMastersPage(user, focus, itemClass) {
         if (first !== itemLetter) return false;
       }
       if (!term) return true;
-      return (r.name || '').toLowerCase().includes(term) || (r.standardName || '').toLowerCase().includes(term) || (r.code || '').toLowerCase().includes(term) || (r.description || '').toLowerCase().includes(term) || (r.category || '').toLowerCase().includes(term) || (r.subcategory || '').toLowerCase().includes(term) || (String(r.classification || '')).toLowerCase().includes(term) || (String(r.asset_tag || '')).toLowerCase().includes(term) || (String(r.serial_no || '')).toLowerCase().includes(term) || (String(r.location || '')).toLowerCase().includes(term) || (String(r.custodian || '')).toLowerCase().includes(term) || (String(r.condition || '')).toLowerCase().includes(term) || (r.unit || '').toLowerCase().includes(term) || (r.brand || '').toLowerCase().includes(term) || (r.model || '').toLowerCase().includes(term);
+      return (r.name || '').toLowerCase().includes(term) || (r.standardName || '').toLowerCase().includes(term) || (r.code || '').toLowerCase().includes(term) || (r.description || '').toLowerCase().includes(term) || (r.category || '').toLowerCase().includes(term) || (r.subcategory || '').toLowerCase().includes(term) || itemClassification(r.acquisition_value).includes(term) || (String(r.asset_tag || '')).toLowerCase().includes(term) || (String(r.serial_no || '')).toLowerCase().includes(term) || (String(r.location || '')).toLowerCase().includes(term) || (String(r.custodian || '')).toLowerCase().includes(term) || (String(r.condition || '')).toLowerCase().includes(term) || (r.unit || '').toLowerCase().includes(term) || (r.brand || '').toLowerCase().includes(term) || (r.model || '').toLowerCase().includes(term);
     });
   }
 
@@ -3506,7 +3521,7 @@ function renderMastersPage(user, focus, itemClass) {
         <td><span class="item-sub">${esc(r.description || '-')}</span></td>
         <td><span class="item-plain">${esc(r.category || '-')}</span></td>
         <td><span class="item-plain">${esc(r.subcategory || '-')}</span></td>
-        <td><span class="item-plain">${esc(r.classification || 'unclassified')}</span></td>
+        <td><span class="item-plain">${esc(itemClassification(r.acquisition_value))}</span></td>
         <td><span class="item-plain">${r.is_sensitive ? 'Yes' : 'No'}</span></td>
         <td><span class="item-plain">${esc(r.asset_tag || '-')}</span></td>
         <td><span class="item-plain">${esc(r.serial_no || '-')}</span></td>
@@ -3524,7 +3539,7 @@ function renderMastersPage(user, focus, itemClass) {
   }
 
   function renderItemRows() {
-    const list = sortList(filteredItems(), itemSort, (r, k) => r[k]);
+    const list = sortList(filteredItems(), itemSort, (r, k) => k === 'classification' ? itemClassification(r.acquisition_value) : r[k]);
     const totalPages = Math.max(1, Math.ceil(list.length / itemPageSize));
     if (itemPage >= totalPages) itemPage = totalPages - 1;
     const cnt = q('maCount');
@@ -3550,7 +3565,7 @@ function renderMastersPage(user, focus, itemClass) {
         const s = v == null ? '' : String(v);
         return /[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
       };
-      const rows = filteredItems().map((r) => [r.code || 'ITM-###', r.name || '', r.standardName || '', r.description || '', r.category || '', r.subcategory || '', r.classification || 'unclassified', r.is_sensitive ? 'Yes' : 'No', r.asset_tag || '', r.serial_no || '', r.location || '', r.custodian || '', r.acquisition_value != null && r.acquisition_value !== '' ? String(r.acquisition_value) : '', r.condition || '', r.unit || '', r.brand || '', r.model || '', r.status || 'Active', r.createdAt ? String(r.createdAt).slice(0, 10) : '']);
+      const rows = filteredItems().map((r) => [r.code || 'ITM-###', r.name || '', r.standardName || '', r.description || '', r.category || '', r.subcategory || '', itemClassification(r.acquisition_value), r.is_sensitive ? 'Yes' : 'No', r.asset_tag || '', r.serial_no || '', r.location || '', r.custodian || '', r.acquisition_value != null && r.acquisition_value !== '' ? String(r.acquisition_value) : '', r.condition || '', r.unit || '', r.brand || '', r.model || '', r.status || 'Active', r.createdAt ? String(r.createdAt).slice(0, 10) : '']);
       const header = ['Code', 'Item Name', 'Standard Name', 'Description', 'Category', 'Subcategory', 'Classification', 'Sensitive', 'Asset Tag', 'Serial No.', 'Location', 'Custodian', 'Acq. Value', 'Condition', 'Unit', 'Brand', 'Model', 'Status', 'Created Date'];
       const csv = [header.map(csvCell).join(',')].concat(rows.map((r) => r.map(csvCell).join(','))).join('\r\n');
       const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
@@ -3623,7 +3638,7 @@ function renderMastersPage(user, focus, itemClass) {
 
   function openItemModal(mode, record) {
     const isEdit = mode === 'edit';
-    const defaultClass = (record && record.classification) || (itemClassFilter === 'general' ? 'general' : itemClassFilter ? 'capital' : 'general');
+    const defaultClass = record ? itemClassification(record.acquisition_value) : (itemClassFilter === 'general' ? 'general' : 'capital');
     const defaultSensitive = record ? !!record.is_sensitive : itemClassFilter === 'capital-av';
     const overlay = document.createElement('div');
     overlay.className = 'modal-overlay';
@@ -3634,7 +3649,7 @@ function renderMastersPage(user, focus, itemClass) {
             <h3>${isEdit ? 'Edit Item' : 'Add New Item'}</h3>
             <p class="hint">${isEdit
               ? `Editing <b>${esc(record.name)}</b>${record.code ? ' (' + esc(record.code) + ')' : ''} - created ${record.createdAt ? esc(String(record.createdAt).slice(0, 10)) : 'unknown'}`
-              : 'New catalogue entry gets an auto-generated item code (ITM-###).'}</p>
+              : 'New catalogue entry gets an auto-generated item code (ITM-###). Items \u20B92,000 and above are Capital; below are General.'}</p>
           </div>
           <button class="btn sm" id="imClose">Close</button>
         </div>
@@ -3655,7 +3670,7 @@ function renderMastersPage(user, focus, itemClass) {
             <div class="modal-grid">
               <div class="field"><label for="imCategory">Category</label><input id="imCategory" type="text" maxlength="100" placeholder="e.g. Electronics" value="${esc(itemVal(record, 'category'))}"></div>
               <div class="field"><label for="imSub">Subcategory</label><input id="imSub" type="text" maxlength="100" placeholder="e.g. Audio" value="${esc(itemVal(record, 'subcategory'))}"></div>
-              <div class="field"><label for="imClassification">Classification</label><select id="imClassification"><option value="unclassified"${defaultClass==='unclassified'?' selected':''}>Unclassified</option><option value="capital"${defaultClass==='capital'?' selected':''}>Capital</option><option value="general"${defaultClass==='general'?' selected':''}>General</option></select></div>
+              <div class="field"><label for="imClassification">Classification (auto)</label><select id="imClassification" disabled><option value="capital"${defaultClass==='capital'?' selected':''}>Capital</option><option value="general"${defaultClass==='general'?' selected':''}>General</option></select></div>
               <div class="field"><label for="imSensitive">Sensitive / AV</label><select id="imSensitive"><option value="false"${!defaultSensitive?' selected':''}>No</option><option value="true"${defaultSensitive?' selected':''}>Yes</option></select></div>
               <div class="field"><label for="imAssetTag">Asset Tag</label><input id="imAssetTag" type="text" maxlength="80" placeholder="e.g. AST-001" value="${esc(itemVal(record,'asset_tag'))}"></div>
               <div class="field"><label for="imSerial">Serial No.</label><input id="imSerial" type="text" maxlength="120" placeholder="Serial number" value="${esc(itemVal(record,'serial_no'))}"></div>
@@ -3683,6 +3698,12 @@ function renderMastersPage(user, focus, itemClass) {
       </div>`;
     document.body.appendChild(overlay);
 
+    const acqEl = overlay.querySelector('#imAcqValue');
+    const clsEl = overlay.querySelector('#imClassification');
+    const syncClass = () => { if (clsEl) clsEl.value = itemClassification(acqEl ? acqEl.value : ''); };
+    if (acqEl) acqEl.addEventListener('input', syncClass);
+    syncClass();
+
     const close = () => overlay.remove();
     const nameEl = overlay.querySelector('#imName');
     const saveBtn = overlay.querySelector('#imSave');
@@ -3700,7 +3721,7 @@ function renderMastersPage(user, focus, itemClass) {
       brand: field('#imBrand').value.trim(),
       model: field('#imModel').value.trim(),
       status: field('#imStatus').value || 'Active',
-      classification: (field('#imClassification') && field('#imClassification').value) || 'unclassified',
+      classification: itemClassification(field('#imAcqValue') ? field('#imAcqValue').value : ''),
       is_sensitive: (field('#imSensitive') && field('#imSensitive').value === 'true') || false,
       asset_tag: (field('#imAssetTag') && field('#imAssetTag').value.trim()) || '',
       serial_no: (field('#imSerial') && field('#imSerial').value.trim()) || '',
@@ -3804,7 +3825,7 @@ function renderMastersPage(user, focus, itemClass) {
   const docList = document.getElementById('maDocList');
   let docs = [];
 
-  const docSort = { key: null, dir: 'asc' };
+  const docSort = { key: 'docNo', dir: 'asc' };
   const DOC_COLS = [
     { key: 'docNo', label: 'Doc No.', sortable: true },
     { key: 'name', label: 'Document', sortable: true },
@@ -3823,7 +3844,11 @@ function renderMastersPage(user, focus, itemClass) {
        docList.innerHTML = `<tr><td colspan="4" class="empty">No documents yet.</td></tr>`;
       return;
     }
-    const list = sortList(docs, docSort, (d, k) => d[k]);
+    const list = sortList(docs, docSort, (d, k) => {
+      if (k !== 'docNo') return d[k];
+      const m = /^DOC-(\d+)$/i.exec(String(d.docNo || '').trim());
+      return m ? String(Number(m[1])).padStart(12, '0') : String(d.docNo || '');
+    });
     docList.innerHTML = list.map((d) => `
       <tr>
         <td><span class="item-code">${esc(d.docNo || 'DOC-###')}</span></td>

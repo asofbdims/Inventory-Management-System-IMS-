@@ -3825,7 +3825,7 @@ function renderMastersPage(user, focus, itemClass) {
   const docList = document.getElementById('maDocList');
   let docs = [];
 
-  const docSort = { key: null, dir: 'asc' };
+  const docSort = { key: 'docNo', dir: 'asc' };
   const DOC_COLS = [
     { key: 'docNo', label: 'Doc No.', sortable: true },
     { key: 'name', label: 'Document', sortable: true },
@@ -3844,7 +3844,11 @@ function renderMastersPage(user, focus, itemClass) {
        docList.innerHTML = `<tr><td colspan="4" class="empty">No documents yet.</td></tr>`;
       return;
     }
-    const list = sortList(docs, docSort, (d, k) => d[k]);
+    const list = sortList(docs, docSort, (d, k) => {
+      if (k !== 'docNo') return d[k];
+      const m = /^DOC-(\d+)$/i.exec(String(d.docNo || '').trim());
+      return m ? String(Number(m[1])).padStart(12, '0') : String(d.docNo || '');
+    });
     docList.innerHTML = list.map((d) => `
       <tr>
         <td><span class="item-code">${esc(d.docNo || 'DOC-###')}</span></td>
