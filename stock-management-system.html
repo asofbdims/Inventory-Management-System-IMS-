@@ -3197,7 +3197,7 @@ function renderMastersPage(user, focus, itemClass) {
         <div class="reg-toolbar">
           <div class="rt-row">
             <span class="ma-badge doc">Document Master</span>
-            <span class="ma-sub">Upload SCI form PDFs &amp; manage GRN number</span>
+            <span class="ma-sub">Upload SCI form PDFs &amp; document numbers are generated automatically</span>
             <div class="rt-right"><span class="rt-count" id="maDocCount"></span><button class="btn primary sm" id="maAddDoc" title="Add a new document type">+ Add Document</button></div>
           </div>
         </div>
@@ -3827,7 +3827,7 @@ function renderMastersPage(user, focus, itemClass) {
     docList.innerHTML = list.map((d) => `
       <tr>
         <td><span class="item-name">${esc(d.name)}</span><div class="doc-desc">${esc(d.description || '')}</div></td>
-        <td style="min-width:200px"><input class="doc-no" id="docNo_${d.id}" value="${esc(d.docNo || '')}" placeholder="Enter number"><button class="btn sm" data-act="savedoc" data-id="${d.id}" style="margin-left:6px">Save</button></td>
+        <td><span class="item-code">${esc(d.docNo || 'DOC-###')}</span></td>
         <td>
           <div class="doc-row-actions">
             <label class="btn sm" style="margin:0">${d.document ? 'Replace' : 'Upload PDF'}
@@ -3870,24 +3870,19 @@ function renderMastersPage(user, focus, itemClass) {
       const btn = overlay.querySelector('#adSave');
       btn.disabled = true;
       createDocumentRecord({ name, description: overlay.querySelector('#adDesc').value })
-        .then(() => { toast('Document added'); close(); loadDocs(); })
+        .then(() => { toast('Document added with auto-generated number'); close(); loadDocs(); })
         .catch((err) => { btn.disabled = false; toast(err.message, true); });
     });
     setTimeout(() => { const el = overlay.querySelector('#adName'); if (el) el.focus(); }, 60);
   });
 
   docList.addEventListener('click', (e) => {
-    const btn = e.target.closest('[data-act="savedoc"], [data-act="deldoc"]');
+    const btn = e.target.closest('[data-act="deldoc"]');
     if (!btn) return;
     const id = btn.dataset.id;
     const d = docs.find((x) => String(x.id) === id);
     if (!d) return;
-    if (btn.dataset.act === 'savedoc') {
-      const val = document.getElementById('docNo_' + id).value.trim();
-      updateDocumentRecord(id, { docNo: val })
-        .then(() => { toast('Document number saved'); d.docNo = val; })
-        .catch((err) => toast(err.message, true));
-    } else if (btn.dataset.act === 'deldoc') {
+    if (btn.dataset.act === 'deldoc') {
       if (!confirm('Delete document "' + d.name + '"?')) return;
       deleteDocumentRecord(id)
         .then(() => { toast('Document deleted'); loadDocs(); })

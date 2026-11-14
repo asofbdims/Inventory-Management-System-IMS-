@@ -97,6 +97,12 @@ input,select,button{font-family:inherit;font-size:13.5px}
 .nav-drop2 .nav-sub-item{padding-left:42px;font-size:13px}
 .nav-sub2{max-height:0;overflow:hidden;transition:max-height .2s ease}
 .nav-sub2.open{max-height:280px}
+.nav-drop3{margin-bottom:1px}
+.nav-drop3 .nav-parent{padding:8px 12px 8px 34px;font-size:13px}
+.nav-drop3 .nav-parent .nav-chev{width:13px;height:13px}
+.nav-drop3 .nav-sub-item{padding-left:54px;font-size:12.5px}
+.nav-sub3{max-height:0;overflow:hidden;transition:max-height .2s ease}
+.nav-sub3.open{max-height:220px}
 .shell.mini .sidebar{width:78px}
 .shell.mini .side-brand{padding:18px 6px 14px}
 .shell.mini .side-brand > b,.shell.mini .side-brand small,.shell.mini .brand-period{display:none}
@@ -105,7 +111,7 @@ input,select,button{font-family:inherit;font-size:13.5px}
 .shell.mini .nav-item span,.shell.mini .nav-parent span,.shell.mini .nav-sub-item span{display:none}
 .shell.mini .nav-parent .nav-chev{display:none}
 .shell.mini .nav-sub-item{justify-content:center;padding:10px 0}
-.shell.mini .nav-sub.open,.shell.mini .nav-sub2.open{max-height:320px}
+.shell.mini .nav-sub.open,.shell.mini .nav-sub2.open,.shell.mini .nav-sub3.open{max-height:480px}
 .shell .main{flex:1;min-width:0;display:flex;flex-direction:column}
 .tophead{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 24px;border-bottom:1px solid var(--sidebar-border);background:var(--surface);position:sticky;top:0;z-index:40}
 .page-title{font-family:'Inter',system-ui,sans-serif;font-size:22px;font-weight:600;margin:0;color:#111}
@@ -137,7 +143,7 @@ main#content{max-width:1340px;margin:0 auto;padding:24px 24px 60px;width:100%}
   .nav-item span,.nav-parent span,.nav-sub-item span{display:none}
   .nav-parent{padding:10px 0;justify-content:center}
   .nav-parent .nav-chev{display:none}
-  .nav-sub.open{max-height:200px}
+  .nav-sub.open,.nav-sub2.open,.nav-sub3.open{max-height:480px}
   .nav-sub-item{justify-content:center;padding:8px 0}
 }
 .item-row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;margin-bottom:8px;background:var(--surface)}
@@ -1560,6 +1566,10 @@ function renderShell(user, activePage) {
     'stock.html': { label: 'Stock Register', icon: 'stock', href: '#/stock' },
     'masters-centre.html': { label: 'Centre Master', icon: 'master', href: '#/masters/centre' },
     'masters-item.html': { label: 'Item Master', icon: 'master', href: '#/masters/item' },
+    'masters-item-capital.html': { label: 'Capital Item', icon: 'master', href: '#/masters/item/capital' },
+    'masters-item-capital-av.html': { label: 'AV Item', icon: 'master', href: '#/masters/item/capital/av' },
+    'masters-item-capital-general.html': { label: 'General Item', icon: 'master', href: '#/masters/item/capital/general' },
+    'masters-item-general.html': { label: 'General Item', icon: 'master', href: '#/masters/item/general' },
     'masters-doc.html': { label: 'Document Master', icon: 'master', href: '#/masters/doc' },
     'sci45.html': { label: 'SCI45', icon: 'forms', href: '#/forms/SCI45' },
     'sci53.html': { label: 'SCI53', icon: 'forms', href: '#/forms/SCI53' },
@@ -1575,13 +1585,32 @@ function renderShell(user, activePage) {
     { label: 'Inventory', items: ['stock.html'] },
     { label: 'Masters', items: [{ key: 'master', label: 'Masters', icon: 'master', children: [
       'masters-centre.html',
-      'masters-item.html',
+      { key: 'masters-item', label: 'Item Master', icon: 'master', children: [
+        { key: 'masters-item-capital', label: 'Capital Item', icon: 'master', children: ['masters-item-capital-av.html', 'masters-item-capital-general.html'] },
+        'masters-item-general.html'
+      ] },
       'masters-doc.html'
     ]}] },
     { label: 'Forms', items: [{ key: 'sci', label: 'SCI Forms', icon: 'forms', children: ['sci45.html', 'sci53.html', 'sci76.html', 'sci43.html', 'sci15.html', 'sci34.html'] }] },
     { label: 'Reports', items: ['log.html'] },
     { label: 'Admin', items: isSuperAdmin() ? ['reset.html'] : [] }
   ];
+  const navLeafHtml = (key) => `<a class="nav-sub-item${key === activePage ? ' active' : ''}" href="${PAGES[key].href}">${NAV_ICONS[PAGES[key].icon]}<span>${PAGES[key].label}</span></a>`;
+  const navHasActive = (item) => typeof item === 'string' ? item === activePage : item.children.some(navHasActive);
+  const navDropHtml = (item, depth) => {
+    const open = item.children.some(navHasActive);
+    const dropCls = depth === 0 ? 'nav-drop' : depth === 1 ? 'nav-drop2' : 'nav-drop3';
+    const subCls = depth === 0 ? 'nav-sub' : depth === 1 ? 'nav-sub nav-sub2' : 'nav-sub nav-sub3';
+    return `<div class="${dropCls}">
+      <button class="nav-parent${open ? ' open active' : ''}" type="button" aria-expanded="${open}">
+        ${NAV_ICONS[item.icon]}<span>${item.label}</span>
+        <svg class="nav-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="${subCls}${open ? ' open' : ''}">
+        ${item.children.map((child) => typeof child === 'string' ? navLeafHtml(child) : navDropHtml(child, depth + 1)).join('')}
+      </div>
+    </div>`;
+  };
   app.innerHTML = `
     <div class="shell">
       <aside class="sidebar">
@@ -1598,39 +1627,9 @@ function renderShell(user, activePage) {
           ${GROUPS.filter((g) => g.items.length).map((g) => `
             <div class="nav-group">
               <div class="nav-label">${g.label}</div>
-              ${g.items.map((it) => {
-                if (typeof it === 'string') {
-                  return `<a class="nav-item${it === activePage ? ' active' : ''}" href="${PAGES[it].href}">${NAV_ICONS[PAGES[it].icon]}<span>${PAGES[it].label}</span></a>`;
-                }
-                const match = (key) => key === activePage;
-                const inChildren = (list) => list.some((c) => typeof c === 'string' ? match(c) : c.children.some(match));
-                const open = inChildren(it.children);
-                return `
-                <div class="nav-drop">
-                  <button class="nav-parent${open ? ' open active' : ''}" type="button" aria-expanded="${open}">
-                    ${NAV_ICONS[it.icon]}<span>${it.label}</span>
-                    <svg class="nav-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
-                  </button>
-                  <div class="nav-sub${open ? ' open' : ''}">
-                    ${it.children.map((child) => {
-                      if (typeof child === 'string') {
-                        return `<a class="nav-sub-item${child === activePage ? ' active' : ''}" href="${PAGES[child].href}">${NAV_ICONS[PAGES[child].icon]}<span>${PAGES[child].label}</span></a>`;
-                      }
-                      const open2 = child.children.some(match);
-                      return `
-                    <div class="nav-drop2">
-                      <button class="nav-parent${open2 ? ' open active' : ''}" type="button" aria-expanded="${open2}">
-                        ${NAV_ICONS[child.icon]}<span>${child.label}</span>
-                        <svg class="nav-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
-                      </button>
-                      <div class="nav-sub nav-sub2${open2 ? ' open' : ''}">
-                        ${child.children.map((cc) => `<a class="nav-sub-item${cc === activePage ? ' active' : ''}" href="${PAGES[cc].href}">${NAV_ICONS[PAGES[cc].icon]}<span>${PAGES[cc].label}</span></a>`).join('')}
-                      </div>
-                    </div>`;
-                    }).join('')}
-                  </div>
-                </div>`;
-              }).join('')}
+              ${g.items.map((it) => typeof it === 'string'
+                ? `<a class="nav-item${it === activePage ? ' active' : ''}" href="${PAGES[it].href}">${NAV_ICONS[PAGES[it].icon]}<span>${PAGES[it].label}</span></a>`
+                : navDropHtml(it, 0)).join('')}
             </div>`).join('')}
         </nav>
       </aside>
@@ -1699,7 +1698,7 @@ function parseHash() {
   return { path: path || '/dashboard', params: new URLSearchParams(qs || '') };
 }
 
-function route() {
+async function route() {
   const { path, params } = parseHash();
   const user = getUser();
 
@@ -1710,12 +1709,23 @@ function route() {
   }
   if (!getToken() || !user) { location.hash = '/login'; return; }
 
+  const { data: authData, error: authError } = await sb.auth.getSession();
+  if (authError || !authData || !authData.session) {
+    clearSession();
+    toast('Your sign-in expired - please log in again.', true);
+    location.hash = '/login';
+    return;
+  }
+
   if (path === '/dashboard') { renderShell(user, 'dashboard.html'); renderDashboardPage(user, params); }
   else if (path === '/stock') { renderShell(user, 'stock.html'); renderStockPage(user, params); }
-  else if ((path === '/masters/item' || path === '/masters' || path === '/masters/doc' || path === '/masters/centre')) {
+  else if (path === '/masters/item/capital/av' || path === '/masters/item/capital/general' || path === '/masters/item/capital' || path === '/masters/item/general' || path === '/masters/item' || path === '/masters' || path === '/masters/doc' || path === '/masters/centre') {
     if (path === '/masters/doc') { renderShell(user, 'masters-doc.html'); renderMastersPage(user, 'doc'); }
     else if (path === '/masters/centre') { renderShell(user, 'masters-centre.html'); renderMastersPage(user, 'centre'); }
-    else { renderShell(user, 'masters-item.html'); renderMastersPage(user, 'item'); }
+    else if (path === '/masters/item/capital/av') { renderShell(user, 'masters-item-capital-av.html'); renderMastersPage(user, 'item', 'capital-av'); }
+    else if (path === '/masters/item/capital/general') { renderShell(user, 'masters-item-capital-general.html'); renderMastersPage(user, 'item', 'capital-general'); }
+    else if (path === '/masters/item/capital') { renderShell(user, 'masters-item-capital.html'); renderMastersPage(user, 'item', 'capital'); }
+    else { renderShell(user, 'masters-item-general.html'); renderMastersPage(user, 'item', 'general'); }
   }
   else if (path === '/forms' || /^\/forms\/SCI\d+$/.test(path)) {
     const code = /^\/forms\/(SCI\d+)$/.test(path) ? path.match(/^\/forms\/(SCI\d+)$/)[1] : 'SCI45';
@@ -2660,7 +2670,7 @@ function renderStockPage(user, routeParams) {
     const list = scopeCenters().slice();
     const byParent = {};
     list.forEach((c) => { (byParent[c.parentId || ''] = byParent[c.parentId || ''] || []).push(c); });
-    byParent[''].sort((a,b)=>a.name.localeCompare(b.name));
+    (byParent[''] || []).sort((a,b)=>a.name.localeCompare(b.name));
     Object.values(byParent).forEach(arr => arr.sort((a,b)=>a.name.localeCompare(b.name)));
     const opts = ['<option value="">All Centres (all entries)</option>'];
     const walk = (node, depth=0) => {
@@ -3123,16 +3133,18 @@ function renderStockPage(user, routeParams) {
 /* =========================================================================
    Masters page - item master (auto codes) + document master (GRN, uploads)
    ========================================================================= */
-function renderMastersPage(user, focus) {
+function renderMastersPage(user, focus, itemClass) {
   document.body.classList.remove('login-page');
   const content = document.getElementById('content');
+  const view = focus === 'doc' ? 'doc' : focus === 'centre' ? 'centre' : 'item';
+  const itemClassFilter = ['capital', 'capital-av', 'capital-general', 'general'].includes(itemClass) ? itemClass : '';
   content.innerHTML = `
     <div class="logo-banner">
       <div>
         <h2>Inventory Masters</h2>
         <p>Centre master (create Satsang places), item catalogue with auto-generated codes, and document master for GRN &amp; SCI form PDFs.</p>
       </div>
-      <div class="sr-actions">
+      ${view === 'item' ? `<div class="sr-actions">
         <div class="dropdown">
           <button class="btn sm" id="maExport" title="Export or print the item catalogue">Export &#9662;</button>
           <div class="dropdown-menu" id="maExpMenu">
@@ -3141,7 +3153,7 @@ function renderMastersPage(user, focus) {
           </div>
         </div>
         <button class="btn primary" id="maAddItem" title="Add a new stock item">+ Add Item</button>
-      </div>
+      </div>` : ''}
     </div>
     <div class="masters-grid" id="maGrid">
       <div id="maPanel-centre">
@@ -3185,7 +3197,7 @@ function renderMastersPage(user, focus) {
         <div class="reg-toolbar">
           <div class="rt-row">
             <span class="ma-badge doc">Document Master</span>
-            <span class="ma-sub">Upload SCI form PDFs &amp; manage GRN number</span>
+            <span class="ma-sub">Upload SCI form PDFs &amp; document numbers are generated automatically</span>
             <div class="rt-right"><span class="rt-count" id="maDocCount"></span><button class="btn primary sm" id="maAddDoc" title="Add a new document type">+ Add Document</button></div>
           </div>
         </div>
@@ -3202,7 +3214,6 @@ function renderMastersPage(user, focus) {
   const panelCentre = document.getElementById('maPanel-centre');
   const panelItem = document.getElementById('maPanel-item');
   const panelDoc = document.getElementById('maPanel-doc');
-  const view = focus === 'doc' ? 'doc' : focus === 'centre' ? 'centre' : 'item';
   panelCentre.style.display = view === 'centre' ? '' : 'none';
   panelItem.style.display = view === 'item' ? '' : 'none';
   panelDoc.style.display = view === 'doc' ? '' : 'none';
@@ -3419,6 +3430,14 @@ function renderMastersPage(user, focus) {
   function filteredItems() {
     const term = itemSearch.trim().toLowerCase();
     return items.filter((r) => {
+      if (itemClassFilter) {
+        const cls = String(r.classification || '').toLowerCase();
+        const isCapital = cls === 'capital';
+        if (itemClassFilter === 'capital' && !isCapital) return false;
+        if (itemClassFilter === 'capital-av' && (!isCapital || !r.is_sensitive)) return false;
+        if (itemClassFilter === 'capital-general' && (!isCapital || r.is_sensitive)) return false;
+        if (itemClassFilter === 'general' && isCapital) return false;
+      }
       if (itemLetter) {
         const first = (r.name || '').trim().charAt(0).toUpperCase();
         if (first !== itemLetter) return false;
@@ -3604,6 +3623,8 @@ function renderMastersPage(user, focus) {
 
   function openItemModal(mode, record) {
     const isEdit = mode === 'edit';
+    const defaultClass = (record && record.classification) || (itemClassFilter === 'general' ? 'general' : itemClassFilter ? 'capital' : 'general');
+    const defaultSensitive = record ? !!record.is_sensitive : itemClassFilter === 'capital-av';
     const overlay = document.createElement('div');
     overlay.className = 'modal-overlay';
     overlay.innerHTML = `
@@ -3634,8 +3655,8 @@ function renderMastersPage(user, focus) {
             <div class="modal-grid">
               <div class="field"><label for="imCategory">Category</label><input id="imCategory" type="text" maxlength="100" placeholder="e.g. Electronics" value="${esc(itemVal(record, 'category'))}"></div>
               <div class="field"><label for="imSub">Subcategory</label><input id="imSub" type="text" maxlength="100" placeholder="e.g. Audio" value="${esc(itemVal(record, 'subcategory'))}"></div>
-              <div class="field"><label for="imClassification">Classification</label><select id="imClassification"><option value="unclassified"${(itemVal(record,'classification')||'unclassified')==='unclassified'?' selected':''}>Unclassified</option><option value="capital"${(itemVal(record,'classification')||'')==='capital'?' selected':''}>Capital</option><option value="general"${(itemVal(record,'classification')||'')==='general'?' selected':''}>General</option></select></div>
-              <div class="field"><label for="imSensitive">Sensitive / AV</label><select id="imSensitive"><option value="false"${!itemVal(record,'is_sensitive')?' selected':''}>No</option><option value="true"${itemVal(record,'is_sensitive')?' selected':''}>Yes</option></select></div>
+              <div class="field"><label for="imClassification">Classification</label><select id="imClassification"><option value="unclassified"${defaultClass==='unclassified'?' selected':''}>Unclassified</option><option value="capital"${defaultClass==='capital'?' selected':''}>Capital</option><option value="general"${defaultClass==='general'?' selected':''}>General</option></select></div>
+              <div class="field"><label for="imSensitive">Sensitive / AV</label><select id="imSensitive"><option value="false"${!defaultSensitive?' selected':''}>No</option><option value="true"${defaultSensitive?' selected':''}>Yes</option></select></div>
               <div class="field"><label for="imAssetTag">Asset Tag</label><input id="imAssetTag" type="text" maxlength="80" placeholder="e.g. AST-001" value="${esc(itemVal(record,'asset_tag'))}"></div>
               <div class="field"><label for="imSerial">Serial No.</label><input id="imSerial" type="text" maxlength="120" placeholder="Serial number" value="${esc(itemVal(record,'serial_no'))}"></div>
               <div class="field"><label for="imLocation">Location</label><input id="imLocation" type="text" maxlength="120" placeholder="Location" value="${esc(itemVal(record,'location'))}"></div>
@@ -3806,7 +3827,7 @@ function renderMastersPage(user, focus) {
     docList.innerHTML = list.map((d) => `
       <tr>
         <td><span class="item-name">${esc(d.name)}</span><div class="doc-desc">${esc(d.description || '')}</div></td>
-        <td style="min-width:200px"><input class="doc-no" id="docNo_${d.id}" value="${esc(d.docNo || '')}" placeholder="Enter number"><button class="btn sm" data-act="savedoc" data-id="${d.id}" style="margin-left:6px">Save</button></td>
+        <td><span class="item-code">${esc(d.docNo || 'DOC-###')}</span></td>
         <td>
           <div class="doc-row-actions">
             <label class="btn sm" style="margin:0">${d.document ? 'Replace' : 'Upload PDF'}
@@ -3849,24 +3870,19 @@ function renderMastersPage(user, focus) {
       const btn = overlay.querySelector('#adSave');
       btn.disabled = true;
       createDocumentRecord({ name, description: overlay.querySelector('#adDesc').value })
-        .then(() => { toast('Document added'); close(); loadDocs(); })
+        .then(() => { toast('Document added with auto-generated number'); close(); loadDocs(); })
         .catch((err) => { btn.disabled = false; toast(err.message, true); });
     });
     setTimeout(() => { const el = overlay.querySelector('#adName'); if (el) el.focus(); }, 60);
   });
 
   docList.addEventListener('click', (e) => {
-    const btn = e.target.closest('[data-act="savedoc"], [data-act="deldoc"]');
+    const btn = e.target.closest('[data-act="deldoc"]');
     if (!btn) return;
     const id = btn.dataset.id;
     const d = docs.find((x) => String(x.id) === id);
     if (!d) return;
-    if (btn.dataset.act === 'savedoc') {
-      const val = document.getElementById('docNo_' + id).value.trim();
-      updateDocumentRecord(id, { docNo: val })
-        .then(() => { toast('Document number saved'); d.docNo = val; })
-        .catch((err) => toast(err.message, true));
-    } else if (btn.dataset.act === 'deldoc') {
+    if (btn.dataset.act === 'deldoc') {
       if (!confirm('Delete document "' + d.name + '"?')) return;
       deleteDocumentRecord(id)
         .then(() => { toast('Document deleted'); loadDocs(); })
