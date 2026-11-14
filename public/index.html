@@ -3389,7 +3389,7 @@ function renderMastersPage(user, focus) {
         if (first !== itemLetter) return false;
       }
       if (!term) return true;
-      return (r.name || '').toLowerCase().includes(term) || (r.standardName || '').toLowerCase().includes(term) || (r.code || '').toLowerCase().includes(term) || (r.category || '').toLowerCase().includes(term) || (r.subcategory || '').toLowerCase().includes(term) || (r.brand || '').toLowerCase().includes(term);
+      return (r.name || '').toLowerCase().includes(term) || (r.code || '').toLowerCase().includes(term) || (r.category || '').toLowerCase().includes(term) || (r.subcategory || '').toLowerCase().includes(term) || (r.brand || '').toLowerCase().includes(term);
     });
   }
 
@@ -3420,7 +3420,7 @@ function renderMastersPage(user, focus) {
   const ITEM_COLS = [
     { key: 'code', label: 'Code', sortable: true },
     { key: 'name', label: 'Item Name', sortable: true },
-    { key: 'standardName', label: 'Standard Name', sortable: true },
+    
     { key: 'category', label: 'Category', sortable: true },
     { key: 'subcategory', label: 'Subcategory', sortable: true },
     { key: 'brand', label: 'Brand', sortable: true },
@@ -3436,7 +3436,6 @@ function renderMastersPage(user, focus) {
     return `<tr>
         <td><span class="item-code">${esc(r.code || 'ITM-###')}</span></td>
         <td><span class="item-name">${esc(r.name)}</span></td>
-        <td><span class="item-plain">${esc(r.standardName || '-')}</span></td>
         <td><span class="item-plain">${esc(r.category || '-')}</span></td>
         <td><span class="item-plain">${esc(r.subcategory || '-')}</span></td>
         <td><span class="item-plain">${esc(r.brand || '-')}</span></td>
@@ -3472,8 +3471,8 @@ function renderMastersPage(user, focus) {
         const s = v == null ? '' : String(v);
         return /[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
       };
-      const rows = filteredItems().map((r) => [r.code || 'ITM-###', r.name || '', r.standardName || '', r.category || '', r.subcategory || '', r.brand || '', r.createdAt ? String(r.createdAt).slice(0, 10) : '']);
-      const header = ['Code', 'Item Name', 'Standard Name', 'Category', 'Subcategory', 'Brand', 'Created Date'];
+      const rows = filteredItems().map((r) => [r.code || 'ITM-###', r.name || '', r.category || '', r.subcategory || '', r.brand || '', r.createdAt ? String(r.createdAt).slice(0, 10) : '']);
+      const header = ['Code', 'Item Name', 'Category', 'Subcategory', 'Brand', 'Created Date'];
       const csv = [header.map(csvCell).join(',')].concat(rows.map((r) => r.map(csvCell).join(','))).join('\r\n');
       const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
       const url = URL.createObjectURL(blob);
@@ -3566,9 +3565,8 @@ function renderMastersPage(user, focus) {
                 <label for="imName">Item Name *</label>
                 <input id="imName" type="text" maxlength="200" placeholder="e.g. Amplifier 80 W" autocomplete="off" value="${esc(itemVal(record, 'name'))}">
               </div>
-              <div id="imSim" class="full"></div>
-              <div class="field full"><label for="imStandard">Standard Name</label><input id="imStandard" type="text" maxlength="200" placeholder="e.g. Amplifier" autocomplete="off" value="${esc(itemVal(record, 'standardName'))}"></div>
-            </div>
+<div id="imSim" class="full"></div>
+              </div>
           </div>
           <div class="modal-sec">
             <div class="modal-sec-title">Classification</div>
