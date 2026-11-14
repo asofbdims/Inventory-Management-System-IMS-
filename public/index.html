@@ -838,27 +838,12 @@ async function addStockItem(name) {
   if (error) throw new Error(error.message);
 }
 
-const ITEM_CAPITAL_THRESHOLD = 2000;
-function itemValueNumber(v) {
-  const n = Number(v);
-  return Number.isFinite(n) ? n : 0;
-}
-function itemClassification(value) {
-  return itemValueNumber(value) >= ITEM_CAPITAL_THRESHOLD ? 'capital' : 'general';
-}
-function isAVItem(r) {
-  if (!r) return false;
-  if (r.is_sensitive) return true;
-  const text = [r.name, r.standardName, r.category, r.subcategory, r.description, r.model].join(' ').toLowerCase();
-  return /(^|[^a-z])(av|audio|visual|video|a\/v|projector|amplifier|speaker|microphone|mixer|camera|television|tv|monitor|display)([^a-z]|$)/.test(text);
-}
-
 async function fetchItemsFull() {
   const all = [];
   const pageSize = 1000;
   for (let offset = 0; ; offset += pageSize) {
     const { data, error } = await sb.from('items')
-      .select('id, name, code, standardName, description, category, subcategory, unit, brand, model, status, createdAt, classification, is_sensitive, asset_tag, serial_no, location, custodian, condition, acquisition_date, acquisition_value, depreciation_method, warranty_expiry, remarks')
+      .select('id, name, code, standardName, description, category, subcategory, brand, createdAt')
       .order('name', { ascending: true })
       .range(offset, offset + pageSize - 1);
     if (error) throw new Error(error.message);
@@ -869,58 +854,23 @@ async function fetchItemsFull() {
   return all;
 }
 
-async function createStockItem(fields) {
-  const { error } = await sb.from('items').insert({
-    name: (fields.name || '').trim(),
-    standardName: (fields.standardName || '').trim(),
-    description: (fields.description || '').trim(),
-    category: (fields.category || '').trim(),
-    subcategory: (fields.subcategory || '').trim(),
-    unit: (fields.unit || '').trim(),
-    brand: (fields.brand || '').trim(),
-    model: (fields.model || '').trim(),
-    status: fields.status || 'Active',
-    classification: itemClassification(fields.acquisition_value),
-    is_sensitive: !!fields.is_sensitive,
-    asset_tag: (fields.asset_tag || '').trim(),
-    serial_no: (fields.serial_no || '').trim(),
-    location: (fields.location || '').trim(),
-    custodian: (fields.custodian || '').trim(),
-    condition: (fields.condition || '').trim(),
-    acquisition_date: (fields.acquisition_date || '').trim() || null,
-    acquisition_value: fields.acquisition_value != null && fields.acquisition_value !== '' ? Number(fields.acquisition_value) : null,
-    depreciation_method: (fields.depreciation_method || '').trim(),
-    warranty_expiry: (fields.warranty_expiry || '').trim() || null,
-    remarks: (fields.remarks || '').trim()
+function itemFieldsPayload(fields) {
+  const payload = { name: (fields.name || '').trim() };
+  ['standardName', 'description', 'category', 'subcategory', 'brand'].forEach((k) => {
+    if (fields[k] !== undefined) payload[k] = String(fields[k] || '').trim();
   });
+  return payload;
+}
+
+async function createStockItem(fields) {
+  const { error } = await sb.from('items').insert(itemFieldsPayload(fields));
   if (error) throw new Error(error.message);
 }
 
 async function updateItemRecord(id, fields, previousName) {
-  const name = (fields.name || '').trim();
-  const { error } = await sb.from('items').update({
-    name,
-    standardName: (fields.standardName || '').trim(),
-    description: (fields.description || '').trim(),
-    category: (fields.category || '').trim(),
-    subcategory: (fields.subcategory || '').trim(),
-    unit: (fields.unit || '').trim(),
-    brand: (fields.brand || '').trim(),
-    model: (fields.model || '').trim(),
-    status: fields.status || 'Active',
-    classification: itemClassification(fields.acquisition_value),
-    is_sensitive: !!fields.is_sensitive,
-    asset_tag: (fields.asset_tag || '').trim(),
-    serial_no: (fields.serial_no || '').trim(),
-    location: (fields.location || '').trim(),
-    custodian: (fields.custodian || '').trim(),
-    condition: (fields.condition || '').trim(),
-    acquisition_date: (fields.acquisition_date || '').trim() || null,
-    acquisition_value: fields.acquisition_value != null && fields.acquisition_value !== '' ? Number(fields.acquisition_value) : null,
-    depreciation_method: (fields.depreciation_method || '').trim(),
-    warranty_expiry: (fields.warranty_expiry || '').trim() || null,
-    remarks: (fields.remarks || '').trim()
-  }).eq('id', Number(id));
+  const payload = itemFieldsPayload(fields);
+  const name = payload.name;
+  const { error } = await sb.from('items').update(payload).eq('id', Number(id));
   if (error) throw new Error(error.message);
   if (name && previousName && name !== previousName) {
     const { error: se } = await sb.from('stock_items').update({ item: name }).eq('item', previousName);
@@ -1581,10 +1531,6 @@ function renderShell(user, activePage) {
     'stock.html': { label: 'Stock Register', icon: 'stock', href: '#/stock' },
     'masters-centre.html': { label: 'Centre Master', icon: 'master', href: '#/masters/centre' },
     'masters-item.html': { label: 'Item Master', icon: 'master', href: '#/masters/item' },
-    'masters-item-capital.html': { label: 'Capital Item', icon: 'master', href: '#/masters/item/capital' },
-    'masters-item-capital-av.html': { label: 'AV Item', icon: 'master', href: '#/masters/item/capital/av' },
-    'masters-item-capital-general.html': { label: 'General Item', icon: 'master', href: '#/masters/item/capital/general' },
-    'masters-item-general.html': { label: 'General Item', icon: 'master', href: '#/masters/item/general' },
     'masters-doc.html': { label: 'Document Master', icon: 'master', href: '#/masters/doc' },
     'sci45.html': { label: 'SCI45', icon: 'forms', href: '#/forms/SCI45' },
     'sci53.html': { label: 'SCI53', icon: 'forms', href: '#/forms/SCI53' },
@@ -1600,10 +1546,7 @@ function renderShell(user, activePage) {
     { label: 'Inventory', items: ['stock.html'] },
     { label: 'Masters', items: [{ key: 'master', label: 'Masters', icon: 'master', children: [
       'masters-centre.html',
-      { key: 'masters-item', label: 'Item Master', icon: 'master', children: [
-        { key: 'masters-item-capital', label: 'Capital Item', icon: 'master', children: ['masters-item-capital-av.html', 'masters-item-capital-general.html'] },
-        'masters-item-general.html'
-      ] },
+      'masters-item.html',
       'masters-doc.html'
     ]}] },
     { label: 'Forms', items: [{ key: 'sci', label: 'SCI Forms', icon: 'forms', children: ['sci45.html', 'sci53.html', 'sci76.html', 'sci43.html', 'sci15.html', 'sci34.html'] }] },
@@ -1734,13 +1677,10 @@ async function route() {
 
   if (path === '/dashboard') { renderShell(user, 'dashboard.html'); renderDashboardPage(user, params); }
   else if (path === '/stock') { renderShell(user, 'stock.html'); renderStockPage(user, params); }
-  else if (path === '/masters/item/capital/av' || path === '/masters/item/capital/general' || path === '/masters/item/capital' || path === '/masters/item/general' || path === '/masters/item' || path === '/masters' || path === '/masters/doc' || path === '/masters/centre') {
+  else if (path === '/masters' || path === '/masters/item' || path === '/masters/centre' || path === '/masters/doc' || path.startsWith('/masters/item/')) {
     if (path === '/masters/doc') { renderShell(user, 'masters-doc.html'); renderMastersPage(user, 'doc'); }
     else if (path === '/masters/centre') { renderShell(user, 'masters-centre.html'); renderMastersPage(user, 'centre'); }
-    else if (path === '/masters/item/capital/av') { renderShell(user, 'masters-item-capital-av.html'); renderMastersPage(user, 'item', 'capital-av'); }
-    else if (path === '/masters/item/capital/general') { renderShell(user, 'masters-item-capital-general.html'); renderMastersPage(user, 'item', 'capital-general'); }
-    else if (path === '/masters/item/capital') { renderShell(user, 'masters-item-capital.html'); renderMastersPage(user, 'item', 'capital'); }
-    else { renderShell(user, 'masters-item-general.html'); renderMastersPage(user, 'item', 'general'); }
+    else { renderShell(user, 'masters-item.html'); renderMastersPage(user, 'item'); }
   }
   else if (path === '/forms' || /^\/forms\/SCI\d+$/.test(path)) {
     const code = /^\/forms\/(SCI\d+)$/.test(path) ? path.match(/^\/forms\/(SCI\d+)$/)[1] : 'SCI45';
@@ -3148,11 +3088,10 @@ function renderStockPage(user, routeParams) {
 /* =========================================================================
    Masters page - item master (auto codes) + document master (GRN, uploads)
    ========================================================================= */
-function renderMastersPage(user, focus, itemClass) {
+function renderMastersPage(user, focus) {
   document.body.classList.remove('login-page');
   const content = document.getElementById('content');
   const view = focus === 'doc' ? 'doc' : focus === 'centre' ? 'centre' : 'item';
-  const itemClassFilter = ['capital', 'capital-av', 'capital-general', 'general'].includes(itemClass) ? itemClass : '';
   content.innerHTML = `
     <div class="logo-banner">
       <div>
@@ -3191,7 +3130,7 @@ function renderMastersPage(user, focus, itemClass) {
       <div id="maPanel-item">
         <div class="reg-toolbar">
           <div class="rt-row">
-            <input id="maSearch" type="text" placeholder="Search items by name, code, category, brand or model..." autocomplete="off">
+            <input id="maSearch" type="text" placeholder="Search items by name, code, category or brand..." autocomplete="off">
             <select id="maLetter" class="ma-letter" title="Filter items by the first letter of their name"><option value="">All letters</option></select>
             <button class="btn sm" id="maClear" title="Clear all filters">Clear All</button>
             <div class="rt-right">
@@ -3445,20 +3384,12 @@ function renderMastersPage(user, focus, itemClass) {
   function filteredItems() {
     const term = itemSearch.trim().toLowerCase();
     return items.filter((r) => {
-      if (itemClassFilter) {
-        const isCapital = itemValueNumber(r.acquisition_value) >= ITEM_CAPITAL_THRESHOLD;
-        const isAV = isAVItem(r);
-        if (itemClassFilter === 'capital' && !isCapital) return false;
-        if (itemClassFilter === 'capital-av' && (!isCapital || !isAV)) return false;
-        if (itemClassFilter === 'capital-general' && (!isCapital || isAV)) return false;
-        if (itemClassFilter === 'general' && isCapital) return false;
-      }
       if (itemLetter) {
         const first = (r.name || '').trim().charAt(0).toUpperCase();
         if (first !== itemLetter) return false;
       }
       if (!term) return true;
-      return (r.name || '').toLowerCase().includes(term) || (r.standardName || '').toLowerCase().includes(term) || (r.code || '').toLowerCase().includes(term) || (r.description || '').toLowerCase().includes(term) || (r.category || '').toLowerCase().includes(term) || (r.subcategory || '').toLowerCase().includes(term) || itemClassification(r.acquisition_value).includes(term) || (String(r.asset_tag || '')).toLowerCase().includes(term) || (String(r.serial_no || '')).toLowerCase().includes(term) || (String(r.location || '')).toLowerCase().includes(term) || (String(r.custodian || '')).toLowerCase().includes(term) || (String(r.condition || '')).toLowerCase().includes(term) || (r.unit || '').toLowerCase().includes(term) || (r.brand || '').toLowerCase().includes(term) || (r.model || '').toLowerCase().includes(term);
+      return (r.name || '').toLowerCase().includes(term) || (r.standardName || '').toLowerCase().includes(term) || (r.code || '').toLowerCase().includes(term) || (r.category || '').toLowerCase().includes(term) || (r.subcategory || '').toLowerCase().includes(term) || (r.brand || '').toLowerCase().includes(term);
     });
   }
 
@@ -3490,21 +3421,9 @@ function renderMastersPage(user, focus, itemClass) {
     { key: 'code', label: 'Code', sortable: true },
     { key: 'name', label: 'Item Name', sortable: true },
     { key: 'standardName', label: 'Standard Name', sortable: true },
-    { key: 'description', label: 'Description', sortable: true },
     { key: 'category', label: 'Category', sortable: true },
     { key: 'subcategory', label: 'Subcategory', sortable: true },
-    { key: 'classification', label: 'Classification', sortable: true },
-    { key: 'is_sensitive', label: 'Sensitive', sortable: true },
-    { key: 'asset_tag', label: 'Asset Tag', sortable: true },
-    { key: 'serial_no', label: 'Serial No.', sortable: true },
-    { key: 'location', label: 'Location', sortable: true },
-    { key: 'custodian', label: 'Custodian', sortable: true },
-    { key: 'acquisition_value', label: 'Acq. Value', sortable: true, align: 'right' },
-    { key: 'condition', label: 'Condition', sortable: true },
-    { key: 'unit', label: 'Unit', sortable: true },
     { key: 'brand', label: 'Brand', sortable: true },
-    { key: 'model', label: 'Model', sortable: true },
-    { key: 'status', label: 'Status', sortable: true },
     { key: 'createdAt', label: 'Created Date', sortable: true },
     { key: 'actions', label: '', sortable: false, cls: 'col-sticky' }
   ];
@@ -3518,39 +3437,27 @@ function renderMastersPage(user, focus, itemClass) {
         <td><span class="item-code">${esc(r.code || 'ITM-###')}</span></td>
         <td><span class="item-name">${esc(r.name)}</span></td>
         <td><span class="item-plain">${esc(r.standardName || '-')}</span></td>
-        <td><span class="item-sub">${esc(r.description || '-')}</span></td>
         <td><span class="item-plain">${esc(r.category || '-')}</span></td>
         <td><span class="item-plain">${esc(r.subcategory || '-')}</span></td>
-        <td><span class="item-plain">${esc(itemClassification(r.acquisition_value))}</span></td>
-        <td><span class="item-plain">${r.is_sensitive ? 'Yes' : 'No'}</span></td>
-        <td><span class="item-plain">${esc(r.asset_tag || '-')}</span></td>
-        <td><span class="item-plain">${esc(r.serial_no || '-')}</span></td>
-        <td><span class="item-plain">${esc(r.location || '-')}</span></td>
-        <td><span class="item-plain">${esc(r.custodian || '-')}</span></td>
-        <td class="num">${r.acquisition_value != null && r.acquisition_value !== '' ? esc(Number(r.acquisition_value)) : '-'}</td>
-        <td><span class="item-plain">${esc(r.condition || '-')}</span></td>
-        <td><span class="item-plain">${esc(r.unit || '-')}</span></td>
         <td><span class="item-plain">${esc(r.brand || '-')}</span></td>
-        <td><span class="item-plain">${esc(r.model || '-')}</span></td>
-        <td><span class="ma-status ${(r.status || 'Active') === 'Inactive' ? 'off' : 'on'}">${esc(r.status || 'Active')}</span></td>
         <td><span class="ma-created">${r.createdAt ? esc(String(r.createdAt).slice(0, 10)) : '-'}</span></td>
         <td class="col-sticky"><div class="doc-row-actions"><button class="btn sm" data-act="edit" data-id="${r.id}">Edit</button><button class="btn red sm" data-act="del" data-id="${r.id}">Delete</button></div></td>
       </tr>`;
   }
 
   function renderItemRows() {
-    const list = sortList(filteredItems(), itemSort, (r, k) => k === 'classification' ? itemClassification(r.acquisition_value) : r[k]);
+    const list = sortList(filteredItems(), itemSort, (r, k) => r[k]);
     const totalPages = Math.max(1, Math.ceil(list.length / itemPageSize));
     if (itemPage >= totalPages) itemPage = totalPages - 1;
     const cnt = q('maCount');
     if (cnt) cnt.textContent = items.length ? `${list.length} of ${items.length} items` : '';
     if (!items.length) {
-      itemList.innerHTML = '<tr><td colspan="20" class="empty">No items yet - click Add Item.</td></tr>';
+      itemList.innerHTML = '<tr><td colspan="8" class="empty">No items yet - click Add Item.</td></tr>';
       renderItemPagination(totalPages, 0);
       return;
     }
     if (!list.length) {
-      itemList.innerHTML = '<tr><td colspan="20" class="empty">No items match your search.</td></tr>';
+      itemList.innerHTML = '<tr><td colspan="8" class="empty">No items match your search.</td></tr>';
       renderItemPagination(totalPages, 0);
       return;
     }
@@ -3565,8 +3472,8 @@ function renderMastersPage(user, focus, itemClass) {
         const s = v == null ? '' : String(v);
         return /[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
       };
-      const rows = filteredItems().map((r) => [r.code || 'ITM-###', r.name || '', r.standardName || '', r.description || '', r.category || '', r.subcategory || '', itemClassification(r.acquisition_value), r.is_sensitive ? 'Yes' : 'No', r.asset_tag || '', r.serial_no || '', r.location || '', r.custodian || '', r.acquisition_value != null && r.acquisition_value !== '' ? String(r.acquisition_value) : '', r.condition || '', r.unit || '', r.brand || '', r.model || '', r.status || 'Active', r.createdAt ? String(r.createdAt).slice(0, 10) : '']);
-      const header = ['Code', 'Item Name', 'Standard Name', 'Description', 'Category', 'Subcategory', 'Classification', 'Sensitive', 'Asset Tag', 'Serial No.', 'Location', 'Custodian', 'Acq. Value', 'Condition', 'Unit', 'Brand', 'Model', 'Status', 'Created Date'];
+      const rows = filteredItems().map((r) => [r.code || 'ITM-###', r.name || '', r.standardName || '', r.category || '', r.subcategory || '', r.brand || '', r.createdAt ? String(r.createdAt).slice(0, 10) : '']);
+      const header = ['Code', 'Item Name', 'Standard Name', 'Category', 'Subcategory', 'Brand', 'Created Date'];
       const csv = [header.map(csvCell).join(',')].concat(rows.map((r) => r.map(csvCell).join(','))).join('\r\n');
       const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
       const url = URL.createObjectURL(blob);
@@ -3638,8 +3545,6 @@ function renderMastersPage(user, focus, itemClass) {
 
   function openItemModal(mode, record) {
     const isEdit = mode === 'edit';
-    const defaultClass = record ? itemClassification(record.acquisition_value) : (itemClassFilter === 'general' ? 'general' : 'capital');
-    const defaultSensitive = record ? !!record.is_sensitive : itemClassFilter === 'capital-av';
     const overlay = document.createElement('div');
     overlay.className = 'modal-overlay';
     overlay.innerHTML = `
@@ -3649,7 +3554,7 @@ function renderMastersPage(user, focus, itemClass) {
             <h3>${isEdit ? 'Edit Item' : 'Add New Item'}</h3>
             <p class="hint">${isEdit
               ? `Editing <b>${esc(record.name)}</b>${record.code ? ' (' + esc(record.code) + ')' : ''} - created ${record.createdAt ? esc(String(record.createdAt).slice(0, 10)) : 'unknown'}`
-              : 'New catalogue entry gets an auto-generated item code (ITM-###). Items \u20B92,000 and above are Capital; below are General.'}</p>
+              : 'New catalogue entry gets an auto-generated item code (ITM-###).'}</p>
           </div>
           <button class="btn sm" id="imClose">Close</button>
         </div>
@@ -3670,24 +3575,7 @@ function renderMastersPage(user, focus, itemClass) {
             <div class="modal-grid">
               <div class="field"><label for="imCategory">Category</label><input id="imCategory" type="text" maxlength="100" placeholder="e.g. Electronics" value="${esc(itemVal(record, 'category'))}"></div>
               <div class="field"><label for="imSub">Subcategory</label><input id="imSub" type="text" maxlength="100" placeholder="e.g. Audio" value="${esc(itemVal(record, 'subcategory'))}"></div>
-              <div class="field"><label for="imClassification">Classification (auto)</label><select id="imClassification" disabled><option value="capital"${defaultClass==='capital'?' selected':''}>Capital</option><option value="general"${defaultClass==='general'?' selected':''}>General</option></select></div>
-              <div class="field"><label for="imSensitive">Sensitive / AV</label><select id="imSensitive"><option value="false"${!defaultSensitive?' selected':''}>No</option><option value="true"${defaultSensitive?' selected':''}>Yes</option></select></div>
-              <div class="field"><label for="imAssetTag">Asset Tag</label><input id="imAssetTag" type="text" maxlength="80" placeholder="e.g. AST-001" value="${esc(itemVal(record,'asset_tag'))}"></div>
-              <div class="field"><label for="imSerial">Serial No.</label><input id="imSerial" type="text" maxlength="120" placeholder="Serial number" value="${esc(itemVal(record,'serial_no'))}"></div>
-              <div class="field"><label for="imLocation">Location</label><input id="imLocation" type="text" maxlength="120" placeholder="Location" value="${esc(itemVal(record,'location'))}"></div>
-              <div class="field"><label for="imCustodian">Custodian</label><input id="imCustodian" type="text" maxlength="120" placeholder="Custodian" value="${esc(itemVal(record,'custodian'))}"></div>
-              <div class="field"><label for="imAcqValue">Acquisition Value</label><input id="imAcqValue" type="number" min="0" step="0.01" placeholder="0.00" value="${itemVal(record,'acquisition_value') ?? ''}"></div>
-              <div class="field"><label for="imCondition">Condition</label><input id="imCondition" type="text" maxlength="60" placeholder="New/Good/Fair/Repair/Condemned" value="${esc(itemVal(record,'condition'))}"></div>
-              <div class="field"><label for="imUnit">Unit</label><input id="imUnit" type="text" maxlength="40" placeholder="e.g. Nos" value="${esc(itemVal(record, 'unit'))}"></div>
               <div class="field"><label for="imBrand">Brand</label><input id="imBrand" type="text" maxlength="100" placeholder="e.g. Sony" value="${esc(itemVal(record, 'brand'))}"></div>
-              <div class="field full"><label for="imModel">Model</label><input id="imModel" type="text" maxlength="100" placeholder="Model / capacity / rating" value="${esc(itemVal(record, 'model'))}"></div>
-            </div>
-          </div>
-          <div class="modal-sec">
-            <div class="modal-sec-title">Details</div>
-            <div class="modal-grid">
-              <div class="field"><label for="imStatus">Status</label><select id="imStatus">${['Active', 'Inactive'].map((st) => `<option${(itemVal(record, 'status') || (isEdit ? '' : 'Active')) === st ? ' selected' : ''}>${st}</option>`).join('')}</select></div>
-              <div class="field"><label for="imDesc">Description</label><input id="imDesc" type="text" maxlength="255" placeholder="Short description" value="${esc(itemVal(record, 'description'))}"></div>
             </div>
           </div>
         </div>
@@ -3697,12 +3585,6 @@ function renderMastersPage(user, focus, itemClass) {
         </div>
       </div>`;
     document.body.appendChild(overlay);
-
-    const acqEl = overlay.querySelector('#imAcqValue');
-    const clsEl = overlay.querySelector('#imClassification');
-    const syncClass = () => { if (clsEl) clsEl.value = itemClassification(acqEl ? acqEl.value : ''); };
-    if (acqEl) acqEl.addEventListener('input', syncClass);
-    syncClass();
 
     const close = () => overlay.remove();
     const nameEl = overlay.querySelector('#imName');
@@ -3714,25 +3596,9 @@ function renderMastersPage(user, focus, itemClass) {
     const collect = () => ({
       name: field('#imName').value.trim(),
       standardName: field('#imStandard').value.trim(),
-      description: field('#imDesc').value.trim(),
       category: field('#imCategory').value.trim(),
       subcategory: field('#imSub').value.trim(),
-      unit: field('#imUnit').value.trim(),
-      brand: field('#imBrand').value.trim(),
-      model: field('#imModel').value.trim(),
-      status: field('#imStatus').value || 'Active',
-      classification: itemClassification(field('#imAcqValue') ? field('#imAcqValue').value : ''),
-      is_sensitive: (field('#imSensitive') && field('#imSensitive').value === 'true') || false,
-      asset_tag: (field('#imAssetTag') && field('#imAssetTag').value.trim()) || '',
-      serial_no: (field('#imSerial') && field('#imSerial').value.trim()) || '',
-      location: (field('#imLocation') && field('#imLocation').value.trim()) || '',
-      custodian: (field('#imCustodian') && field('#imCustodian').value.trim()) || '',
-      condition: (field('#imCondition') && field('#imCondition').value.trim()) || '',
-      acquisition_date: (field('#imAcqDate') && field('#imAcqDate').value.trim()) || '',
-      acquisition_value: (field('#imAcqValue') && field('#imAcqValue').value) || '',
-      depreciation_method: (field('#imDepMethod') && field('#imDepMethod').value.trim()) || '',
-      warranty_expiry: (field('#imWarrExp') && field('#imWarrExp').value.trim()) || '',
-      remarks: (field('#imRemarks') && field('#imRemarks').value.trim()) || ''
+      brand: field('#imBrand').value.trim()
     });
 
     function useExisting(m) {
@@ -3740,13 +3606,9 @@ function renderMastersPage(user, focus, itemClass) {
       nameEl.value = m.name || '';
       nameEl.readOnly = true;
       field('#imStandard').value = m.standardName || '';
-      field('#imDesc').value = m.description || '';
       field('#imCategory').value = m.category || '';
       field('#imSub').value = m.subcategory || '';
-      field('#imUnit').value = m.unit || '';
       field('#imBrand').value = m.brand || '';
-      field('#imModel').value = m.model || '';
-      field('#imStatus').value = m.status || 'Active';
       simBox.innerHTML = `<div class="im-selected">[OK] Using existing item <b>${esc(m.name)}</b>${m.code ? ' (' + esc(m.code) + ')' : ''}. No new record will be created.</div>`;
       saveBtn.textContent = 'Done - Using Existing Item';
       nameEl.focus();
