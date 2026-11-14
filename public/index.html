@@ -1699,7 +1699,7 @@ function parseHash() {
   return { path: path || '/dashboard', params: new URLSearchParams(qs || '') };
 }
 
-function route() {
+async function route() {
   const { path, params } = parseHash();
   const user = getUser();
 
@@ -1709,6 +1709,14 @@ function route() {
     return;
   }
   if (!getToken() || !user) { location.hash = '/login'; return; }
+
+  const { data: authData, error: authError } = await sb.auth.getSession();
+  if (authError || !authData || !authData.session) {
+    clearSession();
+    toast('Your sign-in expired - please log in again.', true);
+    location.hash = '/login';
+    return;
+  }
 
   if (path === '/dashboard') { renderShell(user, 'dashboard.html'); renderDashboardPage(user, params); }
   else if (path === '/stock') { renderShell(user, 'stock.html'); renderStockPage(user, params); }
