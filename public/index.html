@@ -3588,7 +3588,7 @@ function renderMastersPage(user, focus) {
             <div class="modal-sec-title">Classification</div>
             <div class="modal-grid">
               <div class="field"><label for="imCategory">Category</label><input id="imCategory" type="text" maxlength="100" placeholder="e.g. Electronics" value="${esc(itemVal(record, 'category'))}"></div>
-              <div class="field"><label for="imSub">Subcategory</label><input id="imSub" type="text" maxlength="100" placeholder="e.g. Audio" value="${esc(itemVal(record, 'subcategory'))}"></div>
+              <div class="field"><label for="imSub">Subcategory (optional)</label><input id="imSub" type="text" maxlength="100" placeholder="e.g. Audio" value="${esc(itemVal(record, 'subcategory'))}"></div>
               <div class="field"><label for="imBrand">Brand</label><input id="imBrand" type="text" maxlength="100" placeholder="e.g. Sony" value="${esc(itemVal(record, 'brand'))}"></div>
             </div>
           </div>
@@ -3609,7 +3609,6 @@ function renderMastersPage(user, focus) {
 
     const collect = () => ({
       name: field('#imName').value.trim(),
-      standardName: field('#imStandard').value.trim(),
       category: field('#imCategory').value.trim(),
       subcategory: field('#imSub').value.trim(),
       brand: field('#imBrand').value.trim()
@@ -3619,7 +3618,6 @@ function renderMastersPage(user, focus) {
       existingId = m.id;
       nameEl.value = m.name || '';
       nameEl.readOnly = true;
-      field('#imStandard').value = m.standardName || '';
       field('#imCategory').value = m.category || '';
       field('#imSub').value = m.subcategory || '';
       field('#imBrand').value = m.brand || '';
