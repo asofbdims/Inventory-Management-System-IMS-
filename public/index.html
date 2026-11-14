@@ -3134,13 +3134,14 @@ function renderStockPage(user, routeParams) {
 function renderMastersPage(user, focus) {
   document.body.classList.remove('login-page');
   const content = document.getElementById('content');
+  const view = focus === 'doc' ? 'doc' : focus === 'centre' ? 'centre' : 'item';
   content.innerHTML = `
     <div class="logo-banner">
       <div>
         <h2>Inventory Masters</h2>
         <p>Centre master (create Satsang places), item catalogue with auto-generated codes, and document master for GRN &amp; SCI form PDFs.</p>
       </div>
-      <div class="sr-actions">
+      ${view === 'item' ? `<div class="sr-actions">
         <div class="dropdown">
           <button class="btn sm" id="maExport" title="Export or print the item catalogue">Export &#9662;</button>
           <div class="dropdown-menu" id="maExpMenu">
@@ -3149,7 +3150,7 @@ function renderMastersPage(user, focus) {
           </div>
         </div>
         <button class="btn primary" id="maAddItem" title="Add a new stock item">+ Add Item</button>
-      </div>
+      </div>` : ''}
     </div>
     <div class="masters-grid" id="maGrid">
       <div id="maPanel-centre">
@@ -3210,7 +3211,6 @@ function renderMastersPage(user, focus) {
   const panelCentre = document.getElementById('maPanel-centre');
   const panelItem = document.getElementById('maPanel-item');
   const panelDoc = document.getElementById('maPanel-doc');
-  const view = focus === 'doc' ? 'doc' : focus === 'centre' ? 'centre' : 'item';
   panelCentre.style.display = view === 'centre' ? '' : 'none';
   panelItem.style.display = view === 'item' ? '' : 'none';
   panelDoc.style.display = view === 'doc' ? '' : 'none';
