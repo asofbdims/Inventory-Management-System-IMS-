@@ -659,12 +659,10 @@ td.empty,tr td.empty{color:var(--muted);text-align:center;padding:26px;white-spa
 const SUPABASE_URL = 'https://rfvevmckrjvcvlldtlaq.supabase.co';
 const IMS_CFG = (typeof window !== 'undefined' && window.IMS_CONFIG) || {};
 const SUPABASE_ANON_KEY = IMS_CFG.anonKey || '';
-const SUPABASE_SECRET_KEY = IMS_CFG.secretKey || '';
 const SM_EMAIL_DOMAIN = '@ims.local';
 
 const { createClient } = window.supabase;
 const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-const sbAdmin = SUPABASE_SECRET_KEY ? createClient(SUPABASE_URL, SUPABASE_SECRET_KEY, { auth: { persistSession: false, autoRefreshToken: false } }) : null;
 
 function buildUser(p) {
   if (p.role === 'SUPERADMIN') return { id: 'superadmin', username: p.username, name: p.name, role: 'admin', type: 'ASO ADMIN' };
@@ -1548,8 +1546,7 @@ const NAV_ICONS = {
   stock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8l-9-5-9 5v8l9 5 9-5z"/><line x1="3" y1="8" x2="12" y2="13"/><line x1="12" y1="13" x2="21" y2="8"/><line x1="12" y1="13" x2="12" y2="21"/></svg>',
   master: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="16" rx="2"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>',
   forms: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="12" y2="17"/></svg>',
-  log: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v4l3 2"/><circle cx="12" cy="12" r="9"/></svg>',
-  reset: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="9" width="16" height="10" rx="2"/><circle cx="12" cy="14" r="2"/><path d="M8 9V7a4 4 0 0 1 8 0v2"/></svg>'
+  log: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v4l3 2"/><circle cx="12" cy="12" r="9"/></svg>'
 };
 function fiscalYearLabel() {
   const d = new Date();
@@ -1573,14 +1570,14 @@ function renderShell(user, activePage) {
     'masters-item-capital-general.html': { label: 'General Item', icon: 'master', href: '#/masters/item/capital/general' },
     'masters-item-general.html': { label: 'General Item', icon: 'master', href: '#/masters/item/general' },
     'masters-doc.html': { label: 'Document Master', icon: 'master', href: '#/masters/doc' },
+    'masters-user.html': { label: 'User Master', icon: 'master', href: '#/masters/user' },
     'sci45.html': { label: 'SCI45', icon: 'forms', href: '#/forms/SCI45' },
     'sci53.html': { label: 'SCI53', icon: 'forms', href: '#/forms/SCI53' },
     'sci76.html': { label: 'SCI76', icon: 'forms', href: '#/forms/SCI76' },
     'sci43.html': { label: 'SCI43', icon: 'forms', href: '#/forms/SCI43' },
     'sci15.html': { label: 'SCI15', icon: 'forms', href: '#/forms/SCI15' },
     'sci34.html': { label: 'SCI34', icon: 'forms', href: '#/forms/SCI34' },
-    'log.html': { label: 'Forms Log', icon: 'log', href: '#/log' },
-    'reset.html': { label: 'Pass Reset', icon: 'reset', href: '#/reset' }
+    'log.html': { label: 'Forms Log', icon: 'log', href: '#/log' }
   };
 const GROUPS = [
     { label: 'Overview', items: ['dashboard.html'] },
@@ -1594,10 +1591,10 @@ const GROUPS = [
         ]},
         'masters-item-general.html'
       ]},
-      'masters-doc.html'
+      'masters-doc.html',
+      ...(isSuperAdmin() ? ['masters-user.html'] : [])
     ]}] },
-    { label: 'Reports', items: ['log.html'] },
-    { label: 'Admin', items: ['reset.html'] }
+    { label: 'Reports', items: ['log.html'] }
   ];
   const navLeafHtml = (key) => `<a class="nav-sub-item${key === activePage ? ' active' : ''}" href="${PAGES[key].href}">${NAV_ICONS[PAGES[key].icon]}<span>${PAGES[key].label}</span></a>`;
   const navHasActive = (item) => {
@@ -1730,6 +1727,7 @@ async function route() {
 
   if (path === '/dashboard') { renderShell(user, 'dashboard.html'); renderDashboardPage(user, params); }
   else if (path === '/stock') { renderShell(user, 'stock.html'); renderStockPage(user, params); }
+  else if (path === '/masters/user' && isSuperAdmin()) { renderShell(user, 'masters-user.html'); renderUserMasterPage(user); }
   else if (path === '/masters' || path === '/masters/item' || path === '/masters/centre' || path === '/masters/doc' || path.startsWith('/masters/item/')) {
     if (path === '/masters/doc') { renderShell(user, 'masters-doc.html'); renderMastersPage(user, 'doc'); }
     else if (path === '/masters/centre') { renderShell(user, 'masters-centre.html'); renderMastersPage(user, 'centre'); }
@@ -1751,7 +1749,6 @@ async function route() {
     renderSCIFormsPage(user, ok);
   }
   else if (path === '/log') { renderShell(user, 'log.html'); renderSCIFormsLogPage(user); }
-  else if (path === '/reset' && isSuperAdmin()) { renderShell(user, 'reset.html'); renderResetPage(user); }
   else { location.hash = '/dashboard'; }
 }
 
@@ -1779,63 +1776,9 @@ function renderLoginPage() {
       </form>
       <div class="login-err" id="err"></div>
 
-      <hr style="margin:18px 0 14px;border:0;border-top:1px solid var(--line)">
-      <div style="text-align:center">
-        <button type="button" class="btn sm" id="toggleReset">Reset Password</button>
-      </div>
-      <div id="resetBox" style="display:none;margin-top:14px">
-        <label for="rp_user">Center / ASO Admin</label>
-        <select id="rp_user"></select>
-        <label for="rp_pass">New Password</label>
-        <input type="password" id="rp_pass" placeholder="At least 4 characters">
-        <label for="rp_confirm">Confirm New Password</label>
-        <input type="password" id="rp_confirm" placeholder="Repeat new password">
-        <button type="button" class="btn primary" id="rp_btn" style="width:100%;margin-top:14px">Reset Password</button>
-        <div class="login-err" id="rp_msg"></div>
-      </div>
-
       <p class="hint"></p>
     </div>
   `;
-
-  sb.from('org_users').select('username, name, type').order('name', { ascending: true }).then(({ data, error }) => {
-    if (error) return;
-    document.getElementById('rp_user').innerHTML = data.map((c) => `<option value="${esc(c.username)}">${esc(c.name)} - ${esc(c.type)}</option>`).join('');
-  }).catch(() => {});
-
-  document.getElementById('toggleReset').addEventListener('click', () => {
-    const box = document.getElementById('resetBox');
-    box.style.display = box.style.display === 'none' ? 'block' : 'none';
-  });
-
-  document.getElementById('rp_btn').addEventListener('click', async () => {
-    const msg = document.getElementById('rp_msg');
-    const user = document.getElementById('rp_user').value;
-    const p1 = document.getElementById('rp_pass').value;
-    const p2 = document.getElementById('rp_confirm').value;
-    msg.style.display = 'none';
-    if (!user) { msg.textContent = 'Select a center'; msg.style.display = 'block'; return; }
-    if (!p1 || p1.length < 4) { msg.textContent = 'Password must be at least 4 characters'; msg.style.display = 'block'; return; }
-    if (p1 !== p2) { msg.textContent = 'Passwords do not match'; msg.style.display = 'block'; return; }
-    try {
-      const { data: u, error: findErr } = await sb.from('org_users').select('authId, name').eq('username', user).single();
-      if (findErr || !u) throw new Error('User not found');
-      if (!SUPABASE_SECRET_KEY) throw new Error('Password reset is disabled in this build (no service key configured).');
-      const { error: resetErr } = await sbAdmin.auth.admin.updateUserById(u.authId, { password: p1 });
-      if (resetErr) throw new Error(resetErr.message || 'Reset failed');
-      msg.textContent = 'Password reset for ' + u.name;
-      msg.style.display = 'block';
-      msg.style.color = 'var(--green)';
-      msg.style.background = 'var(--green-bg)';
-      document.getElementById('rp_pass').value = '';
-      document.getElementById('rp_confirm').value = '';
-    } catch (err) {
-      msg.textContent = err.message;
-      msg.style.display = 'block';
-      msg.style.color = '';
-      msg.style.background = '';
-    }
-  });
 
   document.getElementById('loginForm').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -4640,85 +4583,146 @@ END SCI PAGE HELPERS */
 }
 
 /* =========================================================================
-   Pass Reset page (superadmin only)
+   User Master page (superadmin only)
    ========================================================================= */
-function renderResetPage() {
+function renderUserMasterPage(user) {
   document.body.classList.remove('login-page');
+  if (!isSuperAdmin()) { location.hash = '/dashboard'; return; }
   const content = document.getElementById('content');
   content.innerHTML = `
     <div class="logo-banner">
       <div>
-        <h2>Pass Reset</h2>
-        <p>Reset the password of a centre or ASO admin account.</p>
+        <h2>User Master</h2>
+        <p>Create login IDs and passwords for centre, ASO viewer and superadmin accounts.</p>
       </div>
-      <span class="badge navy" style="font-size:13px;padding:6px 14px">SUPERADMIN</span>
+      <div class="sr-actions">
+        <span class="badge navy" style="font-size:13px;padding:6px 14px">SUPERADMIN</span>
+        <button class="btn primary" id="umAdd" title="Create a new login">+ Add User</button>
+      </div>
     </div>
-    <div class="card" style="max-width:560px">
-      <div class="sci-section-head">
-        <div><h3 style="margin:0">Reset user password</h3><p class="hint">Select the account, enter a new password and save.</p></div>
+    <div class="reg-toolbar">
+      <div class="rt-row">
+        <span class="ma-badge item">Users</span>
+        <input id="umSearch" type="text" placeholder="Search users by ID, name, role or centre..." autocomplete="off">
+        <div class="rt-right"><span class="rt-count" id="umCount"></span></div>
       </div>
-      <div style="padding:18px">
-        <div class="sci-grid">
-          <div class="field"><label style="margin-bottom:5px">Center / ASO Admin</label><select id="rp_user"></select></div>
-          <div class="field"><label style="margin-bottom:5px">New Password</label><input type="password" id="rp_pass" placeholder="At least 4 characters" autocomplete="new-password"></div>
-          <div class="field"><label style="margin-bottom:5px">Confirm New Password</label><input type="password" id="rp_confirm" placeholder="Repeat new password" autocomplete="new-password"></div>
-        </div>
-        <div style="display:flex;align-items:center;gap:12px;margin-top:18px;flex-wrap:wrap">
-          <button type="button" class="btn primary" id="rp_btn">Reset Password</button>
-          <span class="hint" id="rp_note">Password must be at least 4 characters.</span>
-        </div>
-        <div class="login-err" id="rp_msg" style="margin-top:12px"></div>
+    </div>
+    <div class="card">
+      <div class="table-wrap">
+        <table class="ma-tbl dt">
+          <thead><tr><th>Login ID</th><th>Name</th><th>Role</th><th style="text-align:left">Centre</th></tr></thead>
+          <tbody id="umList"></tbody>
+        </table>
       </div>
     </div>
   `;
 
-  const loadUsers = () => sb.from('org_users').select('username, name, type').order('name', { ascending: true }).then(({ data, error }) => {
-    if (error) throw new Error(error.message);
-    document.getElementById('rp_user').innerHTML = data.map((c) => `<option value="${esc(c.username)}">${esc(c.name)} - ${esc(c.type)}</option>`).join('');
-  });
-  loadUsers().catch((err) => showResetMsg(err.message, true));
+  const q = (id) => document.getElementById(id);
+  let rows = [];
+  let centres = [];
+  let search = '';
+  const roleLabel = (role) => role === 'SUPERADMIN' ? 'Superadmin' : role === 'ASO_VIEWER' ? 'ASO Viewer' : 'Centre';
 
-  const msg = document.getElementById('rp_msg');
-  const showResetMsg = (text, isErr) => {
-    msg.textContent = text;
-    msg.style.display = 'block';
-    msg.style.color = isErr ? '' : 'var(--green)';
-    msg.style.background = isErr ? '' : 'var(--green-bg)';
-  };
+  function renderRows() {
+    const term = search.trim().toLowerCase();
+    const list = rows.filter((r) => !term || [r.username, r.name, r.role, r.centreName].some((v) => String(v || '').toLowerCase().includes(term)));
+    q('umCount').textContent = rows.length ? `${list.length} of ${rows.length}` : '';
+    q('umList').innerHTML = list.length ? list.map((r) => `<tr>
+      <td><span class="item-code">${esc(r.username)}</span></td>
+      <td><span class="item-name">${esc(r.name)}</span></td>
+      <td><span class="ma-status ${r.role === 'CENTRE' ? 'sub' : 'on'}">${esc(roleLabel(r.role))}</span></td>
+      <td style="text-align:left">${r.centreName ? esc(r.centreName) : '<span style="color:var(--muted)">-</span>'}</td>
+    </tr>`).join('') : `<tr><td colspan="4" class="empty">${rows.length ? 'No users match your search.' : 'No users yet.'}</td></tr>`;
+  }
 
-  document.getElementById('rp_btn').addEventListener('click', async () => {
-    const user = document.getElementById('rp_user').value;
-    const p1 = document.getElementById('rp_pass').value;
-    const p2 = document.getElementById('rp_confirm').value;
-    msg.style.display = 'none';
-    if (!user) return showResetMsg('Select a center', true);
-    if (!p1 || p1.length < 4) return showResetMsg('Password must be at least 4 characters', true);
-    if (p1 !== p2) return showResetMsg('Passwords do not match', true);
-    const btn = document.getElementById('rp_btn');
-    btn.disabled = true;
-    try {
-      const { data: u, error: uErr } = await sb.from('org_users').select('authId, name').eq('username', user).single();
-      if (uErr || !u) throw new Error('User not found');
-      if (SUPABASE_SECRET_KEY) {
-        const { error: resetErr } = await sbAdmin.auth.admin.updateUserById(u.authId, { password: p1 });
-        if (resetErr) throw new Error(resetErr.message || 'Reset failed');
-      } else {
-        const { error: rpcErr } = await sb.rpc('admin_reset_password', { target_username: user, new_password: p1 });
-        if (rpcErr) {
-          if (/function.*not exist|Could not find|rpc/i.test(String(rpcErr.message || ''))) throw new Error('Password reset is not available on this build yet. Contact the developer to apply the database function.');
-          throw new Error(rpcErr.message || 'Reset failed');
-        }
+  function load() {
+    return Promise.all([sb.rpc('admin_list_users'), fetchCenters()]).then(([res, centreRows]) => {
+      if (res.error) throw new Error(res.error.message);
+      rows = res.data || [];
+      centres = centreRows || [];
+      renderRows();
+    });
+  }
+
+  function openAddModal() {
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    overlay.innerHTML = `
+      <div class="modal" style="width:min(520px,94vw);max-width:none">
+        <div class="modal-head">
+          <div>
+            <h3>New User</h3>
+            <p class="hint">Login ID is used with @ims.local. Password must be at least 6 characters.</p>
+          </div>
+          <button class="btn sm" id="umClose">Close</button>
+        </div>
+        <div class="modal-body">
+          <div class="modal-grid" style="margin-top:12px">
+            <div class="field"><label>Login ID *</label><input id="umUsername" maxlength="60" placeholder="e.g. gurgaon" autocomplete="off"></div>
+            <div class="field"><label>Password *</label><input id="umPassword" type="password" placeholder="At least 6 characters" autocomplete="new-password"></div>
+            <div class="field full"><label>Name *</label><input id="umName" maxlength="120" placeholder="Display name" autocomplete="off"></div>
+            <div class="field"><label>Role *</label><select id="umRole">
+              <option value="CENTRE">Centre</option>
+              <option value="ASO_VIEWER">ASO Viewer</option>
+              <option value="SUPERADMIN">Superadmin</option>
+            </select></div>
+            <div class="field" id="umCentreField"><label>Centre *</label><select id="umCentre">
+              <option value="">Select centre</option>
+              ${centres.map((c) => `<option value="${c.id}">${esc(c.name)}</option>`).join('')}
+            </select></div>
+          </div>
+          <div class="m-actions">
+            <button class="btn" id="umCancel">Cancel</button>
+            <button class="btn primary" id="umSave">Create User</button>
+          </div>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+    const n = (id) => overlay.querySelector('#' + id);
+    const close = () => { document.body.removeChild(overlay); document.removeEventListener('keydown', escClose, true); };
+    const escClose = (e) => { if (e.key === 'Escape') close(); };
+    document.addEventListener('keydown', escClose, true);
+    n('umClose').addEventListener('click', close);
+    n('umCancel').addEventListener('click', close);
+    overlay.addEventListener('mousedown', (e) => { if (e.target === overlay) close(); });
+    const syncCentre = () => { n('umCentreField').style.display = n('umRole').value === 'CENTRE' ? '' : 'none'; };
+    n('umRole').addEventListener('change', syncCentre);
+    syncCentre();
+    n('umSave').addEventListener('click', async () => {
+      const username = n('umUsername').value.trim().toLowerCase();
+      const password = n('umPassword').value;
+      const name = n('umName').value.trim();
+      const role = n('umRole').value;
+      const centreId = role === 'CENTRE' ? n('umCentre').value : '';
+      if (!/^[a-z0-9_.-]+$/.test(username)) return toast('Login ID may contain only letters, numbers, dot, dash and underscore', true);
+      if (password.length < 6) return toast('Password must be at least 6 characters', true);
+      if (!name) return toast('Name is required', true);
+      if (role === 'CENTRE' && !centreId) return toast('Choose a centre', true);
+      const btn = n('umSave');
+      btn.disabled = true;
+      try {
+        const { error } = await sb.rpc('admin_create_user', {
+          p_username: username,
+          p_password: password,
+          p_name: name,
+          p_role: role,
+          p_centre_id: centreId ? Number(centreId) : null
+        });
+        if (error) throw new Error(error.message);
+        toast('User created: ' + username);
+        close();
+        load().catch((err) => toast(err.message, true));
+      } catch (err) {
+        btn.disabled = false;
+        toast(err.message, true);
       }
-      showResetMsg('Password reset for ' + u.name, false);
-      document.getElementById('rp_pass').value = '';
-      document.getElementById('rp_confirm').value = '';
-      toast('Password reset');
-    } catch (err) {
-      showResetMsg(err.message, true);
-    } finally {
-      btn.disabled = false;
-    }
-  });
+    });
+    setTimeout(() => { try { n('umUsername').focus(); } catch (e) {} }, 60);
+  }
+
+  q('umAdd').addEventListener('click', openAddModal);
+  q('umSearch').addEventListener('input', (e) => { search = e.target.value; renderRows(); });
+  load().catch((err) => toast(err.message, true));
 }
 </script>
 </body>
