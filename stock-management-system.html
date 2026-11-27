@@ -4675,7 +4675,7 @@ function renderUserMasterPage(user) {
     <div class="card">
       <div class="table-wrap">
         <table class="ma-tbl dt">
-          <thead><tr><th>Email / Login ID</th><th>Name</th><th>Role</th><th style="text-align:left">Centre</th></tr></thead>
+          <thead><tr><th>Email / Login ID</th><th>Name</th><th>Role</th><th style="text-align:left">Centre</th><th style="text-align:right">Actions</th></tr></thead>
           <tbody id="umList"></tbody>
         </table>
       </div>
@@ -4692,12 +4692,20 @@ function renderUserMasterPage(user) {
     const term = search.trim().toLowerCase();
     const list = rows.filter((r) => !term || [r.username, r.name, r.role, r.centreName].some((v) => String(v || '').toLowerCase().includes(term)));
     q('umCount').textContent = rows.length ? `${list.length} of ${rows.length}` : '';
-    q('umList').innerHTML = list.length ? list.map((r) => `<tr>
-      <td><span class="item-code">${esc(r.username)}</span></td>
-      <td><span class="item-name">${esc(r.name)}</span></td>
-      <td><span class="ma-status ${r.role === 'CENTRE' ? 'sub' : 'on'}">${esc(roleLabel(r.role))}</span></td>
-      <td style="text-align:left">${r.centreName ? esc(r.centreName) : '<span style="color:var(--muted)">-</span>'}</td>
-    </tr>`).join('') : `<tr><td colspan="4" class="empty">${rows.length ? 'No users match your search.' : 'No users yet.'}</td></tr>`;
+    q('umList').innerHTML = list.length ? list.map((r) => {
+      const isCurrent = String(r.username).toLowerCase() === String((user && user.username) || '').toLowerCase();
+      const canDelete = r.role !== 'SUPERADMIN' && !isCurrent;
+      return `<tr>
+        <td><span class="item-code">${esc(r.username)}</span></td>
+        <td><span class="item-name">${esc(r.name)}</span></td>
+        <td><span class="ma-status ${r.role === 'CENTRE' ? 'sub' : 'on'}">${esc(roleLabel(r.role))}</span></td>
+        <td style="text-align:left">${r.centreName ? esc(r.centreName) : '<span style="color:var(--muted)">-</span>'}</td>
+        <td><div class="doc-row-actions" style="justify-content:flex-end">
+          <button class="btn sm" data-uact="password" data-username="${esc(r.username)}" data-name="${esc(r.name)}">Change Password</button>
+          ${canDelete ? `<button class="btn red sm" data-uact="delete" data-username="${esc(r.username)}" data-name="${esc(r.name)}">Delete</button>` : '<span style="color:var(--muted)">Protected</span>'}
+        </div></td>
+      </tr>`;
+    }).join('') : `<tr><td colspan="5" class="empty">${rows.length ? 'No users match your search.' : 'No users yet.'}</td></tr>`;
   }
 
   function load() {
@@ -4707,6 +4715,58 @@ function renderUserMasterPage(user) {
       centres = centreRows || [];
       renderRows();
     });
+  }
+
+  function openPasswordModal(username, name) {
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    overlay.innerHTML = `
+      <div class="modal" style="width:min(460px,94vw);max-width:none">
+        <div class="modal-head">
+          <div>
+            <h3>Change Password</h3>
+            <p class="hint">Set a new password for ${esc(name)} (${esc(username)}). Password must be at least 6 characters.</p>
+          </div>
+          <button class="btn sm" id="upClose">Close</button>
+        </div>
+        <div class="modal-body">
+          <div class="modal-grid" style="margin-top:12px">
+            <div class="field full"><label>New Password *</label><input id="upPassword" type="password" placeholder="At least 6 characters" autocomplete="new-password"></div>
+            <div class="field full"><label>Confirm Password *</label><input id="upConfirm" type="password" placeholder="Repeat the new password" autocomplete="new-password"></div>
+          </div>
+          <div class="m-actions">
+            <button class="btn" id="upCancel">Cancel</button>
+            <button class="btn primary" id="upSave">Change Password</button>
+          </div>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+    const n = (id) => overlay.querySelector('#' + id);
+    const close = () => { document.body.removeChild(overlay); document.removeEventListener('keydown', escClose, true); };
+    const escClose = (e) => { if (e.key === 'Escape') close(); };
+    document.addEventListener('keydown', escClose, true);
+    n('upClose').addEventListener('click', close);
+    n('upCancel').addEventListener('click', close);
+    overlay.addEventListener('mousedown', (e) => { if (e.target === overlay) close(); });
+    n('upSave').addEventListener('click', async () => {
+      const password = n('upPassword').value;
+      const confirmPassword = n('upConfirm').value;
+      if (password.length < 6) return toast('Password must be at least 6 characters', true);
+      if (password !== confirmPassword) return toast('Passwords do not match', true);
+      const btn = n('upSave');
+      btn.disabled = true;
+      try {
+        const { error } = await sb.rpc('admin_update_user_password', { p_username: username, p_new_password: password });
+        if (error) throw new Error(error.message);
+        toast('Password changed: ' + username);
+        close();
+        load().catch((err) => toast(err.message, true));
+      } catch (err) {
+        btn.disabled = false;
+        toast(err.message, true);
+      }
+    });
+    setTimeout(() => { try { n('upPassword').focus(); } catch (e) {} }, 60);
   }
 
   function openAddModal() {
@@ -4785,6 +4845,26 @@ function renderUserMasterPage(user) {
     setTimeout(() => { try { n('umUsername').focus(); } catch (e) {} }, 60);
   }
 
+  q('umList').addEventListener('click', async (e) => {
+    const btn = e.target.closest('[data-uact]');
+    if (!btn) return;
+    const username = btn.dataset.username;
+    const name = btn.dataset.name || username;
+    if (btn.dataset.uact === 'password') { openPasswordModal(username, name); return; }
+    if (btn.dataset.uact === 'delete') {
+      if (!confirm('Delete login "' + username + '"? This cannot be undone.')) return;
+      btn.disabled = true;
+      try {
+        const { error } = await sb.rpc('admin_delete_user', { p_username: username });
+        if (error) throw new Error(error.message);
+        toast('Login deleted: ' + username);
+        load().catch((err) => toast(err.message, true));
+      } catch (err) {
+        btn.disabled = false;
+        toast(err.message, true);
+      }
+    }
+  });
   q('umAdd').addEventListener('click', openAddModal);
   q('umSearch').addEventListener('input', (e) => { search = e.target.value; renderRows(); });
   load().catch((err) => toast(err.message, true));
