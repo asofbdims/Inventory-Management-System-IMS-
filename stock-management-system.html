@@ -4658,7 +4658,7 @@ function renderUserMasterPage(user) {
     <div class="logo-banner">
       <div>
         <h2>User Master</h2>
-        <p>Create email IDs and passwords for read-only view and full-access CRUD accounts.</p>
+        <p>Create email IDs and passwords for centre, read-only view and full-access CRUD accounts.</p>
       </div>
       <div class="sr-actions">
         <span class="badge navy" style="font-size:13px;padding:6px 14px">SUPERADMIN</span>
@@ -4727,7 +4727,8 @@ function renderUserMasterPage(user) {
             <div class="field"><label>Password *</label><input id="umPassword" type="password" placeholder="At least 6 characters" autocomplete="new-password"></div>
             <div class="field full"><label>Name *</label><input id="umName" maxlength="120" placeholder="Display name" autocomplete="off"></div>
             <div class="field"><label>Role *</label><select id="umRole">
-              <option value="VIEW" selected>VIEW</option>
+              <option value="CENTRE" selected>CENTRE</option>
+              <option value="VIEW">VIEW</option>
               <option value="CRUD">CRUD</option>
             </select></div>
             <div class="field" id="umCentreField"><label>Centre *</label><select id="umCentre">
