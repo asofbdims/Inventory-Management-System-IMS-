@@ -681,6 +681,19 @@ const SUPABASE_URL = 'https://rfvevmckrjvcvlldtlaq.supabase.co';
 const IMS_CFG = (typeof window !== 'undefined' && window.IMS_CONFIG) || {};
 const SUPABASE_ANON_KEY = IMS_CFG.anonKey || '';
 const SM_EMAIL_DOMAIN = '@ims.local';
+const EMAIL_RE = /^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/i;
+
+function normalizeLoginId(value) {
+  const v = String(value == null ? '' : value).trim().toLowerCase();
+  if (!v) return '';
+  if (v.includes('@')) return EMAIL_RE.test(v) ? v : '';
+  return /^[a-z0-9_.-]+$/.test(v) ? v : '';
+}
+
+function loginEmail(value) {
+  const v = normalizeLoginId(value);
+  return v && !v.includes('@') ? v + SM_EMAIL_DOMAIN : v;
+}
 
 const { createClient } = window.supabase;
 const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -698,7 +711,9 @@ function storageFileUrl(p) {
 }
 
 async function login(username, password) {
-  const { data, error } = await sb.auth.signInWithPassword({ email: username.trim() + SM_EMAIL_DOMAIN, password });
+  const email = loginEmail(username);
+  if (!email) throw new Error('Enter a valid email ID or login ID');
+  const { data, error } = await sb.auth.signInWithPassword({ email, password });
   if (error) throw new Error(error.message === 'Invalid login credentials' ? 'Invalid credentials' : error.message);
   const { data: prof, error: perr } = await sb.from('profiles').select('*').eq('id', data.user.id).single();
   if (perr || !prof) throw new Error('Profile for this login was not found');
@@ -1812,15 +1827,15 @@ function renderLoginPage() {
       <p class="sub"></p>
 
       <form id="loginForm">
-        <label for="username">Username</label>
-        <input id="username" name="username" autocomplete="username" placeholder="e.g. admin" required>
+        <label for="username">Email ID</label>
+        <input id="username" name="username" autocomplete="username" placeholder="e.g. anurapanchal@gmail.com" required>
         <label for="password">Password</label>
         <input id="password" name="password" type="password" autocomplete="current-password" placeholder="e.g.adm" required>
         <button type="submit">Sign In</button>
       </form>
       <div class="login-err" id="err"></div>
 
-      <p class="hint"></p>
+      <p class="hint">Use your email ID or short login ID.</p>
     </div>
   `;
 
@@ -4643,7 +4658,7 @@ function renderUserMasterPage(user) {
     <div class="logo-banner">
       <div>
         <h2>User Master</h2>
-        <p>Create login IDs and passwords for centre, read-only view and full-access CRUD accounts.</p>
+        <p>Create email IDs and passwords for read-only view and full-access CRUD accounts.</p>
       </div>
       <div class="sr-actions">
         <span class="badge navy" style="font-size:13px;padding:6px 14px">SUPERADMIN</span>
@@ -4653,14 +4668,14 @@ function renderUserMasterPage(user) {
     <div class="reg-toolbar">
       <div class="rt-row">
         <span class="ma-badge item">Users</span>
-        <input id="umSearch" type="text" placeholder="Search users by ID, name, role or centre..." autocomplete="off">
+        <input id="umSearch" type="text" placeholder="Search users by email, name, role or centre..." autocomplete="off">
         <div class="rt-right"><span class="rt-count" id="umCount"></span></div>
       </div>
     </div>
     <div class="card">
       <div class="table-wrap">
         <table class="ma-tbl dt">
-          <thead><tr><th>Login ID</th><th>Name</th><th>Role</th><th style="text-align:left">Centre</th></tr></thead>
+          <thead><tr><th>Email / Login ID</th><th>Name</th><th>Role</th><th style="text-align:left">Centre</th></tr></thead>
           <tbody id="umList"></tbody>
         </table>
       </div>
@@ -4702,13 +4717,13 @@ function renderUserMasterPage(user) {
         <div class="modal-head">
           <div>
             <h3>New User</h3>
-            <p class="hint">Login ID is used with @ims.local. Password must be at least 6 characters.</p>
+            <p class="hint">Email ID is used for sign-in; short login IDs still work. Password must be at least 6 characters.</p>
           </div>
           <button class="btn sm" id="umClose">Close</button>
         </div>
         <div class="modal-body">
           <div class="modal-grid" style="margin-top:12px">
-            <div class="field"><label>Login ID *</label><input id="umUsername" maxlength="60" placeholder="e.g. gurgaon" autocomplete="off"></div>
+            <div class="field"><label>Email ID *</label><input id="umUsername" maxlength="120" placeholder="e.g. anurapanchal@gmail.com" autocomplete="off"></div>
             <div class="field"><label>Password *</label><input id="umPassword" type="password" placeholder="At least 6 characters" autocomplete="new-password"></div>
             <div class="field full"><label>Name *</label><input id="umName" maxlength="120" placeholder="Display name" autocomplete="off"></div>
             <div class="field"><label>Role *</label><select id="umRole">
@@ -4738,12 +4753,12 @@ function renderUserMasterPage(user) {
     n('umRole').addEventListener('change', syncCentre);
     syncCentre();
     n('umSave').addEventListener('click', async () => {
-      const username = n('umUsername').value.trim().toLowerCase();
+      const username = normalizeLoginId(n('umUsername').value);
       const password = n('umPassword').value;
       const name = n('umName').value.trim();
       const role = n('umRole').value;
       const centreId = role === 'CENTRE' ? n('umCentre').value : '';
-      if (!/^[a-z0-9_.-]+$/.test(username)) return toast('Login ID may contain only letters, numbers, dot, dash and underscore', true);
+      if (!username) return toast('Enter a valid email address or login ID', true);
       if (password.length < 6) return toast('Password must be at least 6 characters', true);
       if (!name) return toast('Name is required', true);
       if (role === 'CENTRE' && !centreId) return toast('Choose a centre', true);
