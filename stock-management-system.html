@@ -79,39 +79,36 @@ input,select,button{font-family:inherit;font-size:13.5px}
 .nav-item:hover{background:var(--sidebar-hover);color:#111}
 .nav-item.active{background:var(--sidebar-active);color:var(--sidebar-active-text);font-weight:600}
 .nav-drop{margin-bottom:1px}
-.nav-parent{display:flex;align-items:center;gap:11px;color:var(--sidebar-text);width:100%;background:none;border:none;padding:10px 12px;border-radius:8px;font-size:14.5px;font-weight:500;cursor:pointer;text-align:left;transition:background .15s,color .15s;font-family:inherit}
-.nav-parent svg{width:20px;height:20px;flex:0 0 auto}
+.nav-parent{display:flex;align-items:center;gap:10px;color:var(--sidebar-text);width:100%;min-height:38px;background:none;border:none;padding:9px 12px;border-radius:8px;font-size:13.5px;font-weight:500;cursor:pointer;text-align:left;transition:background .15s,color .15s;font-family:inherit}
+.nav-parent svg{width:17px;height:17px;flex:0 0 auto}
 .nav-parent:hover{background:var(--sidebar-hover);color:#111}
 .nav-parent.active{background:var(--sidebar-active);color:var(--sidebar-active-text);font-weight:600}
-.nav-parent .nav-chev{margin-left:auto;width:15px;height:15px;color:var(--sidebar-muted);transition:transform .18s}
+.nav-parent .nav-chev{margin-left:auto;width:14px;height:14px;color:var(--sidebar-muted);transition:transform .18s;flex:0 0 auto}
 .nav-parent.open .nav-chev{transform:rotate(180deg)}
 .nav-sub{max-height:0;overflow:hidden;transition:max-height .2s ease}
-.nav-sub.open{max-height:360px}
-.nav-sub-item{display:flex;align-items:center;gap:11px;color:var(--sidebar-text);padding:9px 12px 9px 30px;border-radius:8px;font-size:13.5px;font-weight:500;margin-bottom:1px;text-decoration:none;opacity:.85}
+.nav-sub.open{max-height:520px}
+.nav-sub-item{display:flex;align-items:center;gap:10px;color:var(--sidebar-text);min-height:38px;padding:9px 12px 9px 22px;border-radius:8px;font-size:13.5px;font-weight:500;margin-bottom:1px;text-decoration:none;opacity:.85}
 .nav-sub-item svg{width:17px;height:17px;flex:0 0 auto}
 .nav-sub-item:hover{background:var(--sidebar-hover);color:#111;opacity:1}
 .nav-sub-item.active{background:var(--sidebar-active);color:var(--sidebar-active-text);font-weight:600;opacity:1}
 .nav-drop2{margin-bottom:1px}
-.nav-drop2 .nav-parent{padding:9px 12px 9px 22px;font-size:13.5px}
-.nav-drop2 .nav-parent .nav-chev{width:14px;height:14px}
-.nav-drop2 .nav-sub-item{padding-left:42px;font-size:13px}
+.nav-drop2 .nav-parent{padding-left:22px}
+.nav-drop2 .nav-sub-item{padding-left:32px}
 .nav-sub2{max-height:0;overflow:hidden;transition:max-height .2s ease}
-.nav-sub2.open{max-height:280px}
+.nav-sub2.open{max-height:320px}
 .nav-drop3{margin-bottom:1px}
-.nav-drop3 .nav-parent{padding:8px 12px 8px 34px;font-size:13px}
-.nav-drop3 .nav-parent .nav-chev{width:13px;height:13px}
-.nav-drop3 .nav-sub-item{padding-left:54px;font-size:12.5px}
+.nav-drop3 .nav-parent{padding-left:32px}
+.nav-drop3 .nav-sub-item{padding-left:42px}
 .nav-sub3{max-height:0;overflow:hidden;transition:max-height .2s ease}
-.nav-sub3.open{max-height:220px}
+.nav-sub3.open{max-height:200px}
 .shell.mini .sidebar{width:78px}
 .shell.mini .side-brand{padding:18px 6px 14px}
 .shell.mini .side-brand > b,.shell.mini .side-brand small,.shell.mini .brand-period{display:none}
 .shell.mini .nav-label{display:none}
-.shell.mini .nav-item,.shell.mini .nav-parent{justify-content:center;padding:11px 0}
+.shell.mini .nav-item,.shell.mini .nav-parent,.shell.mini .nav-sub-item{justify-content:center;padding:10px 0;min-height:40px}
 .shell.mini .nav-item span,.shell.mini .nav-parent span,.shell.mini .nav-sub-item span{display:none}
 .shell.mini .nav-parent .nav-chev{display:none}
-.shell.mini .nav-sub-item{justify-content:center;padding:10px 0}
-.shell.mini .nav-sub.open,.shell.mini .nav-sub2.open,.shell.mini .nav-sub3.open{max-height:480px}
+.shell.mini .nav-sub.open,.shell.mini .nav-sub2.open,.shell.mini .nav-sub3.open{max-height:560px}
 .shell .main{flex:1;min-width:0;display:flex;flex-direction:column}
 .tophead{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 24px;border-bottom:1px solid var(--sidebar-border);background:var(--surface);position:sticky;top:0;z-index:40}
 .page-title{font-family:'Inter',system-ui,sans-serif;font-size:22px;font-weight:600;margin:0;color:#111}
@@ -139,12 +136,10 @@ main#content{max-width:1340px;margin:0 auto;padding:24px 24px 60px;width:100%}
   .side-brand > b,.side-brand small,.brand-period{display:none}
   .side-toggle{display:none}
   .nav-label{display:none}
-  .nav-item{justify-content:center;padding:10px 0}
+  .nav-item,.nav-parent,.nav-sub-item{justify-content:center;padding:10px 0;min-height:40px}
   .nav-item span,.nav-parent span,.nav-sub-item span{display:none}
-  .nav-parent{padding:10px 0;justify-content:center}
   .nav-parent .nav-chev{display:none}
-  .nav-sub.open,.nav-sub2.open,.nav-sub3.open{max-height:480px}
-  .nav-sub-item{justify-content:center;padding:8px 0}
+  .nav-sub.open,.nav-sub2.open,.nav-sub3.open{max-height:560px}
 }
 .item-row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;margin-bottom:8px;background:var(--surface)}
 .item-row .meta{font-size:12px;color:var(--muted)}
@@ -1656,19 +1651,15 @@ const GROUPS = [
   ];
   const navLeafHtml = (key) => `<a class="nav-sub-item${key === activePage ? ' active' : ''}" href="${PAGES[key].href}">${NAV_ICONS[PAGES[key].icon]}<span>${PAGES[key].label}</span></a>`;
   const navHasActive = (item) => {
-  if (typeof item === 'string') {
-    // Show Item Master children as active when on Item Master page
-    if (item.startsWith('masters-item')) return true;
-    return item === activePage;
-  }
-  return item.children.some(navHasActive);
-};
+    if (typeof item === 'string') return item === activePage;
+    return item.children.some(navHasActive);
+  };
   const navDropHtml = (item, depth) => {
     const open = item.children.some(navHasActive);
     const dropCls = depth === 0 ? 'nav-drop' : depth === 1 ? 'nav-drop2' : 'nav-drop3';
     const subCls = depth === 0 ? 'nav-sub' : depth === 1 ? 'nav-sub nav-sub2' : 'nav-sub nav-sub3';
     return `<div class="${dropCls}">
-      <button class="nav-parent${open ? ' open active' : ''}" type="button" aria-expanded="${open}">
+      <button class="nav-parent${open ? ' open' : ''}" type="button" aria-expanded="${open}">
         ${NAV_ICONS[item.icon]}<span>${item.label}</span>
         <svg class="nav-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
       </button>
