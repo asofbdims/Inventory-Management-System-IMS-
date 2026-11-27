@@ -630,6 +630,27 @@ td.empty,tr td.empty{color:var(--muted);text-align:center;padding:26px;white-spa
 .sci-paper-sign{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:18px 26px;padding-top:12px;margin-top:4px;border-top:1px dashed var(--line);font-size:12.5px;color:var(--muted);width:100%}
 .sci-paper-sign .sig{display:inline-block;min-width:130px;border-bottom:1px solid var(--line);height:24px;margin-left:6px}
 
+body.read-only #btnNew,
+body.read-only #btnManage,
+body.read-only #btnUploadSupport,
+body.read-only #rmSave,
+body.read-only #im_add,
+body.read-only #maAddItem,
+body.read-only #maAddCentre,
+body.read-only #maAddDoc,
+body.read-only .fd-actions,
+body.read-only .sci-up-card,
+body.read-only [data-cact="edit"],
+body.read-only [data-cact="del"],
+body.read-only [data-reg],
+body.read-only [data-act="save"],
+body.read-only [data-act="edit"],
+body.read-only [data-act="del"],
+body.read-only [data-act="deldoc"],
+body.read-only [data-act="upload"],
+body.read-only [data-form-action="approve"],
+body.read-only [data-form-action="reject"]{display:none !important}
+
 /* ---------- Print ---------- */
 @media print{
   .sidebar,.topbar,.logo-banner,.reg-toolbar,.reg-pills,.reg-pagination,.m-actions,.toast-wrap{display:none !important}
@@ -667,6 +688,8 @@ const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 function buildUser(p) {
   if (p.role === 'SUPERADMIN') return { id: 'superadmin', username: p.username, name: p.name, role: 'admin', type: 'ASO ADMIN' };
   if (p.role === 'ASO_VIEWER') return { id: 'aso_viewer', username: p.username, name: p.name, role: 'viewer', type: 'ASO VIEWER' };
+  if (p.role === 'VIEW') return { id: 'view', username: p.username, name: p.name, role: 'viewer', type: 'VIEW' };
+  if (p.role === 'CRUD') return { id: 'crud', username: p.username, name: p.name, role: 'admin', type: 'CRUD' };
   return { id: p.centreId, username: p.username, name: p.name, role: 'centre', type: p.userType || 'CENTRE', centreId: p.centreId, centreName: p.centreName };
 }
 
@@ -715,7 +738,7 @@ function clearSession() {
 }
 function isAdmin() {
   const u = getUser();
-  return !!u && (u.id === 'superadmin' || u.role === 'admin' || u.type === 'ASO ADMIN');
+  return !!u && (u.id === 'superadmin' || u.role === 'admin' || u.type === 'ASO ADMIN' || u.type === 'CRUD');
 }
 function isSuperAdmin() {
   const u = getUser();
@@ -723,7 +746,14 @@ function isSuperAdmin() {
 }
 function isViewer() {
   const u = getUser();
-  return !!u && (u.role === 'viewer' || u.type === 'ASO VIEWER');
+  return !!u && (u.role === 'viewer' || u.type === 'ASO VIEWER' || u.type === 'VIEW');
+}
+function isReadOnly() {
+  const u = getUser();
+  return !!u && (u.type === 'VIEW' || u.type === 'ASO VIEWER' || u.role === 'viewer');
+}
+function requireWrite() {
+  if (isReadOnly()) throw new Error('Your role has read-only access');
 }
 
 function isCentreLogin(user) {
@@ -783,6 +813,7 @@ async function fetchStock() {
 }
 
 async function updateStock(centerId, updates, units = {}) {
+  requireWrite();
   const rows = Object.keys(updates).map((item) => ({ centreId: Number(centerId), item, qty: Number(updates[item]), unit: units[item] != null ? String(units[item]) : '' }));
   if (!rows.length) return;
   const { error } = await sb.from('stock_items').upsert(rows, { onConflict: 'centreId,item' });
@@ -795,6 +826,7 @@ async function fetchStockRegister() {
 }
 
 async function createStockRegisterEntry(f) {
+  requireWrite();
   const { error } = await sb.from('stock_register').insert({
     centreId: Number(f.centreId),
     item: String(f.item || '').trim(),
@@ -812,6 +844,7 @@ async function createStockRegisterEntry(f) {
 }
 
 async function updateStockRegisterEntry(id, f) {
+  requireWrite();
   const patch = {
     pageNo: String(f.pageNo || '').trim(),
     approvalNo: String(f.approvalNo || '').trim(),
@@ -827,11 +860,13 @@ async function updateStockRegisterEntry(id, f) {
 }
 
 async function deleteStockRegisterEntry(id) {
+  requireWrite();
   const { error } = await sb.from('stock_register').delete().eq('id', Number(id));
   if (error) throw new Error(error.message);
 }
 
 async function addStockItem(name) {
+  requireWrite();
   const code = await nextItemCode();
   const { error } = await sb.from('items').insert({ name: name.trim(), code });
   if (error) throw new Error(error.message);
@@ -895,6 +930,7 @@ function itemFieldsPayload(fields) {
 }
 
 async function createStockItem(fields) {
+  requireWrite();
   const payload = itemFieldsPayload(fields);
   if (!payload.code) payload.code = await nextItemCode();
   if (!payload.classification) payload.classification = 'general';
@@ -903,6 +939,7 @@ async function createStockItem(fields) {
 }
 
 async function updateItemRecord(id, fields, previousName) {
+  requireWrite();
   const payload = itemFieldsPayload(fields);
   const name = payload.name;
   const { error } = await sb.from('items').update(payload).eq('id', Number(id));
@@ -914,6 +951,7 @@ async function updateItemRecord(id, fields, previousName) {
 }
 
 async function deleteStockItem(id, name) {
+  requireWrite();
   const { error: s } = await sb.from('stock_items').delete().eq('item', name);
   if (s) throw new Error(s.message);
   const { error: i } = await sb.from('items').delete().eq('id', Number(id));
@@ -971,11 +1009,13 @@ async function fetchDocuments() {
 }
 
 async function updateDocumentRecord(id, patch) {
+  requireWrite();
   const { error } = await sb.from('documents').update({ ...patch, updatedAt: new Date().toISOString() }).eq('id', Number(id));
   if (error) throw new Error(error.message);
 }
 
 async function createDocumentRecord(fields) {
+  requireWrite();
   const { error } = await sb.from('documents').insert({
     name: (fields.name || '').trim(),
     description: (fields.description || '').trim(),
@@ -985,6 +1025,7 @@ async function createDocumentRecord(fields) {
 }
 
 async function deleteDocumentRecord(id) {
+  requireWrite();
   const { error } = await sb.from('documents').delete().eq('id', Number(id));
   if (error) throw new Error(error.message);
 }
@@ -1010,6 +1051,7 @@ async function fetchSCIForms(qs) {
 }
 
 async function updateFormStatus(id, action) {
+  requireWrite();
   const status = action === 'approve' ? 'approved' : action === 'reject' ? 'rejected' : action;
   if (action === 'approve') {
     const { data: form, error: fErr } = await sb.from('sci_forms').select('*').eq('id', id).maybeSingle();
@@ -1024,6 +1066,7 @@ async function updateFormStatus(id, action) {
 }
 
 async function applyApprovalStock(form) {
+  requireWrite();
   const effect = SCI_STOCK_EFFECT[form.formType];
   const items = form.details && Array.isArray(form.details.items) ? form.details.items : null;
   if (!effect || !items || !items.length) return false;
@@ -1709,6 +1752,7 @@ function parseHash() {
 async function route() {
   const { path, params } = parseHash();
   const user = getUser();
+  document.body.classList.toggle('read-only', isReadOnly());
 
   if (path === '/login') {
     if (getToken() && user) { location.hash = '/dashboard'; return; }
@@ -1919,7 +1963,7 @@ function renderDashboardPage(user, routeParams) {
   }
 
   function render() {
-    const title = isAdmin() ? 'Main ASO Admin Dashboard' : isViewer() ? 'ASO Viewer Dashboard' : ((user && user.name) || 'Dashboard');
+    const title = isReadOnly() ? 'Read-only Viewer Dashboard' : isAdmin() ? 'Main ASO Admin Dashboard' : isViewer() ? 'ASO Viewer Dashboard' : ((user && user.name) || 'Dashboard');
     content.innerHTML = `
       <div class="logo-banner">
         <div>
@@ -3230,7 +3274,7 @@ function renderMastersPage(user, focus) {
   ];
   CENTRE_COLS.push({ key: 'actions', label: '', sortable: false, cls: 'col-sticky' });
 
-  const canManageCentreRow = (row) => isAdmin() || isViewer() || (centreLogin && String(row.id) !== String(user.centreId));
+  const canManageCentreRow = (row) => !isReadOnly() && (isAdmin() || isViewer() || (centreLogin && String(row.id) !== String(user.centreId)));
 
   function renderCentreHead() {
     buildHead('maCentreHead', CENTRE_COLS, centreSort, () => { renderCentreHead(); renderCentreRows(); });
@@ -3318,6 +3362,7 @@ function renderMastersPage(user, focus) {
     n('cmCancel').addEventListener('click', close);
     overlay.addEventListener('mousedown', (e) => { if (e.target === overlay) close(); });
     n('cmSave').addEventListener('click', async () => {
+      try { requireWrite(); } catch (err) { return toast(err.message, true); }
       const name = n('cmName').value.trim();
       if (!name) return toast('Centre name is required', true);
       const type = n('cmType').value;
@@ -3350,6 +3395,7 @@ function renderMastersPage(user, focus) {
        if (!canManageCentreRow(c)) return toast('Your centre is the scope root and cannot be changed here', true);
        if (btn.dataset.cact === 'edit') openCentreModal(c);
       else if (btn.dataset.cact === 'del') {
+        try { requireWrite(); } catch (err) { return toast(err.message, true); }
         const kids = centreRows.filter((x) => String(x.parentId) === String(c.id));
         if (kids.length) return toast('Cannot delete "' + c.name + '" - ' + kids.length + ' sub centre(s) are under it. Move or delete them first.', true);
         if (!confirm('Delete centre "' + c.name + '"? Its stock rows and SCI forms will also be removed. This cannot be undone.')) return;
@@ -3818,6 +3864,7 @@ function renderMastersPage(user, focus) {
     if (!input.matches('[data-act="upload"]')) return;
     const file = input.files[0];
     if (!file) return;
+    try { requireWrite(); } catch (err) { return toast(err.message, true); }
     if (file.size > 2 * 1024 * 1024 || !/\.docx$/i.test(file.name)) return toast('Choose a .docx Word file no larger than 2 MB', true);
     const id = input.dataset.id;
     const path = 'docs/' + Date.now() + '_' + file.name;
@@ -3848,6 +3895,7 @@ function renderSCIDownloadPage(user, focus) {
   const href = file ? encodeURI('downloads/' + file) : '#';
   const u2 = getUser();
   const isCentreUser = u2 && typeof u2.id === 'number' && false;
+  const showUpload = !isCentreUser && !isReadOnly();
   content.innerHTML = `
     <div class="logo-banner">
       <div>
@@ -3860,16 +3908,16 @@ function renderSCIDownloadPage(user, focus) {
       <h3>${esc(meta.title)}</h3>
       <p>${esc(meta.hint || '')}</p>
       <a class="btn primary sci-dl-btn" href="${href}" download rel="noopener">Download form (.PDF)</a>
-      <p class="hint">Official PDF form${isCentreUser ? '.' : ' - open it, fill in the details, then upload the filled .docx below.'}</p>
+      <p class="hint">Official PDF form${showUpload ? ' - open it, fill in the details, then upload the filled .docx below.' : '.'}</p>
     </div>
-    ${isCentreUser ? '' : `<div class="card sci-up-card">
+    ${showUpload ? `<div class="card sci-up-card">
       <div class="sci-dl-chip">UPLOAD</div>
       <h3>Upload Filled Form</h3>
       <p>Upload the ${esc(code)} form you filled in Word. The items and quantities are read out of the document - you can check and fix them before submitting. Stock changes only after an admin approves the form.</p>
       <input id="sciFillFile" class="sci-up-file" type="file" accept=".docx">
       <p class="hint">Word (.docx) only, up to 2 MB.</p>
-    </div>`}`;
-  if (!isCentreUser) {
+    </div>` : ''}`;
+  if (showUpload) {
     const input = document.getElementById('sciFillFile');
     if (input) input.addEventListener('change', () => {
       const f = input.files && input.files[0];
@@ -4142,6 +4190,7 @@ async function openSCIUploadModal(file, expectedCode) {
   })();
 
   async function submitUpload() {
+    try { requireWrite(); } catch (err) { return toast(err.message, true); }
     const btn = n('suSave');
     const type = typeSel.value;
     const meta = SCI_FORM_META.find((m) => m.code === type) || SCI_FORM_META[0];
@@ -4457,6 +4506,7 @@ END SCI PAGE HELPERS */
 
   async function submitForm(event) {
     event.preventDefault();
+    try { requireWrite(); } catch (err) { return toast(err.message, true); }
     const file = document.getElementById('sci_document').files[0];
     const badgeInput = document.getElementById('sci_badge').value.trim().toUpperCase();
     if (!/^[A-Z0-9]{12}$/.test(badgeInput)) return toast('Badge number must contain exactly 12 letters and numbers', true);
@@ -4593,7 +4643,7 @@ function renderUserMasterPage(user) {
     <div class="logo-banner">
       <div>
         <h2>User Master</h2>
-        <p>Create login IDs and passwords for centre, ASO viewer and superadmin accounts.</p>
+        <p>Create login IDs and passwords for centre, read-only view and full-access CRUD accounts.</p>
       </div>
       <div class="sr-actions">
         <span class="badge navy" style="font-size:13px;padding:6px 14px">SUPERADMIN</span>
@@ -4621,7 +4671,7 @@ function renderUserMasterPage(user) {
   let rows = [];
   let centres = [];
   let search = '';
-  const roleLabel = (role) => role === 'SUPERADMIN' ? 'Superadmin' : role === 'ASO_VIEWER' ? 'ASO Viewer' : 'Centre';
+  const roleLabel = (role) => role === 'CENTRE' ? 'Centre' : role === 'VIEW' ? 'Viewer (Read-only)' : role === 'CRUD' ? 'CRUD (Full Access)' : role === 'SUPERADMIN' ? 'Superadmin' : role === 'ASO_VIEWER' ? 'ASO Viewer' : String(role || '-');
 
   function renderRows() {
     const term = search.trim().toLowerCase();
@@ -4662,9 +4712,8 @@ function renderUserMasterPage(user) {
             <div class="field"><label>Password *</label><input id="umPassword" type="password" placeholder="At least 6 characters" autocomplete="new-password"></div>
             <div class="field full"><label>Name *</label><input id="umName" maxlength="120" placeholder="Display name" autocomplete="off"></div>
             <div class="field"><label>Role *</label><select id="umRole">
-              <option value="CENTRE">Centre</option>
-              <option value="ASO_VIEWER">ASO Viewer</option>
-              <option value="SUPERADMIN">Superadmin</option>
+              <option value="VIEW" selected>VIEW</option>
+              <option value="CRUD">CRUD</option>
             </select></div>
             <div class="field" id="umCentreField"><label>Centre *</label><select id="umCentre">
               <option value="">Select centre</option>
