@@ -1144,8 +1144,8 @@ async function applyApprovalStock(form) {
       qtyB: after,
       reason: `SCI ${form.formType} approved - stock auto-adjusted`,
       remarks: `Approved form ${form.id} - ${form.formType} -> ${centreName}`,
-      sciFormId: form.formType === 'SCI15' || form.formType === 'SCI43' || form.formType === 'SCI34' || form.formType === 'SCI76' ? Number(form.id) : null,
-      sciData: form.formType === 'SCI15' || form.formType === 'SCI43' || form.formType === 'SCI34' || form.formType === 'SCI76' ? { formType: form.formType, fields: {} } : {},
+      sciFormId: form.formType === 'SCI15' || form.formType === 'SCI43' || form.formType === 'SCI34' || form.formType === 'SCI76' || form.formType === 'SCI53' ? Number(form.id) : null,
+      sciData: form.formType === 'SCI15' || form.formType === 'SCI43' || form.formType === 'SCI34' || form.formType === 'SCI76' || form.formType === 'SCI53' ? { formType: form.formType, fields: {} } : {},
       verifiedBy: approver
     });
   }
@@ -2493,6 +2493,29 @@ function renderStockPage(user, routeParams) {
     { key: 'receivedBy', label: 'Material Received By' }
   ];
   const SCI76_KEYS = SCI76_FIELDS.map((f) => 'sci76_' + f.key);
+  const SCI53_FIELDS = [
+    { key: 'beasFileNo', label: 'Beas File No.' },
+    { key: 'formNo', label: 'Form No.' },
+    { key: 'formDate', label: 'Form Date' },
+    { key: 'satsangPlace', label: 'Name of Satsang Place' },
+    { key: 'attachedTo', label: 'Attached To' },
+    { key: 'area', label: 'Area' },
+    { key: 'avgAttendance', label: 'Average Weekly Attendance' },
+    { key: 'srNo', label: 'SCI53 Sr.No.' },
+    { key: 'article', label: 'Name of Article' },
+    { key: 'presentRequirement', label: 'Present Requirement Qty' },
+    { key: 'unit', label: 'Unit' },
+    { key: 'justification', label: 'Justification for Issue' },
+    { key: 'existingQty', label: 'Existing Holding Qty' },
+    { key: 'existingDate', label: 'Existing Holding Date of Acquisition' },
+    { key: 'storageFacility', label: 'Details of Storage Facility Available' },
+    { key: 'remarks', label: 'Remarks' },
+    { key: 'areaSecNo', label: 'Area Secretary No.' },
+    { key: 'areaSecDate', label: 'Area Secretary Date' },
+    { key: 'zonalNo', label: 'Zonal Secretary No.' },
+    { key: 'zonalDate', label: 'Zonal Secretary Date' }
+  ];
+  const SCI53_KEYS = SCI53_FIELDS.map((f) => 'sci53_' + f.key);
   const COLS = [
     { key: 'sno',          label: 'S. No.',                            group: null,                 sortable: false, cls: 'sno', always: true },
     { key: 'item',         label: 'Particulars',                       group: null,                 sortable: true,  always: true },
@@ -2511,15 +2534,16 @@ function renderStockPage(user, routeParams) {
     .concat(SCI43_FIELDS.map((f) => ({ key: 'sci43_' + f.key, label: f.label, group: 'SCI43 Details', sortable: false })))
     .concat(SCI34_FIELDS.map((f) => ({ key: 'sci34_' + f.key, label: f.label, group: 'SCI34 Details', sortable: false })))
     .concat(SCI76_FIELDS.map((f) => ({ key: 'sci76_' + f.key, label: f.label, group: 'SCI76 Details', sortable: false })))
+    .concat(SCI53_FIELDS.map((f) => ({ key: 'sci53_' + f.key, label: f.label, group: 'SCI53 Details', sortable: false })))
     .concat([{ key: 'actions', label: 'Actions', group: null, sortable: false, cls: 'col-sticky', always: true }]);
-  const COLS_KEY = 'ims.cols.stock.v5';
+  const COLS_KEY = 'ims.cols.stock.v6';
   let hiddenCols = [];
   const savedCols = localStorage.getItem(COLS_KEY);
   if (savedCols !== null) {
     try { hiddenCols = JSON.parse(savedCols || '[]'); } catch (e) { hiddenCols = []; }
     if (!Array.isArray(hiddenCols)) hiddenCols = [];
   } else {
-    hiddenCols = ['approvalNo'].concat(SCI15_KEYS, SCI43_KEYS, SCI34_KEYS, SCI76_KEYS);
+    hiddenCols = ['approvalNo'].concat(SCI15_KEYS, SCI43_KEYS, SCI34_KEYS, SCI76_KEYS, SCI53_KEYS);
   }
   function sci15Data(en) {
     const d = en && en.sciData ? en.sciData : {};
@@ -2543,6 +2567,12 @@ function renderStockPage(user, routeParams) {
     const d = en && en.sciData ? en.sciData : {};
     if (d.fields && typeof d.fields === 'object') return d.fields;
     if (d.formType === 'SCI76') return d;
+    return {};
+  }
+  function sci53Data(en) {
+    const d = en && en.sciData ? en.sciData : {};
+    if (d.fields && typeof d.fields === 'object') return d.fields;
+    if (d.formType === 'SCI53') return d;
     return {};
   }
   function sciFieldHtml(f, prefix, values) {
@@ -2586,6 +2616,7 @@ function renderStockPage(user, routeParams) {
         if (key.indexOf('sci43_') === 0) return String(sci43Data(en)[key.slice(6)] || '').toLowerCase();
         if (key.indexOf('sci34_') === 0) return String(sci34Data(en)[key.slice(6)] || '').toLowerCase();
         if (key.indexOf('sci76_') === 0) return String(sci76Data(en)[key.slice(6)] || '').toLowerCase();
+        if (key.indexOf('sci53_') === 0) return String(sci53Data(en)[key.slice(6)] || '').toLowerCase();
         return '';
     }
   }
@@ -2950,6 +2981,7 @@ function renderStockPage(user, routeParams) {
     const sci43 = sci43Data(en);
     const sci34 = sci34Data(en);
     const sci76 = sci76Data(en);
+    const sci53 = sci53Data(en);
     const sciFormLabel = String((en.sciData && en.sciData.formType) || (en.sciFormId ? 'SCI' : ''));
     const cell = {
       sno: `<td class="sno">${sno}</td>`,
@@ -2975,6 +3007,7 @@ function renderStockPage(user, routeParams) {
     SCI43_FIELDS.forEach((f) => { cell['sci43_' + f.key] = `<td class="wrap">${esc(sci43[f.key] || '-')}</td>`; });
     SCI34_FIELDS.forEach((f) => { cell['sci34_' + f.key] = `<td class="wrap">${esc(sci34[f.key] || '-')}</td>`; });
     SCI76_FIELDS.forEach((f) => { cell['sci76_' + f.key] = `<td class="wrap">${esc(sci76[f.key] || '-')}</td>`; });
+    SCI53_FIELDS.forEach((f) => { cell['sci53_' + f.key] = `<td class="wrap">${esc(sci53[f.key] || '-')}</td>`; });
     return `<tr data-id="${en.id}">${visibleCols().map((c) => cell[c.key]).join('')}</tr>`;
   }
 
@@ -2987,7 +3020,7 @@ function renderStockPage(user, routeParams) {
     const scoped = scopeCenters();
     const sciData = entry && entry.sciData ? entry.sciData : {};
     const sciFormType = String(sciData.formType || '');
-    const sciEntry = sciFormType === 'SCI43' ? sci43Data(entry || {}) : sciFormType === 'SCI34' ? sci34Data(entry || {}) : sciFormType === 'SCI76' ? sci76Data(entry || {}) : sci15Data(entry || {});
+    const sciEntry = sciFormType === 'SCI43' ? sci43Data(entry || {}) : sciFormType === 'SCI34' ? sci34Data(entry || {}) : sciFormType === 'SCI76' ? sci76Data(entry || {}) : sciFormType === 'SCI53' ? sci53Data(entry || {}) : sci15Data(entry || {});
     const sciFormId = entry && entry.sciFormId ? Number(entry.sciFormId) : '';
     const overlay = document.createElement('div');
     overlay.className = 'modal-overlay';
@@ -3041,7 +3074,7 @@ function renderStockPage(user, routeParams) {
           <div class="modal-sec">
             <div class="modal-sec-title">SCI Form</div>
             <div class="modal-grid">
-              <div class="field"><label>SCI Form</label><select id="rm_sciFormType"><option value=""${sciFormType ? '' : ' selected'}>None</option><option value="SCI15"${sciFormType === 'SCI15' ? ' selected' : ''}>SCI15</option><option value="SCI43"${sciFormType === 'SCI43' ? ' selected' : ''}>SCI43</option><option value="SCI34"${sciFormType === 'SCI34' ? ' selected' : ''}>SCI34</option><option value="SCI76"${sciFormType === 'SCI76' ? ' selected' : ''}>SCI76</option></select></div>
+              <div class="field"><label>SCI Form</label><select id="rm_sciFormType"><option value=""${sciFormType ? '' : ' selected'}>None</option><option value="SCI15"${sciFormType === 'SCI15' ? ' selected' : ''}>SCI15</option><option value="SCI43"${sciFormType === 'SCI43' ? ' selected' : ''}>SCI43</option><option value="SCI34"${sciFormType === 'SCI34' ? ' selected' : ''}>SCI34</option><option value="SCI76"${sciFormType === 'SCI76' ? ' selected' : ''}>SCI76</option><option value="SCI53"${sciFormType === 'SCI53' ? ' selected' : ''}>SCI53</option></select></div>
               <div class="field"><label>Linked SCI Form</label><select id="rm_sciFormId"><option value=""${sciFormId ? '' : ' selected'}>None</option>${state.sciForms.map((f) => `<option value="${f.id}" data-form-type="${esc(f.formType || '')}"${Number(sciFormId) === Number(f.id) ? ' selected' : ''}>${esc(f.formType || 'SCI')} #${f.id} - ${esc(f.centreName || '')} ${esc(String((f.details && f.details.approvalNo) || ''))}</option>`).join('')}</select></div>
             </div>
           </div>
@@ -3060,6 +3093,10 @@ function renderStockPage(user, routeParams) {
           <div class="modal-sec" id="rm_sci76Group" style="${sciFormType === 'SCI76' ? '' : 'display:none'}">
             <div class="modal-sec-title">SCI76 Details</div>
             <div class="modal-grid">${SCI76_FIELDS.map((f) => sciFieldHtml(f, 's76', sciEntry)).join('')}</div>
+          </div>
+          <div class="modal-sec" id="rm_sci53Group" style="${sciFormType === 'SCI53' ? '' : 'display:none'}">
+            <div class="modal-sec-title">SCI53 Details</div>
+            <div class="modal-grid">${SCI53_FIELDS.map((f) => sciFieldHtml(f, 's53', sciEntry)).join('')}</div>
           </div>
         </div>
         <div class="m-actions">
@@ -3082,6 +3119,7 @@ function renderStockPage(user, routeParams) {
       const g43 = n('rm_sci43Group'); if (g43) g43.style.display = t === 'SCI43' ? '' : 'none';
       const g34 = n('rm_sci34Group'); if (g34) g34.style.display = t === 'SCI34' ? '' : 'none';
       const g76 = n('rm_sci76Group'); if (g76) g76.style.display = t === 'SCI76' ? '' : 'none';
+      const g53 = n('rm_sci53Group'); if (g53) g53.style.display = t === 'SCI53' ? '' : 'none';
       const sel = n('rm_sciFormId');
       Array.from(sel.options).forEach((o) => { if (o.value) o.style.display = !t || o.dataset.formType === t ? '' : 'none'; });
       const current = sel.options[sel.selectedIndex];
@@ -3131,10 +3169,10 @@ function renderStockPage(user, routeParams) {
       };
       const selectedSciForm = n('rm_sciFormType').value;
       const selectedSciFormId = n('rm_sciFormId').value;
-      if (selectedSciForm === 'SCI15' || selectedSciForm === 'SCI43' || selectedSciForm === 'SCI34' || selectedSciForm === 'SCI76') {
+      if (selectedSciForm === 'SCI15' || selectedSciForm === 'SCI43' || selectedSciForm === 'SCI34' || selectedSciForm === 'SCI76' || selectedSciForm === 'SCI53') {
         const sciFields = {};
-        const sciDefs = selectedSciForm === 'SCI76' ? SCI76_FIELDS : selectedSciForm === 'SCI34' ? SCI34_FIELDS : selectedSciForm === 'SCI43' ? SCI43_FIELDS : SCI15_FIELDS;
-        const prefix = selectedSciForm === 'SCI76' ? 'rm_s76_' : selectedSciForm === 'SCI34' ? 'rm_s34_' : selectedSciForm === 'SCI43' ? 'rm_s43_' : 'rm_s15_';
+        const sciDefs = selectedSciForm === 'SCI53' ? SCI53_FIELDS : selectedSciForm === 'SCI76' ? SCI76_FIELDS : selectedSciForm === 'SCI34' ? SCI34_FIELDS : selectedSciForm === 'SCI43' ? SCI43_FIELDS : SCI15_FIELDS;
+        const prefix = selectedSciForm === 'SCI53' ? 'rm_s53_' : selectedSciForm === 'SCI76' ? 'rm_s76_' : selectedSciForm === 'SCI34' ? 'rm_s34_' : selectedSciForm === 'SCI43' ? 'rm_s43_' : 'rm_s15_';
         sciDefs.forEach((f) => { sciFields[f.key] = escTe(prefix + f.key)(); });
         fields.sciFormId = selectedSciFormId ? Number(selectedSciFormId) : null;
         fields.sciData = { formType: selectedSciForm, fields: sciFields };
@@ -3207,6 +3245,7 @@ function renderStockPage(user, routeParams) {
         if (key.indexOf('sci43_') === 0) return sci43Data(en)[key.slice(6)] || '';
         if (key.indexOf('sci34_') === 0) return sci34Data(en)[key.slice(6)] || '';
         if (key.indexOf('sci76_') === 0) return sci76Data(en)[key.slice(6)] || '';
+        if (key.indexOf('sci53_') === 0) return sci53Data(en)[key.slice(6)] || '';
         return '';
       };
       const source = state.entries
