@@ -840,6 +840,8 @@ async function createStockRegisterEntry(f) {
     unit: String(f.unit || '').trim(),
     reason: String(f.reason || '').trim(),
     remarks: String(f.remarks || '').trim(),
+    sciFormId: f.sciFormId || null,
+    sciData: f.sciData || {},
     verifiedBy: (getUser() && getUser().name) || ''
   });
   if (error) throw new Error(error.message);
@@ -855,7 +857,9 @@ async function updateStockRegisterEntry(id, f) {
     qtyB: Math.max(0, Number(f.qtyB) || 0),
     unit: String(f.unit || '').trim(),
     reason: String(f.reason || '').trim(),
-    remarks: String(f.remarks || '').trim()
+    remarks: String(f.remarks || '').trim(),
+    sciFormId: f.sciFormId || null,
+    sciData: f.sciData || {}
   };
   const { error } = await sb.from('stock_register').update(patch).eq('id', Number(id));
   if (error) throw new Error(error.message);
@@ -1140,6 +1144,8 @@ async function applyApprovalStock(form) {
       qtyB: after,
       reason: `SCI ${form.formType} approved - stock auto-adjusted`,
       remarks: `Approved form ${form.id} - ${form.formType} -> ${centreName}`,
+      sciFormId: form.formType === 'SCI15' ? Number(form.id) : null,
+      sciData: form.formType === 'SCI15' ? { formType: 'SCI15', fields: {} } : {},
       verifiedBy: approver
     });
   }
@@ -2334,7 +2340,7 @@ function renderSCIFormsLogPage(user) {
 function renderStockPage(user, routeParams) {
   document.body.classList.remove('login-page');
   const content = document.getElementById('content');
-  const state = { centers: [], items: [], stock: {}, units: {}, entries: [] };
+  const state = { centers: [], items: [], stock: {}, units: {}, entries: [], sci15Forms: [] };
   let anchorId = null;
   let selectedCenter = null;
   let diffFilter = 'clean';
@@ -2387,24 +2393,66 @@ function renderStockPage(user, routeParams) {
   const diffTxt = (d) => (d > 0 ? '+' : '') + d;
   const diffCls = (d) => d < 0 ? 'neg' : (d > 0 ? 'pos' : 'zero');
   /* ----- Data-table engine (Phase 2) ----- */
+  const SCI15_FIELDS = [
+    { key: 'beasFileNo', label: 'BEAS File No.' },
+    { key: 'formNo', label: 'Form No.' },
+    { key: 'formDate', label: 'Form Date' },
+    { key: 'satsangPlace', label: 'Satsang Place' },
+    { key: 'attachedTo', label: 'Attached To' },
+    { key: 'area', label: 'Area' },
+    { key: 'avgAttendance', label: 'Average Weekly Attendance' },
+    { key: 'srNo', label: 'SCI15 Sr.No.' },
+    { key: 'article', label: 'Name of Article' },
+    { key: 'presentOffer', label: 'Present Offer' },
+    { key: 'cost', label: 'Cost of Item' },
+    { key: 'justification', label: 'Justification for Acceptance / Purpose' },
+    { key: 'existingQty', label: 'Existing Holding Qty' },
+    { key: 'existingDate', label: 'Existing Holding Date' },
+    { key: 'donorName', label: 'Donor Name' },
+    { key: 'donorAddress', label: 'Donor Address' },
+    { key: 'cashSewa', label: 'Against Cash Sewa' },
+    { key: 'amount', label: 'Amount' },
+    { key: 'recommendationNo', label: 'Recommendation No.' },
+    { key: 'recommendationDate', label: 'Recommendation Date' },
+    { key: 'secretaryNo', label: 'Secretary RSSB No.' },
+    { key: 'secretaryDate', label: 'Secretary RSSB Date' },
+    { key: 'zonalNo', label: 'Zonal No.' },
+    { key: 'zonalDate', label: 'Zonal Date' },
+    { key: 'areaNo', label: 'Area No.' },
+    { key: 'areaDate', label: 'Area Date' }
+  ];
+  const SCI15_KEYS = SCI15_FIELDS.map((f) => 'sci15_' + f.key);
   const COLS = [
     { key: 'sno',          label: 'S. No.',                            group: null,                 sortable: false, cls: 'sno', always: true },
-    { key: 'centre',       label: 'Satsang Place',                     group: 'Centre & Item',      sortable: true,  always: true },
-    { key: 'item',         label: 'Name of Item',                      group: 'Centre & Item',      sortable: true },
+    { key: 'item',         label: 'Particulars',                       group: null,                 sortable: true,  always: true },
+    { key: 'qtyA',         label: 'Opening Balance',                   group: null,                 sortable: true,  align: 'right' },
+    { key: 'approvalDate', label: 'Date Receipt',                      group: null,                 sortable: true },
+    { key: 'verifiedAt',   label: 'Date of Opening Balance',           group: null,                 sortable: true },
+    { key: 'sciForm',      label: 'SCI Form',                          group: null,                 sortable: true },
     { key: 'approvalNo',   label: 'Approval Number',                   group: 'Approval',           sortable: true },
-    { key: 'approvalDate', label: 'Approval Date',                     group: 'Approval',           sortable: true },
-    { key: 'qtyA',         label: 'Quantity as per Stock Register (A)', group: 'Stock Verification', sortable: true, align: 'right' },
-    { key: 'qtyB',         label: 'Physically Available Quantity (B)',  group: 'Stock Verification', sortable: true, align: 'right' },
-    { key: 'difference',   label: 'Difference (if any) (A\u2212B)',     group: 'Stock Verification', sortable: true, align: 'right' },
+    { key: 'qtyB',         label: 'Physically Available Quantity (B)', group: 'Stock Verification', sortable: true,  align: 'right' },
+    { key: 'difference',   label: 'Difference (if any) (A\u2212B)',     group: 'Stock Verification', sortable: true,  align: 'right' },
     { key: 'reason',       label: 'Reason for Difference',             group: 'Notes',              sortable: false },
     { key: 'remarks',      label: 'Remarks',                           group: 'Notes',              sortable: false },
-    { key: 'pageNo',       label: 'Stock Register Page No.',           group: 'Notes',              sortable: true },
-    { key: 'actions',      label: 'Actions',                           group: null,                 sortable: false, cls: 'col-sticky', always: true },
-  ];
-  const COLS_KEY = 'ims.cols.stock';
+    { key: 'pageNo',       label: 'Stock Register Page No.',           group: 'Notes',              sortable: true }
+  ]
+    .concat(SCI15_FIELDS.map((f) => ({ key: 'sci15_' + f.key, label: f.label, group: 'SCI15 Details', sortable: false })))
+    .concat([{ key: 'actions', label: 'Actions', group: null, sortable: false, cls: 'col-sticky', always: true }]);
+  const COLS_KEY = 'ims.cols.stock.v2';
   let hiddenCols = [];
-  try { hiddenCols = JSON.parse(localStorage.getItem(COLS_KEY) || '[]'); } catch (e) { hiddenCols = []; }
-  if (!Array.isArray(hiddenCols)) hiddenCols = [];
+  const savedCols = localStorage.getItem(COLS_KEY);
+  if (savedCols !== null) {
+    try { hiddenCols = JSON.parse(savedCols || '[]'); } catch (e) { hiddenCols = []; }
+    if (!Array.isArray(hiddenCols)) hiddenCols = [];
+  } else {
+    hiddenCols = ['approvalNo'].concat(SCI15_KEYS);
+  }
+  function sci15Data(en) {
+    const d = en && en.sciData ? en.sciData : {};
+    if (d.fields && typeof d.fields === 'object') return d.fields;
+    if (d.formType === 'SCI15') return d;
+    return {};
+  }
   let sortState = { key: null, dir: 'asc' };
 
   function visibleCols() { return COLS.filter((c) => c.always || hiddenCols.indexOf(c.key) === -1); }
@@ -2417,13 +2465,17 @@ function renderStockPage(user, routeParams) {
       case 'item': return String(en.item || '').toLowerCase();
       case 'approvalNo': return String(en.approvalNo || '').toLowerCase();
       case 'approvalDate': return en.approvalDate ? String(en.approvalDate) : '';
+      case 'verifiedAt': return en.verifiedAt ? String(en.verifiedAt) : '';
+      case 'sciForm': return String((en.sciData && en.sciData.formType) || (en.sciFormId ? 'SCI' : '')).toUpperCase();
       case 'qtyA': return Number(en.qtyA) || 0;
       case 'qtyB': return Number(en.qtyB) || 0;
       case 'difference': return Number(en.difference) || 0;
       case 'reason': return String(en.reason || '').toLowerCase();
       case 'remarks': return String(en.remarks || '').toLowerCase();
       case 'pageNo': return String(en.pageNo || '').toLowerCase();
-      default: return '';
+      default:
+        if (key.indexOf('sci15_') === 0) return String(sci15Data(en)[key.slice(6)] || '').toLowerCase();
+        return '';
     }
   }
   function sortRows(list) {
@@ -2476,11 +2528,12 @@ function renderStockPage(user, routeParams) {
 
 
   async function load() {
-    const [centers, stockData, entries] = await Promise.all([fetchCenters(), fetchStock(), fetchStockRegister()]);
+    const [centers, stockData, entries, sci15Forms] = await Promise.all([fetchCenters(), fetchStock(), fetchStockRegister(), fetchSCIForms('?formType=SCI15')]);
     state.centers = centers;
     state.items = stockData.items;
     state.stock = stockData.stock;
     state.units = stockData.unit;
+    state.sci15Forms = sci15Forms || [];
     state.entries = entries;
     render();
   }
@@ -2782,12 +2835,16 @@ function renderStockPage(user, routeParams) {
     const fmtDate = (s) => { if (!s) return '-'; const dt = new Date(s + (s.length === 10 ? 'T00:00:00' : '')); if (isNaN(dt)) return s; return dt.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }); };
     const centre = centerName(en.centreId);
     const unit = esc(en.unit || unitOf(en.centreId, en.item));
+    const sci = sci15Data(en);
+    const sciFormLabel = String((en.sciData && en.sciData.formType) || (en.sciFormId ? 'SCI' : ''));
     const cell = {
       sno: `<td class="sno">${sno}</td>`,
       centre: `<td class="centre stick-1"><b>${esc(centre)}</b></td>`,
       item: `<td>${esc(en.item)}</td>`,
       approvalNo: `<td>${esc(en.approvalNo || '-')}</td>`,
       approvalDate: `<td>${fmtDate(en.approvalDate)}</td>`,
+      verifiedAt: `<td>${fmtDate(en.verifiedAt)}</td>`,
+      sciForm: `<td>${sciFormLabel ? esc(sciFormLabel) : '-'}</td>`,
       qtyA: `<td class="num">${Number(en.qtyA)}${unit ? ' ' + unit : ''}</td>`,
       qtyB: `<td class="num">${Number(en.qtyB)}${unit ? ' ' + unit : ''}</td>`,
       difference: `<td class="diff num ${diffCls(d)}">${diffTxt(d)}</td>`,
@@ -2800,6 +2857,7 @@ function renderStockPage(user, routeParams) {
           ${canDeleteReg ? `<button class="btn red sm" data-reg="del" data-id="${en.id}" title="Delete this entry">&times;</button>` : ''}
         </div></td>`
     };
+    SCI15_FIELDS.forEach((f) => { cell['sci15_' + f.key] = `<td class="wrap">${esc(sci[f.key] || '-')}</td>`; });
     return `<tr data-id="${en.id}">${visibleCols().map((c) => cell[c.key]).join('')}</tr>`;
   }
 
@@ -2810,6 +2868,9 @@ function renderStockPage(user, routeParams) {
 
   function openRegisterModal(entry) {
     const scoped = scopeCenters();
+    const sciEntry = sci15Data(entry || {});
+    const sciFormType = String(sciEntry.formType || (entry && entry.sciData && entry.sciData.formType) || '');
+    const sciFormId = entry && entry.sciFormId ? Number(entry.sciFormId) : '';
     const overlay = document.createElement('div');
     overlay.className = 'modal-overlay';
     overlay.innerHTML = `
@@ -2857,6 +2918,19 @@ function renderStockPage(user, routeParams) {
             <div class="modal-grid">
               <div class="field full"><label>Reason for Difference</label><input id="rm_reason" placeholder="Only if there is any difference" value="${esc(entry ? entry.reason || '' : '')}"></div>
               <div class="field full"><label>Remarks</label><input id="rm_remarks" placeholder="Any remarks" value="${esc(entry ? entry.remarks || '' : '')}"></div>
+            </div>
+          </div>
+          <div class="modal-sec">
+            <div class="modal-sec-title">SCI15 Details</div>
+            <div class="modal-grid">
+              <div class="field"><label>SCI Form</label><select id="rm_sciFormType"><option value=""${sciFormType ? '' : ' selected'}>None</option><option value="SCI15"${sciFormType === 'SCI15' ? ' selected' : ''}>SCI15</option></select></div>
+              <div class="field"><label>Linked SCI15 Form</label><select id="rm_sciFormId"><option value=""${sciFormId ? '' : ' selected'}>None</option>${state.sci15Forms.map((f) => `<option value="${f.id}"${Number(sciFormId) === Number(f.id) ? ' selected' : ''}>SCI15 #${f.id} - ${esc(f.centreName || '')} ${esc(String((f.details && f.details.approvalNo) || ''))}</option>`).join('')}</select></div>
+              ${SCI15_FIELDS.map((f) => {
+                const val = String(sciEntry[f.key] || '');
+                return `<div class="field"><label>${esc(f.label)}</label>${f.key === 'cashSewa'
+                  ? `<select id="rm_s15_${f.key}"><option value=""${val ? '' : ' selected'}>-</option><option value="YES"${val === 'YES' ? ' selected' : ''}>YES</option><option value="NO"${val === 'NO' ? ' selected' : ''}>NO</option></select>`
+                  : `<input id="rm_s15_${f.key}" value="${esc(val)}">`}</div>`;
+              }).join('')}
             </div>
           </div>
         </div>
@@ -2913,6 +2987,17 @@ function renderStockPage(user, routeParams) {
         reason: escTe('rm_reason')(),
         remarks: escTe('rm_remarks')()
       };
+      const selectedSciForm = n('rm_sciFormType').value;
+      const selectedSciFormId = n('rm_sciFormId').value;
+      if (selectedSciForm === 'SCI15') {
+        const sciFields = {};
+        SCI15_FIELDS.forEach((f) => { sciFields[f.key] = escTe('rm_s15_' + f.key)(); });
+        fields.sciFormId = selectedSciFormId ? Number(selectedSciFormId) : null;
+        fields.sciData = { formType: 'SCI15', fields: sciFields };
+      } else {
+        fields.sciFormId = null;
+        fields.sciData = {};
+      }
       n('rmSave').disabled = true;
       try {
         if (entry) await updateStockRegisterEntry(entry.id, fields);
@@ -2959,16 +3044,31 @@ function renderStockPage(user, routeParams) {
         return /[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
       };
       const ids = scopeIds();
-      const rows = state.entries
+      const fmtDate = (s) => { if (!s) return ''; const dt = new Date(s + (s.length === 10 ? 'T00:00:00' : '')); return isNaN(dt) ? s : dt.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }); };
+      const cols = visibleCols().filter((c) => c.key !== 'actions');
+      const val = (en, key, i) => {
+        if (key === 'sno') return i + 1;
+        if (key === 'item') return en.item || '';
+        if (key === 'qtyA') return Number(en.qtyA);
+        if (key === 'approvalDate') return fmtDate(en.approvalDate);
+        if (key === 'verifiedAt') return fmtDate(en.verifiedAt);
+        if (key === 'sciForm') return String((en.sciData && en.sciData.formType) || (en.sciFormId ? 'SCI' : ''));
+        if (key === 'approvalNo') return en.approvalNo || '';
+        if (key === 'qtyB') return Number(en.qtyB);
+        if (key === 'difference') return Number(en.difference);
+        if (key === 'reason') return en.reason || '';
+        if (key === 'remarks') return en.remarks || '';
+        if (key === 'pageNo') return en.pageNo || '';
+        if (key.indexOf('sci15_') === 0) return sci15Data(en)[key.slice(6)] || '';
+        return '';
+      };
+      const source = state.entries
         .filter((en) => ids.has(String(en.centreId)))
         .filter((en) => (skipCurrentCentre ? String(en.centreId) === String(skipCurrentCentre) : true))
-        .filter((en) => (diffFilter === 'diff' ? Number(en.difference) !== 0 : (diffFilter === 'clean' ? Number(en.difference) === 0 : true)))
-        .map((en) => {
-          const fmtDate = (s) => { if (!s) return ''; const dt = new Date(s + (s.length === 10 ? 'T00:00:00' : '')); return isNaN(dt) ? s : dt.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }); };
-          return [centerName(en.centreId), en.item, en.approvalNo || '', fmtDate(en.approvalDate), Number(en.qtyA), Number(en.qtyB), en.unit || unitOf(en.centreId, en.item), Number(en.difference), en.reason || '', en.remarks || '', en.pageNo || ''];
-        });
-      const header = ['S.No', 'Satsang Place', 'Name of Item', 'Approval Number', 'Approval Date', 'Quantity as per Stock Register (A)', 'Physically Available Quantity (B)', 'Unit', 'Difference (if any) (A-B)', 'Reason for Difference', 'Remarks', 'Stock Register Page No.'];
-      const csv = [header.map((h) => csvCell(h)).join(',')].concat(rows.map((r, i) => [i + 1].concat(r).map(csvCell).join(','))).join('\r\n');
+        .filter((en) => (diffFilter === 'diff' ? Number(en.difference) !== 0 : (diffFilter === 'clean' ? Number(en.difference) === 0 : true)));
+      const rows = source.map((en, i) => cols.map((c) => val(en, c.key, i)));
+      const header = cols.map((c) => c.label);
+      const csv = [header.map((h) => csvCell(h)).join(',')].concat(rows.map((r) => r.map(csvCell).join(','))).join('\r\n');
       const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
