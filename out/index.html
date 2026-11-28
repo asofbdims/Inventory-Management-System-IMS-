@@ -143,11 +143,6 @@ main#content{max-width:1340px;margin:0 auto;padding:24px 24px 60px;width:100%}
 }
 .item-row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;margin-bottom:8px;background:var(--surface)}
 .item-row .meta{font-size:12px;color:var(--muted)}
-.items-add{display:grid;grid-template-columns:1.2fr 1fr 1fr auto;gap:8px}
-@media(max-width:640px){.items-add{grid-template-columns:1fr}}
-.item-edit{flex:1;display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:6px}
-@media(max-width:640px){.item-edit{grid-template-columns:1fr}}
-.item-actions{display:flex;gap:6px}
 .sr-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;min-width:auto}
 @media(max-width:720px){.sr-actions{justify-content:flex-start}}
 .sr-actions .btn{font-size:12.5px;padding:8px 14px;box-shadow:var(--shadow);white-space:nowrap}
@@ -626,10 +621,7 @@ td.empty,tr td.empty{color:var(--muted);text-align:center;padding:26px;white-spa
 .sci-paper-sign .sig{display:inline-block;min-width:130px;border-bottom:1px solid var(--line);height:24px;margin-left:6px}
 
 body.read-only #btnNew,
-body.read-only #btnManage,
-body.read-only #btnUploadSupport,
 body.read-only #rmSave,
-body.read-only #im_add,
 body.read-only #maAddItem,
 body.read-only #maAddCentre,
 body.read-only #maAddDoc,
@@ -2555,8 +2547,6 @@ function renderStockPage(user, routeParams) {
           <p>${isAdmin() ? 'Physical-stock verification ledger for every centre - log each verified count, spot any difference from the book figure, and adjust stock when needed.' : 'Verification ledger for your centre + allocated sub centres & points - log each verified count and spot differences from the book figure.'}</p>
         </div>
         <div class="sr-actions">
-          <button class="btn sm" id="btnManage" title="Add, edit or delete stock items">Manage Items</button>
-          <button class="btn sm" id="btnUploadSupport" title="Upload support documents (PDF, max 2 MB)">Upload Support Document</button>
           <button class="btn primary" id="btnNew" title="Enter a new physical verification entry">+ New Verification Entry</button>
         </div>
       </div>
@@ -2602,11 +2592,7 @@ function renderStockPage(user, routeParams) {
 
     bindSearch();
     content.querySelector('#btnNew').addEventListener('click', () => openRegisterModal(null));
-    const btnManage = content.querySelector('#btnManage');
-    if (btnManage) btnManage.addEventListener('click', () => openItemsManager('list'));
-    const btnUploadSupport = content.querySelector('#btnUploadSupport');
-    if (btnUploadSupport) btnUploadSupport.addEventListener('click', () => openSupportUploadModal());
-        const btCols = content.querySelector('#btnCols');
+    const btCols = content.querySelector('#btnCols');
     const colsMenu = content.querySelector('#colsMenu');
     if (btCols && colsMenu) {
       btCols.addEventListener('click', (e) => {
@@ -3014,127 +3000,6 @@ function renderStockPage(user, routeParams) {
     } catch (err) {
       toast('Print failed: ' + (err.message || err), true);
     }
-  }
-
-  function openItemsManager(focus) {
-    const overlay = document.createElement('div');
-    overlay.className = 'modal-overlay';
-    overlay.innerHTML = `
-      <div class="modal" style="width:min(720px,94vw);max-width:none">
-        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
-          <h3 style="margin:0">Manage Stock Items</h3>
-          <button class="btn sm" id="imClose">Close</button>
-        </div>
-        <div class="items-add" style="margin-top:14px">
-          <input id="im_name" placeholder="Item name" maxlength="200">
-          <input id="im_desc" placeholder="Description (optional)">
-          <input id="im_cat" placeholder="Category (optional)">
-          <button class="btn primary sm" id="im_add">Add Item</button>
-        </div>
-        <p class="hint" style="margin:8px 0 4px">Renaming an item updates it in every centre's stock register; deleting removes its stock rows from all centres.</p>
-        <div id="imList" style="margin-top:10px;max-height:52vh;overflow:auto"></div>
-      </div>
-    `;
-    document.body.appendChild(overlay);
-    if (focus === 'add') setTimeout(() => { try { overlay.querySelector('#im_name').focus(); } catch (e) {} }, 80);
-
-    let rows = [];
-    const listEl = overlay.querySelector('#imList');
-    const n = (id) => overlay.querySelector('#' + id);
-    const close = () => { document.body.removeChild(overlay); document.removeEventListener('keydown', escClose, true); };
-    const escClose = (e) => { if (e.key === 'Escape') close(); };
-    document.addEventListener('keydown', escClose, true);
-    n('imClose').addEventListener('click', close);
-    overlay.addEventListener('mousedown', (e) => { if (e.target === overlay) close(); });
-
-    function render() {
-      if (!rows.length) {
-        listEl.innerHTML = '<div class="card hint" style="padding:16px;text-align:center">No items yet - add the first one above.</div>';
-        return;
-      }
-      listEl.innerHTML = rows.map((r, i) => r.editing ? `
-        <div class="item-row">
-          <div class="item-edit">
-            <input id="row_name_${r.id}" value="${esc(r.name)}" maxlength="200" placeholder="Item name">
-            <input id="row_desc_${r.id}" value="${esc(r.description || '')}" placeholder="Description (optional)">
-            <input id="row_cat_${r.id}" value="${esc(r.category || '')}" placeholder="Category (optional)">
-          </div>
-          <div class="item-actions">
-            <button class="btn primary sm" data-act="save" data-id="${r.id}">Save</button>
-            <button class="btn sm" data-act="cancel">Cancel</button>
-          </div>
-        </div>` : `
-        <div class="item-row">
-          <div style="flex:1">
-            <b>${esc(r.name)}</b>
-            <div class="meta">${esc(r.description || '')}${(r.category ? ' - ' + esc(r.category) : (r.description ? '' : 'No description'))}</div>
-          </div>
-          <div class="item-actions">
-            <button class="btn sm" data-act="edit" data-id="${r.id}">Edit</button>
-            <button class="btn red sm" data-act="del" data-id="${r.id}" data-name="${esc(r.name)}">Delete</button>
-          </div>
-        </div>`).join('');
-    }
-
-    async function loadRows() {
-      try {
-        rows = await fetchItemsFull();
-        render();
-      } catch (err) { toast(err.message, true); }
-    }
-
-    n('im_add').addEventListener('click', async () => {
-      const name = n('im_name').value.trim();
-      if (!name) return toast('Item name is required', true);
-      try {
-        await createStockItem({ name, description: n('im_desc').value, category: n('im_cat').value });
-        n('im_name').value = ''; n('im_desc').value = ''; n('im_cat').value = '';
-        toast('Item added: ' + name);
-        load();
-        await loadRows();
-      } catch (err) { toast(err.message, true); }
-    });
-
-    listEl.addEventListener('click', async (e) => {
-      const btn = e.target.closest('[data-act]');
-      if (!btn) return;
-      const act = btn.dataset.act;
-      const row = rows.find((r) => Number(r.id) === Number(btn.dataset.id));
-    if (act === 'edit') {
-        rows.forEach((r) => { r.editing = false; });
-        if (row) row.editing = true;
-        render();
-      } else if (act === 'cancel') {
-        rows.forEach((r) => { r.editing = false; });
-        render();
-      } else if (act === 'save' && row) {
-        const nameEl = overlay.querySelector('#row_name_' + row.id);
-        const name = (nameEl ? nameEl.value : '').trim();
-        if (!name) return toast('Item name is required', true);
-        btn.disabled = true;
-        try {
-          await updateItemRecord(row.id, {
-            name,
-            description: overlay.querySelector('#row_desc_' + row.id).value,
-            category: overlay.querySelector('#row_cat_' + row.id).value
-          }, row.name);
-          toast('Item updated: ' + name);
-          load();
-          await loadRows();
-        } catch (err) { btn.disabled = false; toast(err.message, true); }
-      } else if (act === 'del' && row) {
-        if (!confirm('Delete item "' + row.name + '" and remove its stock from every centre? This cannot be undone.')) return;
-        btn.disabled = true;
-        try {
-          await deleteStockItem(row.id, row.name);
-          toast('Item deleted: ' + row.name);
-          load();
-          await loadRows();
-        } catch (err) { btn.disabled = false; toast(err.message, true); }
-      }
-    });
-
-    loadRows().catch((err) => toast(err.message, true));
   }
 
   load().catch((err) => toast(err.message, true));
