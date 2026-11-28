@@ -2399,6 +2399,7 @@ function renderStockPage(user, routeParams) {
     { key: 'qtyA',         label: 'Opening Balance',                   group: null,                 sortable: true,  align: 'right' },
     { key: 'approvalDate', label: 'Date Receipt',                      group: null,                 sortable: true },
     { key: 'verifiedAt',   label: 'Date of Opening Balance',           group: null,                 sortable: true },
+    { key: 'sciForm',      label: 'SCI Form No.',                       group: null,                 sortable: true },
     { key: 'approvalNo',   label: 'Approval Number',                   group: 'Approval',           sortable: true },
     { key: 'qtyB',         label: 'Physically Available Quantity (B)', group: 'Stock Verification', sortable: true,  align: 'right' },
     { key: 'difference',   label: 'Difference (if any) (A\u2212B)',     group: 'Stock Verification', sortable: true,  align: 'right' },
@@ -2429,6 +2430,7 @@ function renderStockPage(user, routeParams) {
       case 'approvalNo': return String(en.approvalNo || '').toLowerCase();
       case 'approvalDate': return en.approvalDate ? String(en.approvalDate) : '';
       case 'verifiedAt': return en.verifiedAt ? String(en.verifiedAt) : '';
+      case 'sciForm': return String((en.sciData && en.sciData.formType) || (en.sciFormId ? 'SCI' : '')).toUpperCase();
       case 'qtyA': return Number(en.qtyA) || 0;
       case 'qtyB': return Number(en.qtyB) || 0;
       case 'difference': return Number(en.difference) || 0;
@@ -2795,6 +2797,7 @@ function renderStockPage(user, routeParams) {
     const fmtDate = (s) => { if (!s) return '-'; const dt = new Date(s + (s.length === 10 ? 'T00:00:00' : '')); if (isNaN(dt)) return s; return dt.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }); };
     const centre = centerName(en.centreId);
     const unit = esc(en.unit || unitOf(en.centreId, en.item));
+    const sciFormNo = String((en.sciData && en.sciData.formType) || (en.sciFormId ? 'SCI' : ''));
     const cell = {
       sno: `<td class="sno">${sno}</td>`,
       centre: `<td class="centre stick-1"><b>${esc(centre)}</b></td>`,
@@ -2802,6 +2805,7 @@ function renderStockPage(user, routeParams) {
       approvalNo: `<td>${esc(en.approvalNo || '-')}</td>`,
       approvalDate: `<td>${fmtDate(en.approvalDate)}</td>`,
       verifiedAt: `<td>${fmtDate(en.verifiedAt)}</td>`,
+      sciForm: `<td>${sciFormNo ? esc(sciFormNo) : '-'}</td>`,
       qtyA: `<td class="num">${Number(en.qtyA)}${unit ? ' ' + unit : ''}</td>`,
       qtyB: `<td class="num">${Number(en.qtyB)}${unit ? ' ' + unit : ''}</td>`,
       difference: `<td class="diff num ${diffCls(d)}">${diffTxt(d)}</td>`,
@@ -2824,6 +2828,7 @@ function renderStockPage(user, routeParams) {
 
   function openRegisterModal(entry) {
     const scoped = scopeCenters();
+    const sciFormType = String((entry && entry.sciData && entry.sciData.formType) || '');
     const overlay = document.createElement('div');
     overlay.className = 'modal-overlay';
     overlay.innerHTML = `
@@ -2855,6 +2860,7 @@ function renderStockPage(user, routeParams) {
               <div class="field"><label>Approval Number</label><input id="rm_appr" placeholder="e.g. ARD/2026/001" value="${esc(entry ? entry.approvalNo || '' : '')}"></div>
               <div class="field"><label>Approval Date</label><input type="date" id="rm_adate" value="${esc(entry && entry.approvalDate ? entry.approvalDate.slice(0, 10) : new Date().toISOString().slice(0, 10))}"></div>
               <div class="field full"><label>Stock Register Page No.</label><input id="rm_page" placeholder="e.g. 12" value="${esc(entry ? entry.pageNo || '' : '')}"></div>
+              <div class="field full"><label>SCI Form No.</label><select id="rm_sciFormType"><option value=""${sciFormType ? '' : ' selected'}>None</option><option value="SCI15"${sciFormType === 'SCI15' ? ' selected' : ''}>SCI15</option><option value="SCI43"${sciFormType === 'SCI43' ? ' selected' : ''}>SCI43</option><option value="SCI34"${sciFormType === 'SCI34' ? ' selected' : ''}>SCI34</option><option value="SCI76"${sciFormType === 'SCI76' ? ' selected' : ''}>SCI76</option><option value="SCI53"${sciFormType === 'SCI53' ? ' selected' : ''}>SCI53</option><option value="SCI45"${sciFormType === 'SCI45' ? ' selected' : ''}>SCI45</option></select></div>
             </div>
           </div>
           <div class="modal-sec">
@@ -2914,6 +2920,7 @@ function renderStockPage(user, routeParams) {
     n('rmSave').addEventListener('click', async () => {
       const cid = n('rm_centre').value;
       const it = n('rm_item').value;
+      const selectedSciForm = n('rm_sciFormType').value;
       if (!cid || !it) return toast('Select a centre and an item', true);
       const qtyB = Math.max(0, Number(n('rm_qtyB').value) || 0);
       const qtyA = Math.max(0, Number(n('rm_qtyA').value) || 0);
@@ -2929,7 +2936,7 @@ function renderStockPage(user, routeParams) {
         reason: escTe('rm_reason')(),
         remarks: escTe('rm_remarks')(),
         sciFormId: null,
-        sciData: {}
+        sciData: selectedSciForm ? { formType: selectedSciForm } : {}
       };
       n('rmSave').disabled = true;
       try {
@@ -2985,6 +2992,7 @@ function renderStockPage(user, routeParams) {
         if (key === 'qtyA') return Number(en.qtyA);
         if (key === 'approvalDate') return fmtDate(en.approvalDate);
         if (key === 'verifiedAt') return fmtDate(en.verifiedAt);
+        if (key === 'sciForm') return String((en.sciData && en.sciData.formType) || (en.sciFormId ? 'SCI' : ''));
         if (key === 'approvalNo') return en.approvalNo || '';
         if (key === 'qtyB') return Number(en.qtyB);
         if (key === 'difference') return Number(en.difference);
