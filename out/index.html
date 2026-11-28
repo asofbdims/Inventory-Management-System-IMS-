@@ -1144,8 +1144,8 @@ async function applyApprovalStock(form) {
       qtyB: after,
       reason: `SCI ${form.formType} approved - stock auto-adjusted`,
       remarks: `Approved form ${form.id} - ${form.formType} -> ${centreName}`,
-      sciFormId: form.formType === 'SCI15' ? Number(form.id) : null,
-      sciData: form.formType === 'SCI15' ? { formType: 'SCI15', fields: {} } : {},
+      sciFormId: form.formType === 'SCI15' || form.formType === 'SCI43' ? Number(form.id) : null,
+      sciData: form.formType === 'SCI15' || form.formType === 'SCI43' ? { formType: form.formType, fields: {} } : {},
       verifiedBy: approver
     });
   }
@@ -2340,7 +2340,7 @@ function renderSCIFormsLogPage(user) {
 function renderStockPage(user, routeParams) {
   document.body.classList.remove('login-page');
   const content = document.getElementById('content');
-  const state = { centers: [], items: [], stock: {}, units: {}, entries: [], sci15Forms: [] };
+  const state = { centers: [], items: [], stock: {}, units: {}, entries: [], sciForms: [] };
   let anchorId = null;
   let selectedCenter = null;
   let diffFilter = 'clean';
@@ -2422,6 +2422,28 @@ function renderStockPage(user, routeParams) {
     { key: 'areaDate', label: 'Area Date' }
   ];
   const SCI15_KEYS = SCI15_FIELDS.map((f) => 'sci15_' + f.key);
+  const SCI43_FIELDS = [
+    { key: 'beasFileNo', label: 'Beas File No.' },
+    { key: 'formNo', label: 'Form No.' },
+    { key: 'formDate', label: 'Form Date' },
+    { key: 'satsangPlace', label: 'Name of Satsang Place' },
+    { key: 'attachedTo', label: 'Attached To' },
+    { key: 'area', label: 'Area' },
+    { key: 'srNo', label: 'SCI43 Sr.No.' },
+    { key: 'article', label: 'Item' },
+    { key: 'quantity', label: 'Quantity' },
+    { key: 'unit', label: 'Unit' },
+    { key: 'reqPlace', label: 'Required At (C/SC/SP)' },
+    { key: 'reqAttachedTo', label: 'Required At Attached To' },
+    { key: 'reqSci0953Place', label: 'SCI/09/53 Place' },
+    { key: 'fromPlace', label: 'From Satsang Place' },
+    { key: 'toPlace', label: 'To Satsang Place' },
+    { key: 'areaSecNo', label: 'Area Secretary No.' },
+    { key: 'areaSecDate', label: 'Area Secretary Date' },
+    { key: 'zonalNo', label: 'Zonal Secretary No.' },
+    { key: 'zonalDate', label: 'Zonal Secretary Date' }
+  ];
+  const SCI43_KEYS = SCI43_FIELDS.map((f) => 'sci43_' + f.key);
   const COLS = [
     { key: 'sno',          label: 'S. No.',                            group: null,                 sortable: false, cls: 'sno', always: true },
     { key: 'item',         label: 'Particulars',                       group: null,                 sortable: true,  always: true },
@@ -2437,21 +2459,36 @@ function renderStockPage(user, routeParams) {
     { key: 'pageNo',       label: 'Stock Register Page No.',           group: 'Notes',              sortable: true }
   ]
     .concat(SCI15_FIELDS.map((f) => ({ key: 'sci15_' + f.key, label: f.label, group: 'SCI15 Details', sortable: false })))
+    .concat(SCI43_FIELDS.map((f) => ({ key: 'sci43_' + f.key, label: f.label, group: 'SCI43 Details', sortable: false })))
     .concat([{ key: 'actions', label: 'Actions', group: null, sortable: false, cls: 'col-sticky', always: true }]);
-  const COLS_KEY = 'ims.cols.stock.v2';
+  const COLS_KEY = 'ims.cols.stock.v3';
   let hiddenCols = [];
   const savedCols = localStorage.getItem(COLS_KEY);
   if (savedCols !== null) {
     try { hiddenCols = JSON.parse(savedCols || '[]'); } catch (e) { hiddenCols = []; }
     if (!Array.isArray(hiddenCols)) hiddenCols = [];
   } else {
-    hiddenCols = ['approvalNo'].concat(SCI15_KEYS);
+    hiddenCols = ['approvalNo'].concat(SCI15_KEYS, SCI43_KEYS);
   }
   function sci15Data(en) {
     const d = en && en.sciData ? en.sciData : {};
     if (d.fields && typeof d.fields === 'object') return d.fields;
     if (d.formType === 'SCI15') return d;
     return {};
+  }
+  function sci43Data(en) {
+    const d = en && en.sciData ? en.sciData : {};
+    if (d.fields && typeof d.fields === 'object') return d.fields;
+    if (d.formType === 'SCI43') return d;
+    return {};
+  }
+  function sciFieldHtml(f, prefix, values) {
+    const val = String(values[f.key] || '');
+    const id = 'rm_' + prefix + '_' + f.key;
+    if (f.key === 'cashSewa') {
+      return `<div class="field"><label>${esc(f.label)}</label><select id="${id}"><option value=""${val ? '' : ' selected'}>-</option><option value="YES"${val === 'YES' ? ' selected' : ''}>YES</option><option value="NO"${val === 'NO' ? ' selected' : ''}>NO</option></select></div>`;
+    }
+    return `<div class="field"><label>${esc(f.label)}</label><input id="${id}" value="${esc(val)}"></div>`;
   }
   let sortState = { key: null, dir: 'asc' };
 
@@ -2475,6 +2512,7 @@ function renderStockPage(user, routeParams) {
       case 'pageNo': return String(en.pageNo || '').toLowerCase();
       default:
         if (key.indexOf('sci15_') === 0) return String(sci15Data(en)[key.slice(6)] || '').toLowerCase();
+        if (key.indexOf('sci43_') === 0) return String(sci43Data(en)[key.slice(6)] || '').toLowerCase();
         return '';
     }
   }
@@ -2528,12 +2566,12 @@ function renderStockPage(user, routeParams) {
 
 
   async function load() {
-    const [centers, stockData, entries, sci15Forms] = await Promise.all([fetchCenters(), fetchStock(), fetchStockRegister(), fetchSCIForms('?formType=SCI15')]);
+    const [centers, stockData, entries, sciForms] = await Promise.all([fetchCenters(), fetchStock(), fetchStockRegister(), fetchSCIForms()]);
     state.centers = centers;
     state.items = stockData.items;
     state.stock = stockData.stock;
     state.units = stockData.unit;
-    state.sci15Forms = sci15Forms || [];
+    state.sciForms = sciForms || [];
     state.entries = entries;
     render();
   }
@@ -2836,6 +2874,7 @@ function renderStockPage(user, routeParams) {
     const centre = centerName(en.centreId);
     const unit = esc(en.unit || unitOf(en.centreId, en.item));
     const sci = sci15Data(en);
+    const sci43 = sci43Data(en);
     const sciFormLabel = String((en.sciData && en.sciData.formType) || (en.sciFormId ? 'SCI' : ''));
     const cell = {
       sno: `<td class="sno">${sno}</td>`,
@@ -2858,6 +2897,7 @@ function renderStockPage(user, routeParams) {
         </div></td>`
     };
     SCI15_FIELDS.forEach((f) => { cell['sci15_' + f.key] = `<td class="wrap">${esc(sci[f.key] || '-')}</td>`; });
+    SCI43_FIELDS.forEach((f) => { cell['sci43_' + f.key] = `<td class="wrap">${esc(sci43[f.key] || '-')}</td>`; });
     return `<tr data-id="${en.id}">${visibleCols().map((c) => cell[c.key]).join('')}</tr>`;
   }
 
@@ -2868,8 +2908,9 @@ function renderStockPage(user, routeParams) {
 
   function openRegisterModal(entry) {
     const scoped = scopeCenters();
-    const sciEntry = sci15Data(entry || {});
-    const sciFormType = String(sciEntry.formType || (entry && entry.sciData && entry.sciData.formType) || '');
+    const sciData = entry && entry.sciData ? entry.sciData : {};
+    const sciFormType = String(sciData.formType || '');
+    const sciEntry = sciFormType === 'SCI43' ? sci43Data(entry || {}) : sci15Data(entry || {});
     const sciFormId = entry && entry.sciFormId ? Number(entry.sciFormId) : '';
     const overlay = document.createElement('div');
     overlay.className = 'modal-overlay';
@@ -2921,17 +2962,19 @@ function renderStockPage(user, routeParams) {
             </div>
           </div>
           <div class="modal-sec">
-            <div class="modal-sec-title">SCI15 Details</div>
+            <div class="modal-sec-title">SCI Form</div>
             <div class="modal-grid">
-              <div class="field"><label>SCI Form</label><select id="rm_sciFormType"><option value=""${sciFormType ? '' : ' selected'}>None</option><option value="SCI15"${sciFormType === 'SCI15' ? ' selected' : ''}>SCI15</option></select></div>
-              <div class="field"><label>Linked SCI15 Form</label><select id="rm_sciFormId"><option value=""${sciFormId ? '' : ' selected'}>None</option>${state.sci15Forms.map((f) => `<option value="${f.id}"${Number(sciFormId) === Number(f.id) ? ' selected' : ''}>SCI15 #${f.id} - ${esc(f.centreName || '')} ${esc(String((f.details && f.details.approvalNo) || ''))}</option>`).join('')}</select></div>
-              ${SCI15_FIELDS.map((f) => {
-                const val = String(sciEntry[f.key] || '');
-                return `<div class="field"><label>${esc(f.label)}</label>${f.key === 'cashSewa'
-                  ? `<select id="rm_s15_${f.key}"><option value=""${val ? '' : ' selected'}>-</option><option value="YES"${val === 'YES' ? ' selected' : ''}>YES</option><option value="NO"${val === 'NO' ? ' selected' : ''}>NO</option></select>`
-                  : `<input id="rm_s15_${f.key}" value="${esc(val)}">`}</div>`;
-              }).join('')}
+              <div class="field"><label>SCI Form</label><select id="rm_sciFormType"><option value=""${sciFormType ? '' : ' selected'}>None</option><option value="SCI15"${sciFormType === 'SCI15' ? ' selected' : ''}>SCI15</option><option value="SCI43"${sciFormType === 'SCI43' ? ' selected' : ''}>SCI43</option></select></div>
+              <div class="field"><label>Linked SCI Form</label><select id="rm_sciFormId"><option value=""${sciFormId ? '' : ' selected'}>None</option>${state.sciForms.map((f) => `<option value="${f.id}" data-form-type="${esc(f.formType || '')}"${Number(sciFormId) === Number(f.id) ? ' selected' : ''}>${esc(f.formType || 'SCI')} #${f.id} - ${esc(f.centreName || '')} ${esc(String((f.details && f.details.approvalNo) || ''))}</option>`).join('')}</select></div>
             </div>
+          </div>
+          <div class="modal-sec" id="rm_sci15Group" style="${sciFormType === 'SCI15' ? '' : 'display:none'}">
+            <div class="modal-sec-title">SCI15 Details</div>
+            <div class="modal-grid">${SCI15_FIELDS.map((f) => sciFieldHtml(f, 's15', sciEntry)).join('')}</div>
+          </div>
+          <div class="modal-sec" id="rm_sci43Group" style="${sciFormType === 'SCI43' ? '' : 'display:none'}">
+            <div class="modal-sec-title">SCI43 Details</div>
+            <div class="modal-grid">${SCI43_FIELDS.map((f) => sciFieldHtml(f, 's43', sciEntry)).join('')}</div>
           </div>
         </div>
         <div class="m-actions">
@@ -2947,6 +2990,18 @@ function renderStockPage(user, routeParams) {
     const close = () => { document.body.removeChild(overlay); document.removeEventListener('keydown', escClose, true); };
     const escClose = (e) => { if (e.key === 'Escape') close(); };
     document.addEventListener('keydown', escClose, true);
+
+    const syncSciGroups = () => {
+      const t = n('rm_sciFormType').value;
+      const g15 = n('rm_sci15Group'); if (g15) g15.style.display = t === 'SCI15' ? '' : 'none';
+      const g43 = n('rm_sci43Group'); if (g43) g43.style.display = t === 'SCI43' ? '' : 'none';
+      const sel = n('rm_sciFormId');
+      Array.from(sel.options).forEach((o) => { if (o.value) o.style.display = !t || o.dataset.formType === t ? '' : 'none'; });
+      const current = sel.options[sel.selectedIndex];
+      if (current && current.value && current.style.display === 'none') sel.value = '';
+    };
+    n('rm_sciFormType').addEventListener('change', syncSciGroups);
+    syncSciGroups();
 
     const syncA = () => {
       const cid = n('rm_centre').value; const it = n('rm_item').value;
@@ -2989,11 +3044,13 @@ function renderStockPage(user, routeParams) {
       };
       const selectedSciForm = n('rm_sciFormType').value;
       const selectedSciFormId = n('rm_sciFormId').value;
-      if (selectedSciForm === 'SCI15') {
+      if (selectedSciForm === 'SCI15' || selectedSciForm === 'SCI43') {
         const sciFields = {};
-        SCI15_FIELDS.forEach((f) => { sciFields[f.key] = escTe('rm_s15_' + f.key)(); });
+        const sciDefs = selectedSciForm === 'SCI43' ? SCI43_FIELDS : SCI15_FIELDS;
+        const prefix = selectedSciForm === 'SCI43' ? 'rm_s43_' : 'rm_s15_';
+        sciDefs.forEach((f) => { sciFields[f.key] = escTe(prefix + f.key)(); });
         fields.sciFormId = selectedSciFormId ? Number(selectedSciFormId) : null;
-        fields.sciData = { formType: 'SCI15', fields: sciFields };
+        fields.sciData = { formType: selectedSciForm, fields: sciFields };
       } else {
         fields.sciFormId = null;
         fields.sciData = {};
@@ -3060,6 +3117,7 @@ function renderStockPage(user, routeParams) {
         if (key === 'remarks') return en.remarks || '';
         if (key === 'pageNo') return en.pageNo || '';
         if (key.indexOf('sci15_') === 0) return sci15Data(en)[key.slice(6)] || '';
+        if (key.indexOf('sci43_') === 0) return sci43Data(en)[key.slice(6)] || '';
         return '';
       };
       const source = state.entries
