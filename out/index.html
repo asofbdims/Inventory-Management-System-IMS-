@@ -3070,7 +3070,6 @@ function renderStockPage(user, routeParams) {
     const sciData = entry && entry.sciData ? entry.sciData : {};
     const sciFormType = String(sciData.formType || '');
     const sciEntry = sciFormType === 'SCI43' ? sci43Data(entry || {}) : sciFormType === 'SCI34' ? sci34Data(entry || {}) : sciFormType === 'SCI76' ? sci76Data(entry || {}) : sciFormType === 'SCI53' ? sci53Data(entry || {}) : sciFormType === 'SCI45' ? sci45Data(entry || {}) : sci15Data(entry || {});
-    const sciFormId = entry && entry.sciFormId ? Number(entry.sciFormId) : '';
     const overlay = document.createElement('div');
     overlay.className = 'modal-overlay';
     overlay.innerHTML = `
@@ -3078,7 +3077,7 @@ function renderStockPage(user, routeParams) {
         <div class="modal-head">
           <div>
             <h3>${entry ? 'Edit Verification Entry' : 'New Verification Entry'}</h3>
-            <p class="hint">${entry ? 'Update this row of the paper-style verification register.' : 'Rows are appended to the paper-style register - enter the counted quantity as (B); the Difference is computed automatically.'}</p>
+            <p class="hint">${entry ? 'Update this row of the paper-style verification register; (A) can be corrected and Difference is computed automatically.' : 'Rows are appended to the paper-style register - edit (A) if needed, enter counted quantity as (B), and use Approval Number above to link the SCI form.'}</p>
           </div>
           <button class="btn sm" id="rmCancel">Close</button>
         </div>
@@ -3107,7 +3106,7 @@ function renderStockPage(user, routeParams) {
           <div class="modal-sec">
             <div class="modal-sec-title">Quantities</div>
             <div class="modal-grid">
-              <div class="field"><label>Quantity as per Stock Register (A)</label><input type="number" id="rm_qtyA" min="0" value="${entry ? Number(entry.qtyA) : 0}" readonly></div>
+              <div class="field"><label>Quantity as per Stock Register (A)</label><input type="number" id="rm_qtyA" min="0" value="${entry ? Number(entry.qtyA) : 0}"${isReadOnly() ? ' readonly' : ''}></div>
               <div class="field"><label>Physically Available Quantity (B)</label><input type="number" id="rm_qtyB" min="0" value="${entry ? Number(entry.qtyB) : 0}"></div>
               <div class="field"><label>Unit</label><input id="rm_unit" placeholder="e.g. mtr, nos, KG" value="${esc(entry ? entry.unit || unitOf(entry.centreId, entry.item) : '')}"></div>
               <div class="field"><label>Difference (A-B)</label><input type="text" id="rm_diff" readonly value="${entry ? diffTxt(Number(entry.difference)) : 0}"></div>
@@ -3124,7 +3123,6 @@ function renderStockPage(user, routeParams) {
             <div class="modal-sec-title">SCI Form</div>
             <div class="modal-grid">
               <div class="field"><label>SCI Form</label><select id="rm_sciFormType"><option value=""${sciFormType ? '' : ' selected'}>None</option><option value="SCI15"${sciFormType === 'SCI15' ? ' selected' : ''}>SCI15</option><option value="SCI43"${sciFormType === 'SCI43' ? ' selected' : ''}>SCI43</option><option value="SCI34"${sciFormType === 'SCI34' ? ' selected' : ''}>SCI34</option><option value="SCI76"${sciFormType === 'SCI76' ? ' selected' : ''}>SCI76</option><option value="SCI53"${sciFormType === 'SCI53' ? ' selected' : ''}>SCI53</option><option value="SCI45"${sciFormType === 'SCI45' ? ' selected' : ''}>SCI45</option></select></div>
-              <div class="field"><label>Linked SCI Form</label><select id="rm_sciFormId"><option value=""${sciFormId ? '' : ' selected'}>None</option>${state.sciForms.map((f) => `<option value="${f.id}" data-form-type="${esc(f.formType || '')}"${Number(sciFormId) === Number(f.id) ? ' selected' : ''}>${esc(f.formType || 'SCI')} #${f.id} - ${esc(f.centreName || '')} ${esc(String((f.details && f.details.approvalNo) || ''))}</option>`).join('')}</select></div>
             </div>
           </div>
           <div class="modal-sec" id="rm_sci15Group" style="${sciFormType === 'SCI15' ? '' : 'display:none'}">
@@ -3174,18 +3172,15 @@ function renderStockPage(user, routeParams) {
       const g76 = n('rm_sci76Group'); if (g76) g76.style.display = t === 'SCI76' ? '' : 'none';
       const g53 = n('rm_sci53Group'); if (g53) g53.style.display = t === 'SCI53' ? '' : 'none';
       const g45 = n('rm_sci45Group'); if (g45) g45.style.display = t === 'SCI45' ? '' : 'none';
-      const sel = n('rm_sciFormId');
-      Array.from(sel.options).forEach((o) => { if (o.value) o.style.display = !t || o.dataset.formType === t ? '' : 'none'; });
-      const current = sel.options[sel.selectedIndex];
-      if (current && current.value && current.style.display === 'none') sel.value = '';
     };
     n('rm_sciFormType').addEventListener('change', syncSciGroups);
     syncSciGroups();
 
+    let qtyAEdited = false;
     const syncA = () => {
       const cid = n('rm_centre').value; const it = n('rm_item').value;
       const cur = Number(state.stock[cid] ? state.stock[cid][it] || 0 : 0);
-      n('rm_qtyA').value = entry ? Number(entry.qtyA) : cur;
+      if (!qtyAEdited) n('rm_qtyA').value = entry ? Number(entry.qtyA) : cur;
       n('rm_unit').value = entry ? (entry.unit || unitOf(entry.centreId, entry.item)) : unitOf(cid, it);
       syncDiff();
     };
@@ -3195,6 +3190,7 @@ function renderStockPage(user, routeParams) {
     };
     n('rm_centre').addEventListener('change', () => { if (!entry) syncA(); });
     n('rm_item').addEventListener('change', () => { if (!entry) syncA(); });
+    n('rm_qtyA').addEventListener('input', () => { qtyAEdited = true; syncDiff(); });
     n('rm_qtyB').addEventListener('input', syncDiff);
 
     const close2 = () => { const b = n('rmCancel2'); if (b) b.addEventListener('click', close); };
@@ -3208,7 +3204,7 @@ function renderStockPage(user, routeParams) {
       const it = n('rm_item').value;
       if (!cid || !it) return toast('Select a centre and an item', true);
       const qtyB = Math.max(0, Number(n('rm_qtyB').value) || 0);
-      const qtyA = entry ? Number(entry.qtyA) : (Number(state.stock[cid] ? state.stock[cid][it] || 0 : 0));
+      const qtyA = Math.max(0, Number(n('rm_qtyA').value) || 0);
       const fields = {
         centreId: cid,
         item: it,
@@ -3219,19 +3215,17 @@ function renderStockPage(user, routeParams) {
         qtyB,
         unit: escTe('rm_unit')(),
         reason: escTe('rm_reason')(),
-        remarks: escTe('rm_remarks')()
+        remarks: escTe('rm_remarks')(),
+        sciFormId: null
       };
       const selectedSciForm = n('rm_sciFormType').value;
-      const selectedSciFormId = n('rm_sciFormId').value;
       if (selectedSciForm === 'SCI15' || selectedSciForm === 'SCI43' || selectedSciForm === 'SCI34' || selectedSciForm === 'SCI76' || selectedSciForm === 'SCI53' || selectedSciForm === 'SCI45') {
         const sciFields = {};
         const sciDefs = selectedSciForm === 'SCI45' ? SCI45_FIELDS : selectedSciForm === 'SCI53' ? SCI53_FIELDS : selectedSciForm === 'SCI76' ? SCI76_FIELDS : selectedSciForm === 'SCI34' ? SCI34_FIELDS : selectedSciForm === 'SCI43' ? SCI43_FIELDS : SCI15_FIELDS;
         const prefix = selectedSciForm === 'SCI45' ? 'rm_s45_' : selectedSciForm === 'SCI53' ? 'rm_s53_' : selectedSciForm === 'SCI76' ? 'rm_s76_' : selectedSciForm === 'SCI34' ? 'rm_s34_' : selectedSciForm === 'SCI43' ? 'rm_s43_' : 'rm_s15_';
         sciDefs.forEach((f) => { sciFields[f.key] = escTe(prefix + f.key)(); });
-        fields.sciFormId = selectedSciFormId ? Number(selectedSciFormId) : null;
         fields.sciData = { formType: selectedSciForm, fields: sciFields };
       } else {
-        fields.sciFormId = null;
         fields.sciData = {};
       }
       n('rmSave').disabled = true;
